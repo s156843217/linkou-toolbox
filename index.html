@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>林口置產工具箱 — 一站式置產服務</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* 工具集首頁 — 工具卡片牆（沿用全站設計系統，僅補排版） */
+  .tools-intro{font-size:14px;color:var(--ink-soft);margin:0 4px 4px;max-width:54ch}
+
+  .tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px;margin-top:6px}
+
+  /* 整張卡可點：用 <a> 包整張，hover 上浮 */
+  .tool-card{display:flex;flex-direction:column;padding:26px 24px;text-decoration:none;color:inherit;
+    border-top:4px solid var(--clay);transition:transform .18s, box-shadow .18s}
+  .tool-card:hover{transform:translateY(-4px);box-shadow:0 14px 36px rgba(60,44,28,.16)}
+
+  /* 三個工具各自的頂條色，呼應全站色系 */
+  .tool-card.t-school{border-top-color:var(--clay)}
+  .tool-card.t-bus{border-top-color:var(--gold)}
+  .tool-card.t-loan{border-top-color:var(--teal)}
+  .tool-card.t-rent{border-top-color:var(--amber)}
+
+  .tool-card .tc-icon{font-size:36px;line-height:1;margin-bottom:14px}
+  .tool-card h3{font-family:var(--serif);font-weight:900;font-size:21px;color:var(--ink);margin-bottom:8px}
+  .tool-card .tc-desc{font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px}
+
+  .tool-card ul{list-style:none;margin:0 0 20px;display:flex;flex-direction:column;gap:7px}
+  .tool-card li{font-size:13px;color:var(--ink);padding-left:20px;position:relative;line-height:1.5}
+  .tool-card li::before{content:"✓";position:absolute;left:0;top:0;color:var(--teal);font-weight:900}
+
+  .tool-card .tc-go{margin-top:auto;font-weight:700;font-size:14.5px;color:var(--clay-d);
+    display:inline-flex;align-items:center;gap:6px}
+  .tool-card .tc-go .arr{transition:transform .18s}
+  .tool-card:hover .tc-go .arr{transform:translateX(4px)}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="./" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="school/">學區快查</a>
+      <a href="bus/">公車路線</a>
+      <a href="mortgage/">房貸試算</a>
+      <a href="rent/">租約產生器</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge">林口一站式置產服務</span>
+      <h1>林口<span class="mk">置產</span>工具箱</h1>
+      <p>從學區、房貸到租約，一個網站搞定購屋與租賃的大小事。選一個工具開始：</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <div class="sec-title"><span class="bar"></span>選擇工具</div>
+
+  <div class="tools-grid">
+
+    <!-- 學區快查 -->
+    <a class="panel tool-card t-school" href="school/">
+      <div class="tc-icon">🏫</div>
+      <h3>林口學區快查</h3>
+      <div class="tc-desc">輸入地址或社區名，立刻查出所屬里鄰與對應的國小、國中學區，並在地圖上標示。</div>
+      <ul>
+        <li>地址 / 社區名雙模式查詢</li>
+        <li>國中小學區 + 地圖定位</li>
+        <li>附幼兒園名額、額滿學校設籍日</li>
+      </ul>
+      <span class="tc-go">查詢學區 <span class="arr">→</span></span>
+    </a>
+
+    <!-- 公車路線 -->
+    <a class="panel tool-card t-bus" href="bus/">
+      <div class="tc-icon">🚌</div>
+      <h3>林口公車路線</h3>
+      <div class="tc-desc">輸入社區或地址，立刻在地圖上看到附近的公車站牌、有哪幾條路線經過，點路線還能看完整走向與站序。</div>
+      <ul>
+        <li>社區 / 地址查附近站牌與路線</li>
+        <li>點路線看完整走向與沿途站牌</li>
+        <li>可輸入路線編號直接查整條</li>
+      </ul>
+      <span class="tc-go">查公車 <span class="arr">→</span></span>
+    </a>
+
+    <!-- 房貸試算 -->
+    <a class="panel tool-card t-loan" href="mortgage/">
+      <div class="tc-icon">🏦</div>
+      <h3>房貸試算</h3>
+      <div class="tc-desc">從薪資、月繳、頭期款或自訂條件四種方式，快速估算購屋預算與每月房貸負擔。</div>
+      <ul>
+        <li>四種試算：薪資 / 月繳 / 頭期 / 自訂</li>
+        <li>本息攤還、可含寬限期</li>
+        <li>附林口各地段每坪行情參考</li>
+      </ul>
+      <span class="tc-go">開始試算 <span class="arr">→</span></span>
+    </a>
+
+    <!-- 租約產生器 -->
+    <a class="panel tool-card t-rent" href="rent/">
+      <div class="tc-icon">📄</div>
+      <h3>租約產生器</h3>
+      <div class="tc-desc">填好欄位即可產生住宅租賃契約，可直接列印成 PDF 或匯出 Word，版面比照紙本租約。</div>
+      <ul>
+        <li>依內政部範本產生租賃契約</li>
+        <li>列印 PDF / 匯出 Word</li>
+        <li>附現況確認書與附屬設備清單</li>
+      </ul>
+      <span class="tc-go">製作租約 <span class="arr">→</span></span>
+    </a>
+
+  </div>
+
+  <div class="disc" style="margin-top:24px">
+    ⚠️ <b>使用說明</b>：本工具箱所有試算與查詢結果均為估算，僅供參考。學區資料具時效性、房貸核貸視個人條件而定、租約文字請於正式簽署前核對。重大決策建議洽專業人士確認。
+  </div>
+
+  <footer>
+    太平洋房屋・林口捷運加盟店 ｜ 李天夏 · 温美慈<br>
+    本工具箱結果僅供參考，不構成任何財務或法律建議
+  </footer>
+
+</div><!-- /wrap -->
+
+</body>
+</html>

@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>租約產生器 — 林口置產工具箱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<style>
+  /* ===== 租約產生器 — 頁面專屬樣式（沿用全站 CSS 變數） ===== */
+
+  /* 區塊卡片內距 */
+  .form-panel{padding:20px 22px 22px;margin-bottom:18px}
+  .module-title{font-family:var(--serif);font-weight:900;font-size:17px;color:var(--ink);
+    margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .module-title .dot{width:9px;height:9px;border-radius:50%;background:var(--clay);flex-shrink:0}
+  .module-desc{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
+
+  /* 表單列：自動換行的彈性欄位 */
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:13px}
+  .row .field{flex:1 1 200px}
+  .field.sm{flex:0 1 120px}
+  .field.xs{flex:0 1 84px}
+  .field.lg{flex:1 1 100%}
+  label.lbl .opt-note{font-weight:400;color:var(--ink-soft)}
+
+  /* 數字輸入去除上下箭頭 */
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+
+  /* 行內選項（radio / checkbox 群組） */
+  .opts{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center;
+    padding:11px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:10px}
+  .opts.tight{padding:8px 12px}
+  .opt{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;color:var(--ink);user-select:none}
+  .opt input{width:16px;height:16px;accent-color:var(--clay);cursor:pointer;flex-shrink:0}
+  .opts-label{font-size:12.5px;font-weight:700;color:var(--clay-d);margin-right:2px}
+
+  /* 子欄位（在某選項下才出現的補充輸入） */
+  .sub{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;color:var(--ink-soft)}
+  .sub input[type=text],.sub input[type=number]{padding:7px 10px;font-size:13.5px}
+  .inline-mini{flex:0 1 90px}
+
+  /* 附屬設備清單格狀排列 */
+  .eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .eq-item{display:flex;align-items:center;gap:8px;padding:9px 11px;background:#FFFDF9;
+    border:1.5px solid var(--line);border-radius:10px;transition:.15s}
+  .eq-item.on{border-color:var(--clay);background:#FCF4EE}
+  .eq-item input[type=checkbox]{width:17px;height:17px;accent-color:var(--clay);cursor:pointer;flex-shrink:0}
+  .eq-item .eq-name{font-size:14px;font-weight:700;color:var(--ink);flex:1;cursor:pointer}
+  .eq-item .eq-qty{width:52px;padding:6px 8px;text-align:center;font-size:14px}
+  .eq-item .eq-unit{font-size:13px;color:var(--ink-soft);min-width:14px}
+  /* 自訂設備列：可編輯名稱 / 單位 + 移除鈕 */
+  .eq-item .eq-name-input{flex:1;min-width:0;padding:6px 8px;font-size:14px}
+  .eq-item .eq-unit-input{width:42px;padding:6px 4px;text-align:center;font-size:13px}
+  .eq-item .eq-rm{border:none;background:none;color:var(--ink-soft);font-size:18px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0}
+  .eq-item .eq-rm:hover{color:var(--clay)}
+  .eq-note-row{margin-top:10px}
+
+  /* 多名當事人：每筆一個區塊，第二筆起上方加分隔線 + 移除鈕 */
+  .party-row + .party-row{margin-top:8px;padding-top:10px;border-top:1px dashed var(--line)}
+  .party-row .party-rm{border:none;background:none;color:var(--ink-soft);font-size:20px;line-height:1;cursor:pointer;padding:0 4px;align-self:center;flex-shrink:0}
+  .party-row .party-rm:hover{color:var(--clay)}
+  .party-add{margin-top:8px}
+
+  /* 身分證 OCR 上傳辨識區（每位當事人一個） */
+  .ocr-zone{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:8px;
+    padding:9px 12px;background:var(--bg2);border:1px dashed var(--clay);border-radius:10px}
+  .ocr-btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin:0}
+  .ocr-btn.busy{opacity:.55;pointer-events:none}
+  .ocr-zone.drag{border-style:solid;border-color:var(--clay);background:#FCF4EE}
+  .ocr-status{font-size:12.5px;color:var(--ink-soft)}
+  .ocr-status.err{color:var(--clay-d)}
+  .ocr-hint{font-size:12px;color:var(--ink-soft);flex-basis:100%}
+  .ocr-raw{flex-basis:100%;margin-top:2px;font-size:12px;color:var(--ink-soft)}
+  .ocr-raw summary{cursor:pointer}
+  .ocr-raw pre{white-space:pre-wrap;word-break:break-all;background:#fff;border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;max-height:160px;overflow:auto;font-family:var(--sans);font-size:11.5px;margin:6px 0 0}
+  /* OCR 帶入的欄位以橘底標示，提醒人工核對 */
+  input.ocr-filled,select.ocr-filled{background:#FCF4EE;border-color:var(--clay)}
+
+  /* 身分證 OCR：框選範圍視窗（去掉黑邊/條碼/浮水印，大幅提升辨識率） */
+  .ocr-crop{position:fixed;inset:0;z-index:1000;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;background:rgba(20,16,12,.85);padding:16px}
+  .ocr-crop.show{display:flex}
+  .ocr-crop-head{color:#fff;font-size:13.5px;max-width:860px;text-align:center;line-height:1.7}
+  .ocr-crop-stage{position:relative;touch-action:none;background:#000;cursor:crosshair;line-height:0;
+    box-shadow:0 10px 36px rgba(0,0,0,.55)}
+  .ocr-crop-stage img{display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  .ocr-crop-sel{position:absolute;border:2px dashed #fff;background:rgba(255,255,255,.10);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.5);pointer-events:none}
+  .ocr-crop-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+  /* 現場照片縮圖牆（表單預覽用） */
+  .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:14px}
+  .photo-thumb{position:relative;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:#FFFDF9}
+  .photo-thumb img{width:100%;height:110px;object-fit:cover;display:block}
+  .photo-thumb .rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border:none;border-radius:50%;
+    background:rgba(0,0,0,.55);color:#fff;font-size:15px;line-height:22px;text-align:center;cursor:pointer;padding:0}
+  .photo-thumb .rm:hover{background:rgba(0,0,0,.8)}
+  /* 縮圖左上：單張旋轉鈕（與右上的移除鈕對稱） */
+  .photo-thumb .rot{position:absolute;top:5px;left:5px;width:22px;height:22px;border:none;border-radius:50%;
+    background:rgba(0,0,0,.55);color:#fff;font-size:14px;line-height:22px;text-align:center;cursor:pointer;padding:0}
+  .photo-thumb .rot:hover{background:rgba(0,0,0,.8)}
+  /* 縮圖左下：目前順序序號（拖曳排序後即時更新） */
+  .photo-thumb .ord{position:absolute;bottom:5px;left:5px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;
+    line-height:1;padding:2px 6px;border-radius:8px;pointer-events:none}
+  /* 可拖曳排序：游標提示 + 拖曳中半透明 */
+  .photo-thumb{cursor:grab}
+  .photo-thumb.dragging{opacity:.4;cursor:grabbing}
+  /* 縮圖右下：左右移動鈕（手機點按調整順序，桌機亦可用） */
+  .photo-thumb .mv{position:absolute;bottom:5px;right:5px;display:flex;gap:4px}
+  .photo-thumb .mv button{width:26px;height:26px;border:none;border-radius:7px;background:rgba(0,0,0,.55);
+    color:#fff;font-size:16px;line-height:26px;text-align:center;cursor:pointer;padding:0}
+  .photo-thumb .mv button:hover{background:rgba(0,0,0,.8)}
+  .photo-thumb .mv button:disabled{opacity:.3;cursor:default}
+
+  /* 附件分類小區塊（現場照片／證件／存摺／鑰匙／其他） */
+  .attach-group{padding:14px 0;border-top:1px dashed var(--line)}
+  .attach-group:first-child{border-top:none;padding-top:2px}
+  .attach-group .attach-head{font-weight:700;color:var(--ink);margin-bottom:2px;font-size:14.5px}
+  .attach-group .attach-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:9px}
+
+  /* 特約事項範本勾選 */
+  .term-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);
+    border-radius:10px;margin-bottom:8px;background:#FFFDF9}
+  .term-item input[type=checkbox]{width:17px;height:17px;accent-color:var(--clay);cursor:pointer;margin-top:2px;flex-shrink:0}
+  .term-item .term-body{flex:1}
+  .term-item .term-label{font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
+  .term-item .term-text{font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.6;white-space:pre-wrap}
+  #petFields{display:none;gap:8px;margin-top:8px;flex-wrap:wrap}
+  #petFields.show{display:flex}
+  textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:var(--sans);font-size:14px;background:#FFFDF9;color:var(--ink);outline:none;resize:vertical;min-height:70px;line-height:1.6}
+  textarea:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(189,94,57,.14)}
+
+  /* 現況確認書項次 */
+  .conf-item{padding:12px 0;border-bottom:1px dashed var(--line)}
+  .conf-item:last-child{border-bottom:none}
+  .conf-q{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:8px}
+  .conf-q .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    background:var(--clay);color:#fff;border-radius:6px;font-size:12px;margin-right:8px}
+  /* 選「有／不正常」才展開的後續處理選項 */
+  .conf-sub{display:none;margin-top:10px;padding-left:12px;border-left:3px solid var(--clay)}
+  .conf-sub.show{display:block}
+  .conf-sub .sub-label{display:block;font-size:12.5px;font-weight:700;color:var(--clay-d);margin:2px 0 6px}
+  .conf-sub .opts{margin-bottom:4px}
+
+  /* 操作列（黏在底部，方便隨時產生） */
+  .action-bar{position:sticky;bottom:0;z-index:50;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;
+    padding:14px;margin:18px -16px -60px;background:linear-gradient(to top,var(--bg) 70%,transparent);}
+  .action-bar .btn{flex:0 1 auto;box-shadow:var(--shadow)}
+
+  /* ====== 合約輸出（預覽 / 列印 / 匯出共用） ====== */
+  #contract{display:none}
+  #contract.show{display:block}
+  .contract-doc{background:#fff;max-width:820px;margin:18px auto;padding:48px 54px;
+    border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);
+    font-family:"標楷體","DFKai-SB",var(--serif);color:#1a1a1a;font-size:15px;line-height:1.85}
+  .contract-doc h1.ct-title{text-align:center;font-size:22px;font-weight:900;letter-spacing:4px;margin:6px 0 18px}
+  .contract-doc .ct-rev{text-align:right;font-size:12px;color:#555;margin-bottom:4px}
+  .contract-doc .ct-clause{font-weight:700;font-size:16px;margin:16px 0 6px}
+  .contract-doc p{margin:3px 0;text-align:justify}
+  /* 條文縮排改用 margin-left（而非 padding-left），讓「懸掛縮排」可用 inline 樣式覆寫 */
+  .contract-doc .ind{margin-left:1.6em}
+  .contract-doc .ind2{margin-left:3em}
+  .contract-doc .fv{font-weight:700;color:#000;border-bottom:1px solid #000;padding:0 4px}
+  .contract-doc .bl{display:inline-block;border-bottom:1px solid #000;min-width:3em;height:1.1em;vertical-align:bottom}
+  .contract-doc .sig-block{margin-top:14px;line-height:2.2}
+  .contract-doc table.conf{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+  .contract-doc table.conf td{border:1px solid #333;padding:7px 9px;vertical-align:top}
+  .contract-doc table.conf td.idx{width:36px;text-align:center;font-weight:700}
+  .contract-doc table.conf td.note{width:30%;font-size:11.5px;color:#444;line-height:1.55}
+  /* 第 12 項附屬設備：雙欄無框內表 */
+  .contract-doc table.eq-inner{width:100%;border-collapse:collapse;margin-top:4px}
+  .contract-doc table.eq-inner td{border:none;padding:2px 6px;font-size:13.5px;width:50%;vertical-align:top}
+  .contract-doc .pgbreak{page-break-before:always;break-before:page}
+  /* 螢幕預覽：標出分頁位置（列印 / 存 PDF 時不顯示這條虛線，實際會另起一頁）。 */
+  @media screen{
+    .contract-doc .pgbreak{margin:30px 0 4px;border-top:2px dashed #d8c7a8;position:relative}
+    .contract-doc .pgbreak::after{content:"以下另起一頁";position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+      background:#fff;padding:0 12px;font-size:11px;color:#b08a5a;letter-spacing:2px}
+  }
+  .contract-doc .eq-out{column-count:2;column-gap:30px;font-size:14px}
+  .contract-doc .attach-title{text-align:center;font-size:18px;font-weight:900;letter-spacing:2px;margin:6px 0 12px}
+  /* 附件二 現場照片：雙欄 */
+  .contract-doc table.photo-out{width:100%;border-collapse:collapse}
+  .contract-doc table.photo-out td{width:50%;padding:6px;vertical-align:top;border:none}
+  .contract-doc table.photo-out img{width:100%;display:block;border:1px solid #ccc}
+  .contract-doc .photo-cap{font-size:12px;text-align:center;margin-top:4px;color:#333}
+
+  /* ====== 手機版合約預覽優化（僅縮放螢幕預覽，不影響列印 / 桌機） ====== */
+  @media (max-width:600px){
+    /* 合約紙張：縮小左右留白與字級，避免在手機上需要左右捲動 */
+    .contract-doc{margin:14px 0;padding:24px 18px;font-size:13.5px;line-height:1.7;border-radius:6px}
+    /* 第一頁大標題（內嵌 42pt）縮到不溢出畫面 */
+    .contract-doc h1.ct-title{font-size:30px !important;letter-spacing:2px;margin-top:1.6cm !important}
+    .contract-doc .ct-clause{font-size:14.5px}
+    /* 條文縮排在窄螢幕收斂一點，留更多文字寬度 */
+    .contract-doc .ind{margin-left:1.1em}
+    .contract-doc .ind2{margin-left:2em}
+    /* 附屬設備雙欄、現場照片雙欄 → 改單欄，手機才看得清楚 */
+    .contract-doc .eq-out{column-count:1}
+    .contract-doc table.photo-out td{display:block;width:100%}
+    /* 現況確認書表格：縮小字級與內距，整列才放得下 */
+    .contract-doc table.conf{font-size:12px}
+    .contract-doc table.conf td{padding:5px 6px}
+    .contract-doc table.conf td.idx{width:26px}
+    .contract-doc table.conf td.note{font-size:10.5px}
+  }
+
+  /* 列印：只留合約，其餘隱藏 */
+  @media print{
+    .site-nav,.hero,#formArea,.action-bar,footer,.print-tip,.toast{display:none !important}
+    #contract{display:block !important}
+    /* 手機「存成 PDF」會強制印出背景色，全站米色底（--bg）會在白色合約卡片周圍形成像邊框的色塊；
+       桌機列印預設不印背景故無此問題。強制白底＋移除卡片陰影/邊框，讓留白區與白卡融為一體。 */
+    html,body{background:#fff !important}
+    .contract-doc{box-shadow:none !important;border:none !important;border-radius:0 !important;
+      margin:0 !important;max-width:none !important;padding:0 !important;background:#fff !important}
+    @page{size:A4;margin:1.8cm 1.6cm}
+  }
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">學區快查</a>
+      <a href="../bus/">公車路線</a>
+      <a href="../mortgage/">房貸試算</a>
+      <a href="../rent/" class="active">租約產生器</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge">住宅租賃契約</span>
+      <h1>租約<span class="mk">產生器</span></h1>
+      <p>依內政部公告「住宅租賃契約書」範本，填好欄位即可產生完整合約，列印 PDF 或匯出 Word，免再逐份改檔。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <!-- ============ 表單區 ============ -->
+  <div id="formArea">
+
+    <!-- 0. 契約審閱 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>契約基本資訊</div>
+      <div class="module-desc">審閱權與當事人身分。</div>
+      <div class="row">
+        <div class="field sm"><label class="lbl">審閱日期（民國年）</label><input type="text" id="revY" placeholder="115"></div>
+        <div class="field xs"><label class="lbl">月</label><input type="text" id="revM" placeholder="05"></div>
+        <div class="field xs"><label class="lbl">日</label><input type="text" id="revD" placeholder="03"></div>
+        <div class="field xs"><label class="lbl">攜回審閱（日）</label><input type="text" id="revDays" value="3"></div>
+      </div>
+      <div class="row">
+        <div class="field lg">
+          <label class="lbl">出租人身分</label>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="ownerType" value="所有權人" checked>所有權人</label>
+            <label class="opt"><input type="radio" name="ownerType" value="轉租人">轉租人（須提示原所有權人同意轉租證明）</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. 當事人 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>當事人</div>
+      <div class="module-desc">出租人與承租人基本資料。共有人或多名承租人請按「＋新增」加列。</div>
+
+      <label class="lbl" style="color:var(--teal-d);font-size:13.5px">出租人（甲方）</label>
+      <div id="lessorList"></div>
+      <button type="button" class="btn ghost sm party-add" onclick="addParty('lessor')">＋ 新增出租人</button>
+
+      <label class="lbl" style="color:var(--teal-d);font-size:13.5px;margin-top:10px">承租人（乙方）</label>
+      <div id="lesseeList"></div>
+      <button type="button" class="btn ghost sm party-add" onclick="addParty('lessee')">＋ 新增承租人</button>
+    </section>
+
+    <!-- 2. 租賃標的（第一條） -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>租賃標的（第一條）</div>
+      <div class="module-desc">物件門牌、建號、面積、車位。可<strong>上傳電傳／謄本</strong>自動帶入段、地號、建號、門牌、樓層、面積、共有部分（影像僅在本機辨識、不上傳，結果為草稿須核對）。</div>
+      <div class="ocr-zone" id="deedZone" ondragover="ocrDragOver(event,this)" ondragleave="ocrDragLeave(this)" ondrop="deedDrop(event,this)">
+        <label class="btn ghost sm ocr-btn">📄 上傳電傳／謄本（PDF 或截圖）
+          <input type="file" accept="application/pdf,image/*" multiple style="display:none" onchange="scanDeed(event)">
+        </label>
+        <span class="ocr-status" id="ocrst_deed"></span>
+        <span class="ocr-hint"><strong>電子謄本 PDF</strong> 直接讀取文字（最準、免辨識）；掃描 PDF 或截圖照片則走影像辨識。電腦可<strong>把檔案直接拖曳到此區</strong>；手機可上傳檔案或相簿截圖（圖片會請你<strong>框選範圍</strong>）。截圖可<strong>一次選多張</strong>（例如標示部一張、所有權部一張補齊持分），會逐張框選後合併辨識。首次辨識影像需下載中文模型。</span>
+        <details class="ocr-raw" id="ocrraw_deed" style="display:none"><summary>辨識／抽取原文（核對 / 手動複製用）</summary><pre></pre></details>
+      </div>
+      <div class="row">
+        <div class="field lg"><label class="lbl">門牌</label><input type="text" id="addr" placeholder="新北市林口區○○路○號○樓"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="lbl">基地坐落（段）</label><input type="text" id="landSeg" placeholder="○○ 段"></div>
+        <div class="field"><label class="lbl">地號</label><input type="text" id="landNo" placeholder="0000-0000"></div>
+      </div>
+      <div class="row">
+        <div class="field sm"><label class="lbl">專有部分建號</label><input type="text" id="exclNo"></div>
+        <div class="field sm"><label class="lbl">權利範圍</label><input type="text" id="exclShare" placeholder="1/1"></div>
+        <div class="field sm"><label class="lbl">面積共計（㎡）</label><input type="text" id="exclArea"></div>
+      </div>
+      <div class="row">
+        <div class="field sm"><label class="lbl">主建物 樓層</label><input type="text" id="mainFloor"></div>
+        <div class="field sm"><label class="lbl">主建物面積（㎡）</label><input type="text" id="mainArea"></div>
+      </div>
+      <div id="subList"></div>
+      <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="addSubRow()">＋ 新增附屬建物（陽台／雨遮…）</button>
+      <div id="commonList"></div>
+      <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="addCommonRow()">＋ 新增共有部分建號</button>
+
+      <div class="row"><div class="field lg">
+        <label class="lbl">車位</label>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="hasPark" value="有" checked onchange="togglePark()">有</label>
+          <label class="opt"><input type="radio" name="hasPark" value="無" onchange="togglePark()">無</label>
+          <span class="sub" id="parkCnt">汽車<input type="text" id="carCnt" class="inline-mini" placeholder="1">個、機車<input type="text" id="motoCnt" class="inline-mini" placeholder="">個</span>
+        </div>
+      </div></div>
+      <div class="row" id="parkDetail">
+        <div class="field sm"><label class="lbl">汽車位 地下層</label><input type="text" id="carFloor"></div>
+        <div class="field sm"><label class="lbl">型式</label>
+          <div class="opts tight"><label class="opt"><input type="radio" name="carType" value="平面式" checked>平面</label><label class="opt"><input type="radio" name="carType" value="機械式">機械</label></div>
+        </div>
+        <div class="field sm"><label class="lbl">編號</label><input type="text" id="carSpotNo"></div>
+        <div class="field sm"><label class="lbl">使用時間</label>
+          <div class="opts tight"><label class="opt"><input type="radio" name="carTime" value="全日" checked>全日</label><label class="opt"><input type="radio" name="carTime" value="日間">日</label><label class="opt"><input type="radio" name="carTime" value="夜間">夜</label></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field"><label class="lbl">他項權利</label>
+          <div class="opts tight"><label class="opt"><input type="radio" name="otherRight" value="無" checked>無</label><label class="opt"><input type="radio" name="otherRight" value="有">有</label><input type="text" id="otherRightKind" class="inline-mini" placeholder="種類"></div>
+        </div>
+        <div class="field"><label class="lbl">查封登記</label>
+          <div class="opts tight"><label class="opt"><input type="radio" name="seizure" value="無" checked>無</label><label class="opt"><input type="radio" name="seizure" value="有">有</label></div>
+        </div>
+      </div>
+      <div class="row"><div class="field lg"><label class="lbl">租賃範圍</label>
+        <div class="opts tight"><label class="opt"><input type="radio" name="scope" value="全部" checked>全部</label><label class="opt"><input type="radio" name="scope" value="部分">部分</label><span class="sub">第<input type="text" id="scopeFloor" class="inline-mini">層、面積<input type="text" id="scopeArea" class="inline-mini">㎡</span></div>
+      </div></div>
+    </section>
+
+    <!-- 3. 租期 / 租金 / 押金 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>租期・租金・押金（第二～四條）</div>
+      <label class="lbl">租賃期間</label>
+      <div class="row">
+        <div class="field xs"><label class="lbl">起 民國年</label><input type="text" id="startY"></div>
+        <div class="field xs"><label class="lbl">月</label><input type="text" id="startM"></div>
+        <div class="field xs"><label class="lbl">日</label><input type="text" id="startD"></div>
+        <div class="field xs"><label class="lbl">迄 民國年</label><input type="text" id="endY"></div>
+        <div class="field xs"><label class="lbl">月</label><input type="text" id="endM"></div>
+        <div class="field xs"><label class="lbl">日</label><input type="text" id="endD"></div>
+      </div>
+      <div class="row">
+        <div class="field sm"><label class="lbl">每月租金（元）</label><input type="text" id="rent" placeholder="33,000"></div>
+        <div class="field xs"><label class="lbl">每期繳（月）</label><input type="text" id="rentPer" placeholder="1"></div>
+        <div class="field xs"><label class="lbl">每月幾日前付</label><input type="text" id="rentDay"></div>
+      </div>
+      <div class="row"><div class="field lg"><label class="lbl">租金支付方式</label>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="payWay" value="現金" onchange="togglePay()">現金繳付</label>
+          <label class="opt"><input type="radio" name="payWay" value="轉帳" checked onchange="togglePay()">轉帳繳付</label>
+        </div>
+      </div></div>
+      <div class="row" id="payBank">
+        <div class="field"><label class="lbl">金融機構</label><input type="text" id="bankName" placeholder="○○銀行-○○分行(代碼)"></div>
+        <div class="field sm"><label class="lbl">戶名</label><input type="text" id="bankAcctName"></div>
+        <div class="field"><label class="lbl">帳號</label><input type="text" id="bankAcctNo"></div>
+      </div>
+      <label class="lbl" style="margin-top:6px">押金</label>
+      <div class="row">
+        <div class="field xs"><label class="lbl">幾個月租金</label><input type="text" id="depMonths" placeholder="2"></div>
+        <div class="field sm"><label class="lbl">押金金額（元）</label><input type="text" id="depAmount" placeholder="66,000"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><span class="hint" style="margin:0">※ 最高不得超過二個月租金總額</span></div>
+      </div>
+    </section>
+
+    <!-- 4. 費用負擔（第五～六條） -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>費用負擔（第五條）</div>
+      <div class="module-desc">各項費用由出租人或承租人負擔。</div>
+      <div id="feeRows"></div>
+      <div class="row" style="margin-top:6px">
+        <div class="field sm"><label class="lbl">公證費金額（元）</label><input type="text" id="notaryFeeAmount" placeholder="（選填）"></div>
+        <div class="field lg"><label class="lbl">公證費負擔（第六條）</label>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="notaryFee" value="出租人負擔">出租人</label>
+          <label class="opt"><input type="radio" name="notaryFee" value="承租人負擔">承租人</label>
+          <label class="opt"><input type="radio" name="notaryFee" value="租賃雙方平均負擔" checked>雙方平均</label>
+          <label class="opt"><input type="radio" name="notaryFee" value="其他">其他</label>
+          <input type="text" id="notaryFeeOther" class="inline-mini" placeholder="其他內容">
+        </div>
+      </div></div>
+    </section>
+
+    <!-- 5. 其他約定 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>其他約定</div>
+      <div class="row"><div class="field lg"><label class="lbl">室內裝修返還（第九條）</label>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="restore" value="負責回復原狀" checked>回復原狀</label>
+          <label class="opt"><input type="radio" name="restore" value="現況返還">現況返還</label>
+          <label class="opt"><input type="radio" name="restore" value="其他">其他</label>
+        </div>
+      </div></div>
+      <div class="row"><div class="field lg"><label class="lbl">任意終止租約（第十三條）</label>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="earlyEnd" value="得">得任意終止</label>
+          <label class="opt"><input type="radio" name="earlyEnd" value="不得" checked>不得任意終止</label>
+        </div>
+      </div></div>
+      <div class="row"><div class="field lg"><label class="lbl">通知方式（第十九條）</label>
+        <div class="opts tight">
+          <label class="opt"><input type="checkbox" id="ntEmail">電子郵件</label>
+          <input type="text" id="ntEmailAddr" class="inline-mini" placeholder="信箱">
+          <label class="opt"><input type="checkbox" id="ntSms">手機簡訊</label>
+          <label class="opt"><input type="checkbox" id="ntIm" checked>即時通訊軟體</label>
+        </div>
+      </div></div>
+      <div class="row"><div class="field lg"><label class="lbl">公證（第二十一條）</label>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="notary" value="同意" checked>同意辦理公證</label>
+          <label class="opt"><input type="radio" name="notary" value="不同意">不同意辦理公證</label>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- 6. 特別約定事項（第二十三條） -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>特別約定事項（第二十三條）</div>
+      <div class="module-desc">勾選常用範本，或於下方自由追加。</div>
+      <div id="termList"></div>
+      <div id="petFields">
+        <div class="field sm"><label class="lbl">寵物種類</label><input type="text" id="petKind" placeholder="狗"></div>
+        <div class="field sm"><label class="lbl">品種</label><input type="text" id="petBreed" placeholder="柴犬"></div>
+        <div class="field xs"><label class="lbl">數量（隻）</label><input type="text" id="petCount" placeholder="1"></div>
+      </div>
+      <div class="row eq-note-row"><div class="field lg">
+        <label class="lbl">自訂追加條款（每行一條，會接在勾選範本之後）</label>
+        <textarea id="customTerms" placeholder="例：室內嚴禁抽菸。&#10;退租時，押金不能抵租金。"></textarea>
+      </div></div>
+    </section>
+
+    <!-- 7. 附件一 現況確認書 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>附件一　租賃標的現況確認書</div>
+      <div class="module-desc">逐項確認屋況；勾選結果會輸出於合約附件一。</div>
+
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">1</span>未登記之改建／增建／加建／違建部分</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="c1" value="無" checked>無</label><label class="opt"><input type="radio" name="c1" value="有">有</label></div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">2</span>建物型態與格局</div>
+        <div class="row">
+          <div class="field sm"><label class="lbl">建物型態</label>
+            <select id="bldType"></select></div>
+          <div class="field xs"><label class="lbl">房</label><input type="text" id="rmRoom" placeholder="2"></div>
+          <div class="field xs"><label class="lbl">廳</label><input type="text" id="rmHall" placeholder="2"></div>
+          <div class="field xs"><label class="lbl">衛</label><input type="text" id="rmBath" placeholder="2"></div>
+          <div class="field sm"><label class="lbl">隔間</label>
+            <div class="opts tight"><label class="opt"><input type="radio" name="partition" value="有" checked>有</label><label class="opt"><input type="radio" name="partition" value="無">無</label></div>
+          </div>
+        </div>
+        <div class="row"><div class="field"><label class="lbl">出租型態</label><select id="rentType"></select></div></div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">3</span>停車位（同第一條，免重填則留空）</div>
+        <div class="sub">沿用上方第一條車位資料。</div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">4</span>消防設施</div>
+        <div class="opts tight">
+          <label class="opt"><input type="checkbox" id="fireAlarm" checked>住宅用火災警報器</label>
+          <label class="opt"><input type="checkbox" id="fireOther">其他消防設施</label>
+          <input type="text" id="fireOtherItem" class="inline-mini" placeholder="項目">
+          <label class="opt"><input type="checkbox" id="fireCheck" checked>定期消防安檢</label>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">5</span>滲漏水情形</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="leak" value="無" checked onchange="toggleConf()">無</label><label class="opt"><input type="radio" name="leak" value="有" onchange="toggleConf()">有</label><input type="text" id="leakWhere" class="inline-mini" placeholder="滲漏水處所"></div>
+        <div class="conf-sub" id="leakSub">
+          <span class="sub-label">滲漏水處之處理：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="leakFix" value="出租人修繕後交屋">由出租人修繕後交屋</label>
+            <label class="opt"><input type="radio" name="leakFix" value="承租人修繕">由承租人修繕</label>
+            <label class="opt"><input type="radio" name="leakFix" value="現況交屋">以現況交屋</label>
+            <label class="opt"><input type="radio" name="leakFix" value="其他">其他</label>
+            <input type="text" id="leakFixOther" class="inline-mini" placeholder="其他處理">
+          </div>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">6</span>輻射屋檢測</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="radiation" value="無" checked onchange="toggleConf()">無（未檢測）</label><label class="opt"><input type="radio" name="radiation" value="有" onchange="toggleConf()">有（曾檢測）</label></div>
+        <div class="conf-sub" id="radSub">
+          <span class="sub-label">檢測結果（請檢附檢測證明文件）：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="radResult" value="無">無輻射異常</label>
+            <label class="opt"><input type="radio" name="radResult" value="有">有輻射異常</label>
+          </div>
+          <span class="sub-label" style="margin-top:8px">若有異常之處理：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="radFix" value="出租人改善後交屋">由出租人改善後交屋</label>
+            <label class="opt"><input type="radio" name="radFix" value="承租人改善">由承租人改善</label>
+            <label class="opt"><input type="radio" name="radFix" value="現況交屋">以現況交屋</label>
+            <label class="opt"><input type="radio" name="radFix" value="其他">其他</label>
+            <input type="text" id="radFixOther" class="inline-mini" placeholder="其他處理">
+          </div>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">7</span>水溶性氯離子（海砂屋）檢測</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="chloride" value="無" checked onchange="toggleConf()">無（未檢測）</label><label class="opt"><input type="radio" name="chloride" value="有" onchange="toggleConf()">有（曾檢測）</label></div>
+        <div class="conf-sub" id="chlSub">
+          <div class="sub"><span class="sub-label" style="display:inline;margin:0">檢測結果：</span><input type="text" id="chlResultText" class="inline-mini" placeholder="如 0.15 ㎏/m³" style="flex:0 1 160px"></div>
+          <span class="sub-label" style="margin-top:8px">是否超過容許值：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="chlOver" value="無">無超過</label>
+            <label class="opt"><input type="radio" name="chlOver" value="有">有超過</label>
+          </div>
+          <span class="sub-label" style="margin-top:8px">若有超過之處理：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="chlFix" value="出租人修繕後交屋">由出租人修繕後交屋</label>
+            <label class="opt"><input type="radio" name="chlFix" value="承租人修繕">由承租人修繕</label>
+            <label class="opt"><input type="radio" name="chlFix" value="現況交屋">以現況交屋</label>
+            <label class="opt"><input type="radio" name="chlFix" value="其他">其他</label>
+            <input type="text" id="chlFixOther" class="inline-mini" placeholder="其他處理">
+          </div>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">8</span>是否曾發生兇殺／自殺／一氧化碳中毒等非自然死亡</div>
+        <div class="sub" style="margin-bottom:6px">(1) 產權持有期間</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="death" value="無" checked>無</label><label class="opt"><input type="radio" name="death" value="有">有</label></div>
+        <div class="sub" style="margin:10px 0 6px">(2) 產權持有前</div>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="deathBefore" value="無" checked>無上列情事</label>
+          <label class="opt"><input type="radio" name="deathBefore" value="知道">知道曾發生</label>
+          <label class="opt"><input type="radio" name="deathBefore" value="不知道">不知道曾否發生</label>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">9</span>供水及排水</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="water" value="正常" checked onchange="toggleConf()">正常</label><label class="opt"><input type="radio" name="water" value="不正常" onchange="toggleConf()">不正常</label></div>
+        <div class="conf-sub" id="waterSub">
+          <span class="sub-label">若不正常之處理：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="waterFix" value="出租人修繕後交屋">由出租人修繕後交屋</label>
+            <label class="opt"><input type="radio" name="waterFix" value="承租人修繕">由承租人修繕</label>
+            <label class="opt"><input type="radio" name="waterFix" value="現況交屋">以現況交屋</label>
+            <label class="opt"><input type="radio" name="waterFix" value="其他">其他</label>
+            <input type="text" id="waterFixOther" class="inline-mini" placeholder="其他處理">
+          </div>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">10</span>公寓大廈規約或住戶應遵行事項</div>
+        <div class="opts tight"><label class="opt"><input type="radio" name="rule" value="有" checked onchange="toggleConf()">有</label><label class="opt"><input type="radio" name="rule" value="無" onchange="toggleConf()">無</label></div>
+        <div class="conf-sub" id="ruleSub">
+          <span class="sub-label">是否檢附規約／住戶應遵行事項：</span>
+          <div class="opts tight">
+            <label class="opt"><input type="radio" name="ruleAttach" value="有">有檢附</label>
+            <label class="opt"><input type="radio" name="ruleAttach" value="無">無檢附</label>
+          </div>
+        </div>
+      </div>
+      <div class="conf-item">
+        <div class="conf-q"><span class="num">11</span>管理委員會與管理費</div>
+        <div class="opts tight">
+          <label class="opt"><input type="radio" name="mgmt" value="有" checked>有管委會</label>
+          <label class="opt"><input type="radio" name="mgmt" value="無">無</label>
+          <span class="sub">管理費 <input type="text" id="mgmtFee" class="inline-mini" placeholder="待管委會確認 或 金額/期"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. 附屬設備清單 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>附屬設備清單</div>
+      <div class="module-desc">勾選有提供的設備並填數量；未勾選者不會輸出於合約。清單沒有的設備，可用下方按鈕自行新增。</div>
+      <div class="eq-grid" id="eqGrid"></div>
+      <div class="eq-grid" id="customEqGrid" style="margin-top:10px"></div>
+      <button class="btn ghost" type="button" style="margin-top:12px" onclick="addCustomEq()">＋ 新增其他設備</button>
+      <div class="row eq-note-row" style="margin-top:14px"><div class="field lg">
+        <label class="lbl">設備備註（選填，例：窗簾客廳為落地式、冷氣分離式1對1）</label>
+        <textarea id="eqNote" placeholder=""></textarea>
+      </div></div>
+    </section>
+
+    <!-- 8.5 附件影像（現場照片／證件／存摺／鑰匙／其他）→ 依序附在合約最後 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>附件影像（附於合約最後）</div>
+      <div class="module-desc">以下各類附件可批次上傳多張，產生合約時會依序附在最後（附件二、三、四…）。所有影像僅在本機處理、<strong>不會上傳任何伺服器</strong>；證件、存摺等敏感資料請斟酌使用。</div>
+      <!-- 各分類上傳區由 renderAttachUI() 依 ATTACH_GROUPS 設定生成 -->
+      <div id="attachGroups"></div>
+    </section>
+
+    <!-- 9. 簽約日期 -->
+    <section class="panel form-panel">
+      <div class="module-title"><span class="dot"></span>簽約日期</div>
+      <div class="row">
+        <div class="field xs"><label class="lbl">民國年</label><input type="text" id="signY"></div>
+        <div class="field xs"><label class="lbl">月</label><input type="text" id="signM"></div>
+        <div class="field xs"><label class="lbl">日</label><input type="text" id="signD"></div>
+      </div>
+    </section>
+
+    <div class="disc">
+      本工具依內政部公告「住宅租賃契約書」範本製作，僅供撰擬與排版之輔助。產出之契約請務必由雙方詳閱、核對個資與屋況無誤後再行簽署；如有法律疑義，建議洽詢專業人士。設備與屋況以實際點交為準。
+    </div>
+  </div><!-- /#formArea -->
+
+  <!-- ============ 合約輸出區 ============ -->
+  <div id="contract"><div class="contract-doc" id="contractDoc"></div></div>
+  <div class="print-tip hint" id="printTip" style="display:none;text-align:center">
+    ※ 列印對話框中選擇「另存為 PDF」即可存成 PDF 檔。
+  </div>
+
+  <!-- 操作列 -->
+  <div class="action-bar">
+    <button class="btn" onclick="generate()">產生合約預覽</button>
+    <button class="btn ghost" onclick="printPDF()">列印 / 存 PDF</button>
+    <button class="btn ghost" onclick="exportWord()">匯出 Word</button>
+    <button class="btn ghost" onclick="loadSample()">載入範例</button>
+    <button class="btn ghost" onclick="backToForm()">回到編輯</button>
+  </div>
+
+  <footer>
+    太平洋房屋・林口捷運加盟店　|　線上租約撰擬工具<br>
+    契約範本依據：內政部 113 年 7 月 8 日台內地字第 11302639334 號函修正
+  </footer>
+</div>
+
+<!-- 身分證 OCR：框選範圍視窗 -->
+<div class="ocr-crop" id="ocrCrop">
+  <div class="ocr-crop-head">拖曳框出證件範圍（盡量框住資料、去掉黑邊／條碼／浮水印，辨識更準）。不重畫也可直接按「辨識框選範圍」用預設框；或選「整張辨識」。</div>
+  <div class="ocr-crop-stage" id="ocrCropStage">
+    <img id="ocrCropImg" alt="">
+    <div class="ocr-crop-sel" id="ocrCropSel"></div>
+  </div>
+  <div class="ocr-crop-actions">
+    <button class="btn ghost" id="ocrCropRotate">↻ 旋轉 90°</button>
+    <button class="btn" id="ocrCropOk">辨識框選範圍</button>
+    <button class="btn ghost" id="ocrCropFull">整張辨識</button>
+    <button class="btn ghost" id="ocrCropCancel">取消這張</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="rent-data.js"></script>
+<script>
+/* ============================================================
+ * 租約產生器 — 邏輯（資料在 rent-data.js）
+ * ============================================================ */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const val = id => (document.getElementById(id)?.value || '').trim();
+const radio = name => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+const chk = id => !!document.getElementById(id)?.checked;
+const esc = s => (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+// 填空輸出：有值→加底線粗體；無值→留底線空白
+const fv = (v,w=3) => { v=(v==null?'':String(v)).trim(); return v ? `<span class="fv">${esc(v)}</span>` : `<span class="bl" style="min-width:${w}em"></span>`; };
+const ck = b => b ? '■' : '□';
+
+/* ---- 多名當事人（出租人 / 承租人）---- */
+// 第一筆沿用原有固定 id，讓 loadSample 等既有引用不受影響；第二筆起只用 class 收集。
+let partyCount = {lessor:0, lessee:0};
+function addParty(role, data){
+  data = data || {};
+  const list = document.getElementById(role+'List');
+  if(!list) return;
+  const idx = partyCount[role]++;
+  const isFirst = idx === 0;
+  const cap = role==='lessor' ? '出租人' : '承租人';
+  // 第一筆保留與舊版相同的 id（lessorName / lesseeName ...），其餘只靠 class
+  const ids = isFirst
+    ? {name:role+'Name', id:role+'Id', addr:role+'Addr', tel:role+'Tel'}
+    : {name:'', id:'', addr:'', tel:''};
+  const idAttr = k => ids[k] ? `id="${ids[k]}"` : '';
+  const rid = role+'_party_'+idx;
+  const div = document.createElement('div');
+  div.className = 'party-row';
+  div.id = rid;
+  div.innerHTML = `
+    <div class="row">
+      <div class="field"><label class="lbl">姓名</label><input type="text" class="p-name" ${idAttr('name')} value="${esc(data.name||'')}"></div>
+      <div class="field"><label class="lbl">統一編號／身分證字號</label><input type="text" class="p-id" ${idAttr('id')} value="${esc(data.id||'')}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label class="lbl">戶籍地址</label><input type="text" class="p-addr" ${idAttr('addr')} value="${esc(data.addr||'')}"></div>
+      <div class="field sm"><label class="lbl">聯絡電話</label><input type="text" class="p-tel" ${idAttr('tel')} value="${esc(data.tel||'')}"></div>
+      ${isFirst ? '' : `<button type="button" class="eq-rm party-rm" onclick="removeParty('${rid}')" title="移除此${cap}">×</button>`}
+    </div>`;
+  list.appendChild(div);
+}
+function removeParty(rid){ document.getElementById(rid)?.remove(); }
+
+/* ---- 共有部分（可多筆：一棟常有公設、停車空間等多個共有建號）---- */
+let commonCount = 0;
+function addCommonRow(data){
+  data = data || {};
+  const list = document.getElementById('commonList');
+  if(!list) return;
+  const first = commonCount === 0;                 // 第一列保留舊 id，相容 loadSample／合約輸出
+  const idA = first ? 'id="commonNo"' : '', idB = first ? 'id="commonShare"' : '', idC = first ? 'id="commonArea"' : '';
+  const div = document.createElement('div');
+  div.className = 'row common-row';
+  div.innerHTML = `
+    <div class="field sm"><label class="lbl">共有部分建號</label><input type="text" class="c-no" ${idA} value="${esc(data.no||'')}"></div>
+    <div class="field sm"><label class="lbl">權利範圍</label><input type="text" class="c-share" ${idB} placeholder="100000分之___" value="${esc(data.share||'')}"></div>
+    <div class="field sm"><label class="lbl">持分面積（㎡）</label><input type="text" class="c-area" ${idC} value="${esc(data.area||'')}"></div>
+    ${first ? '' : `<button type="button" onclick="this.closest('.common-row').remove()" title="移除此共有部分" style="border:none;background:none;color:var(--ink-soft);font-size:20px;line-height:1;cursor:pointer;padding:0 4px;align-self:center;flex-shrink:0">×</button>`}`;
+  list.appendChild(div);
+  commonCount++;
+  return div;
+}
+// 收集所有共有部分列（過濾全空白）
+function getCommons(){
+  const out = [];
+  document.querySelectorAll('#commonList .common-row').forEach(r => {
+    const g = sel => (r.querySelector(sel)?.value || '').trim();
+    const c = { no:g('.c-no'), share:g('.c-share'), area:g('.c-area') };
+    if(c.no || c.share || c.area) out.push(c);
+  });
+  return out;
+}
+
+/* ---- 附屬建物（可多筆：早期建物常有陽台＋雨遮、花台等，面積各自登記）---- */
+let subCount = 0;
+function addSubRow(data){
+  data = data || {};
+  const list = document.getElementById('subList');
+  if(!list) return;
+  const first = subCount === 0;                     // 第一列保留舊 id（subUse/subArea），相容 loadSample
+  const idU = first ? 'id="subUse"' : '', idA = first ? 'id="subArea"' : '';
+  const div = document.createElement('div');
+  div.className = 'row sub-row';
+  div.innerHTML = `
+    <div class="field sm"><label class="lbl">附屬建物用途</label><input type="text" class="s-use" ${idU} placeholder="陽台" value="${esc(data.use||'')}"></div>
+    <div class="field sm"><label class="lbl">附屬建物面積（㎡）</label><input type="text" class="s-area" ${idA} value="${esc(data.area||'')}"></div>
+    ${first ? '' : `<button type="button" onclick="this.closest('.sub-row').remove()" title="移除此附屬建物" style="border:none;background:none;color:var(--ink-soft);font-size:20px;line-height:1;cursor:pointer;padding:0 4px;align-self:center;flex-shrink:0">×</button>`}`;
+  list.appendChild(div);
+  subCount++;
+  return div;
+}
+// 收集所有附屬建物列（過濾全空白）
+function getSubs(){
+  const out = [];
+  document.querySelectorAll('#subList .sub-row').forEach(r => {
+    const g = sel => (r.querySelector(sel)?.value || '').trim();
+    const s = { use:g('.s-use'), area:g('.s-area') };
+    if(s.use || s.area) out.push(s);
+  });
+  return out;
+}
+// 收集某角色的所有當事人，過濾全空白的列；至少回傳一筆以維持版面
+function getParties(role){
+  const out = [];
+  document.querySelectorAll('#'+role+'List .party-row').forEach(r=>{
+    const g = sel => (r.querySelector(sel)?.value || '').trim();
+    const p = {name:g('.p-name'), id:g('.p-id'), addr:g('.p-addr'), tel:g('.p-tel')};
+    if(p.name||p.id||p.addr||p.tel) out.push(p);
+  });
+  if(!out.length) out.push({name:'',id:'',addr:'',tel:''});
+  return out;
+}
+// 多名姓名以頓號連接（供開頭句、附件簽章用）
+const partyNames = role => getParties(role).map(p=>fv(p.name,6)).join('、');
+
+/* ---- 各項費用設定（第五條） ---- */
+const FEES = [
+  {key:'mgmt', name:'管理費', extra:true},
+  {key:'water', name:'水費'},
+  {key:'power', name:'電費'},
+  {key:'gas', name:'瓦斯費'},
+  {key:'net', name:'網路費'},
+];
+
+/* ---- 動態建立畫面元件 ---- */
+function buildUI(){
+  // 費用列
+  $('#feeRows').innerHTML = FEES.map(f=>`
+    <div class="row"><div class="field lg">
+      <label class="lbl">${f.name}</label>
+      <div class="opts tight">
+        <label class="opt"><input type="radio" name="fee_${f.key}" value="出租人" >由出租人負擔</label>
+        <label class="opt"><input type="radio" name="fee_${f.key}" value="承租人" checked>由承租人負擔</label>
+        <label class="opt"><input type="radio" name="fee_${f.key}" value="其他">其他</label>
+        <input type="text" id="feeother_${f.key}" class="inline-mini" placeholder="其他內容">
+        ${f.extra?`<span class="sub">住宅每月<input type="text" id="mgmtHome" class="inline-mini">元、車位每月<input type="text" id="mgmtPark" class="inline-mini">元</span>`:''}
+      </div>
+    </div></div>`).join('');
+
+  // 設備清單
+  $('#eqGrid').innerHTML = EQUIPMENT.map(e=>`
+    <div class="eq-item" id="eqrow_${e.key}">
+      <input type="checkbox" id="eq_${e.key}" ${e.on?'checked':''} onchange="syncEq('${e.key}')">
+      <label class="eq-name" for="eq_${e.key}">${e.name}</label>
+      ${e.unit?`<input type="text" class="eq-qty" id="eqq_${e.key}" value="${e.qty}"><span class="eq-unit">${e.unit}</span>`:''}
+    </div>`).join('');
+  EQUIPMENT.forEach(e=>syncEq(e.key));
+
+  // 特約範本
+  $('#termList').innerHTML = SPECIAL_TERMS.map(t=>`
+    <div class="term-item">
+      <input type="checkbox" id="term_${t.key}" ${t.on?'checked':''} onchange="onTermChange()">
+      <div class="term-body">
+        <label class="term-label" for="term_${t.key}">${t.label}</label>
+        <div class="term-text">${esc(t.text).replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>`).join('');
+
+  // 下拉選項
+  $('#bldType').innerHTML = BUILDING_TYPES.map(b=>`<option>${b}</option>`).join('');
+  $('#bldType').value = '住宅大樓（十一層含以上有電梯）';
+  $('#rentType').innerHTML = RENT_TYPES.map(b=>`<option>${b}</option>`).join('');
+
+  // 當事人：出租人 / 承租人各先放一筆空白列（可按「＋新增」加列）
+  addParty('lessor');
+  addParty('lessee');
+}
+
+function syncEq(key){
+  const on = chk('eq_'+key);
+  $('#eqrow_'+key)?.classList.toggle('on', on);
+}
+function onTermChange(){
+  $('#petFields').classList.toggle('show', chk('term_pet'));
+}
+function togglePark(){
+  const has = radio('hasPark')==='有';
+  $('#parkCnt').style.display = has?'inline-flex':'none';
+  $('#parkDetail').style.display = has?'flex':'none';
+}
+function togglePay(){
+  $('#payBank').style.display = radio('payWay')==='轉帳'?'flex':'none';
+}
+/* 現況確認書第 5～10 項：選「有／不正常」時，展開後續處理選項供勾選 */
+function toggleConf(){
+  $('#leakSub') .classList.toggle('show', radio('leak')==='有');
+  $('#radSub')  .classList.toggle('show', radio('radiation')==='有');
+  $('#chlSub')  .classList.toggle('show', radio('chloride')==='有');
+  $('#waterSub').classList.toggle('show', radio('water')==='不正常');
+  $('#ruleSub') .classList.toggle('show', radio('rule')==='有');
+}
+
+/* ---- 自訂設備（清單沒有的，使用者自行新增）----
+ * customEq 只存 key；名稱/數量/單位的值直接讀 DOM，故新增/移除不會清掉已輸入內容。 */
+let customEq = [];
+let customEqSeq = 0;
+function addCustomEq(){
+  const key = 'custom_' + (++customEqSeq);
+  customEq.push(key);
+  const div = document.createElement('div');
+  div.className = 'eq-item on';
+  div.id = 'eqrow_' + key;
+  div.innerHTML =
+    `<input type="checkbox" id="eq_${key}" checked onchange="syncEq('${key}')">` +
+    `<input type="text" class="eq-name-input" id="eqname_${key}" placeholder="設備名稱">` +
+    `<input type="text" class="eq-qty" id="eqq_${key}" value="1">` +
+    `<input type="text" class="eq-unit-input" id="equnit_${key}" value="個">` +
+    `<button class="eq-rm" type="button" onclick="removeCustomEq('${key}')" title="移除">×</button>`;
+  $('#customEqGrid').appendChild(div);
+  $('#eqname_' + key).focus();
+}
+function removeCustomEq(key){
+  customEq = customEq.filter(k => k !== key);
+  document.getElementById('eqrow_' + key)?.remove();
+}
+
+/* ---- 民國日期組字 ---- */
+const mdate = (y,m,d) => `民國 ${fv(y,2.5)} 年 ${fv(m,2)} 月 ${fv(d,2)} 日`;
+
+/* ---- 收集 + 組合費用條文 ---- */
+function feeLine(f){
+  const who = radio('fee_'+f.key) || '承租人';
+  const num = f.name==='管理費' ? '一' : ({water:'二',power:'三',gas:'四',net:'五'})[f.key]||'';
+  // 冒號後換行，出租人 / 承租人各自一行
+  const lines = [`<p class="ind">（${num}）${f.name}：</p>`];
+  lines.push(`<p class="ind2">${ck(who==='出租人')}由出租人負擔。</p>`);
+  let lessee = `${ck(who==='承租人')}由承租人負擔`;
+  if(f.key==='water') lessee += '（依台水帳單金額為準）';
+  if(f.key==='power') lessee += '（依台電帳單金額為準）';
+  if(f.key==='gas')   lessee += '（依瓦斯公司帳單金額為準）';
+  lines.push(`<p class="ind2">${lessee}。</p>`);
+  if(f.key==='mgmt'){
+    lines.push(`<p class="ind2">租賃住宅每月 ${fv(val('mgmtHome'),3)} 元、停車位每月 ${fv(val('mgmtPark'),3)} 元。</p>`);
+  }
+  // 其他：每項費用皆提供
+  const other = who==='其他' ? fv(val('feeother_'+f.key),4) : '<span class="bl" style="min-width:4em"></span>';
+  lines.push(`<p class="ind2">${ck(who==='其他')}其他：${other}。</p>`);
+  return lines.join('');
+}
+
+/* ---- 組合特約事項 ---- */
+function buildTerms(){
+  const items = [];
+  SPECIAL_TERMS.forEach(t=>{
+    if(!chk('term_'+t.key)) return;
+    let txt = t.text;
+    if(t.key==='pet'){
+      txt = txt.replace('{kind}', val('petKind')||'＿').replace('{breed}', val('petBreed')||'＿').replace('{count}', val('petCount')||'＿');
+    }
+    items.push(txt);
+  });
+  const custom = val('customTerms');
+  if(custom) custom.split('\n').map(s=>s.trim()).filter(Boolean).forEach(s=>items.push(s));
+  return items;
+}
+
+/* ---- 產生合約 HTML ---- */
+function buildContract(){
+  const owner = radio('ownerType');
+  const P = [];
+
+  // ===== 第一頁：契約審閱權，標題置於出租人下方 =====
+  P.push(`<p class="ct-rev">內政部113年7月8日台內地字第11302639334號函修正</p>`);
+  // 契約審閱權：靠左對齊、置於方框內，放在「住宅租賃契約書」標題上方（比照內政部範本）
+  // 用 inline border 確保列印 PDF 與匯出 Word 皆能呈現方框
+  P.push(`<div style="border:1.5px solid #000;padding:12px 16px;font-size:14pt;line-height:2;text-align:left;margin-bottom:14px">`);
+  P.push(`<p style="text-align:left;font-weight:700;font-size:14pt;margin:0 0 4px">契約審閱權</p>`);
+  P.push(`<p style="text-align:left">本契約於中華民國 ${fv(val('revY'),2.5)} 年 ${fv(val('revM'),2)} 月 ${fv(val('revD'),2)} 日經承租人攜回審閱 ${fv(val('revDays'),1.5)} 日（契約審閱期間至少三日）。</p>`);
+  // 承租人、出租人各一段；多名同段以頓號連接，標籤只寫一次。
+  // （不用負 text-indent 懸掛縮排——Word 會把負縮排推出方框外；簽章欄名字短不需換行對齊）
+  P.push(`<p style="text-align:left">承租人：${partyNames('lessee')}　（簽章）</p>`);
+  P.push(`<p style="text-align:left">出租人：${partyNames('lessor')}　（簽章）</p>`);
+  P.push(`</div>`);
+  // 住宅租賃契約書 — 置中、42pt 加粗，置於出租人下方
+  P.push(`<h1 class="ct-title" style="font-size:42pt;font-weight:900;margin:2.6cm 0 0">住宅租賃契約書</h1>`);
+
+  // 審閱頁獨立成一頁，合約本文從次頁開始（本文不再重複大標題）
+  P.push(`<div class="pgbreak"></div>`);
+  P.push(`<p>立契約書人承租人 ${partyNames('lessee')} ，出租人 ${partyNames('lessor')} 【為 ${ck(owner==='所有權人')}所有權人 ${ck(owner==='轉租人')}轉租人（應提示經原所有權人同意轉租之證明文件）】，茲為住宅租賃事宜，雙方同意本契約條款如下：</p>`);
+
+  // 第一條
+  P.push(`<p class="ct-clause">第一條　租賃標的</p>`);
+  P.push(`<p class="ind">（一）租賃住宅標示：</p>`);
+  P.push(`<p class="ind2">1、門牌：${fv(val('addr'),12)}。基地坐落 ${fv(val('landSeg'),4)} 段 ${fv(val('landNo'),5)} 地號。</p>`);
+  P.push(`<p class="ind2">2、專有部分建號 ${fv(val('exclNo'),5)} ，權利範圍 ${fv(val('exclShare'),3)} ，面積共計 ${fv(val('exclArea'),3)} 平方公尺。</p>`);
+  P.push(`<p class="ind2">　(1)主建物面積：${fv(val('mainFloor'),2)} 層 ${fv(val('mainArea'),3)} 平方公尺。</p>`);
+  const subs = getSubs();
+  if(subs.length <= 1){
+    const s0 = subs[0] || { use:val('subUse'), area:val('subArea') };
+    P.push(`<p class="ind2">　(2)附屬建物用途 ${fv(s0.use,3)} ，面積 ${fv(s0.area,3)} 平方公尺。</p>`);
+  } else {
+    P.push(`<p class="ind2">　(2)附屬建物：</p>`);
+    subs.forEach(s => P.push(`<p class="ind2">　　用途 ${fv(s.use,3)} ，面積 ${fv(s.area,3)} 平方公尺。</p>`));
+  }
+  const commons = getCommons();
+  if(commons.length <= 1){
+    const c0 = commons[0] || { no:val('commonNo'), share:val('commonShare'), area:val('commonArea') };
+    P.push(`<p class="ind2">3、共有部分建號 ${fv(c0.no,5)} ，權利範圍 ${fv(c0.share,5)} ，持分面積 ${fv(c0.area,3)} 平方公尺。</p>`);
+  } else {
+    P.push(`<p class="ind2">3、共有部分：</p>`);
+    commons.forEach((c,i) => P.push(`<p class="ind2">　(${i+1})建號 ${fv(c.no,5)} ，權利範圍 ${fv(c.share,5)} ，持分面積 ${fv(c.area,3)} 平方公尺。</p>`));
+  }
+  const hasPark = radio('hasPark')==='有';
+  P.push(`<p class="ind2">4、車位：${ck(hasPark)}有（汽車停車位 ${fv(val('carCnt'),2)} 個、機車停車位 ${fv(val('motoCnt'),2)} 個）${ck(!hasPark)}無。</p>`);
+  P.push(`<p class="ind2">5、${ck(radio('otherRight')==='有')}有 ${ck(radio('otherRight')==='無')}無 設定他項權利${radio('otherRight')==='有'?'，權利種類：'+fv(val('otherRightKind'),4):''}。</p>`);
+  P.push(`<p class="ind2">6、${ck(radio('seizure')==='有')}有 ${ck(radio('seizure')==='無')}無 查封登記。</p>`);
+  P.push(`<p class="ind">（二）租賃範圍：</p>`);
+  const scopeAll = radio('scope')==='全部';
+  P.push(`<p class="ind2">1、租賃住宅 ${ck(scopeAll)}全部 ${ck(!scopeAll)}部分${scopeAll?'':'：第'+fv(val('scopeFloor'),2)+'層、面積'+fv(val('scopeArea'),3)+'平方公尺'}。</p>`);
+  if(hasPark){
+    P.push(`<p class="ind2">2、車位：汽車停車位 地下第 ${fv(val('carFloor'),2)} 層 ${ck(radio('carType')==='平面式')}平面式 ${ck(radio('carType')==='機械式')}機械式，編號第 ${fv(val('carSpotNo'),3)} 號；使用時間 ${ck(radio('carTime')==='全日')}全日 ${ck(radio('carTime')==='日間')}日間 ${ck(radio('carTime')==='夜間')}夜間。</p>`);
+  }
+  P.push(`<p class="ind2">3、租賃附屬設備：${ck(anyEq())}有 ${ck(!anyEq())}無 附屬設備，若有，詳如附件一租賃標的現況確認書。</p>`);
+
+  // 第二條
+  P.push(`<p class="ct-clause">第二條　租賃期間</p>`);
+  P.push(`<p class="ind">租賃期間自${mdate(val('startY'),val('startM'),val('startD'))}起至${mdate(val('endY'),val('endM'),val('endD'))}止。</p>`);
+
+  // 第三條
+  P.push(`<p class="ct-clause">第三條　租金約定及支付</p>`);
+  P.push(`<p class="ind">承租人每月租金為新臺幣 ${fv(val('rent'),4)} 元整，每期應繳納 ${fv(val('rentPer'),2)} 個月租金，並於每月 ${fv(val('rentDay'),2)} 日前支付，不得藉任何理由拖延或拒絕；出租人於租賃期間亦不得藉任何理由要求調漲租金。</p>`);
+  const cash = radio('payWay')==='現金';
+  P.push(`<p class="ind">租金支付方式：${ck(cash)}現金繳付　${ck(!cash)}轉帳繳付${cash?'':'：金融機構 '+fv(val('bankName'),6)+'，戶名 '+fv(val('bankAcctName'),4)+'，帳號 '+fv(val('bankAcctNo'),6)}。</p>`);
+
+  // 第四條
+  P.push(`<p class="ct-clause">第四條　押金約定及返還</p>`);
+  P.push(`<p class="ind">（一）押金由租賃雙方約定為 ${fv(val('depMonths'),2)} 個月租金，金額為 ${fv(val('depAmount'),4)} 元整（最高不得超過二個月租金之總額）。承租人應於簽訂本契約之同時給付出租人。</p>`);
+  P.push(`<p class="ind">（二）前項押金，除有得抵充之情形外，出租人應於租期屆滿或租賃契約終止，承租人返還租賃住宅時，返還押金或抵充本契約所生債務後之賸餘押金。</p>`);
+
+  // 第五條
+  P.push(`<p class="ct-clause">第五條　租賃期間相關費用之約定</p>`);
+  P.push(`<p class="ind">租賃期間，使用租賃住宅所生之相關費用，依下列約定辦理：</p>`);
+  FEES.forEach(f=>P.push(feeLine(f)));
+
+  // 第六條
+  P.push(`<p class="ct-clause">第六條　稅費負擔之約定</p>`);
+  P.push(`<p class="ind">本契約有關稅費，依下列約定辦理：</p>`);
+  P.push(`<p class="ind">（一）租賃住宅之房屋稅、地價稅由出租人負擔。</p>`);
+  const nf = radio('notaryFee');
+  P.push(`<p class="ind">（二）本契約租賃雙方同意辦理公證者，其公證費 ${fv(val('notaryFeeAmount'),6)} 元整。</p>`);
+  P.push(`<p class="ind2">${ck(nf==='出租人負擔')}由出租人負擔。</p>`);
+  P.push(`<p class="ind2">${ck(nf==='承租人負擔')}由承租人負擔。</p>`);
+  P.push(`<p class="ind2">${ck(nf==='租賃雙方平均負擔')}由租賃雙方平均負擔。</p>`);
+  P.push(`<p class="ind2">${ck(nf==='其他')}其他：${nf==='其他'?fv(val('notaryFeeOther'),4):'<span class="bl" style="min-width:4em"></span>'}。</p>`);
+
+  // 第七~十二條（固定文字）
+  [CLAUSES.c7,CLAUSES.c8].forEach(c=>pushClause(P,c));
+  // 第九條補回復原狀選項
+  pushClause(P,CLAUSES.c9);
+  const r = radio('restore');
+  P.push(`<p class="ind">第一項情形，承租人返還租賃住宅時，應 ${ck(r==='負責回復原狀')}負責回復原狀 ${ck(r==='現況返還')}現況返還 ${ck(r==='其他')}其他。</p>`);
+  [CLAUSES.c10,CLAUSES.c11,CLAUSES.c12].forEach(c=>pushClause(P,c));
+
+  // 第十三條
+  P.push(`<p class="ct-clause">第十三條　任意終止租約之約定</p>`);
+  const can = radio('earlyEnd')==='得';
+  P.push(`<p class="ind">（一）本契約於期限屆滿前，除依第十六條及第十七條規定得提前終止租約外，租賃雙方 ${ck(can)}得 ${ck(!can)}不得 任意終止租約。</p>`);
+  P.push(`<p class="ind">（二）依前項約定得終止租約者，租賃之一方應至少於終止前一個月通知他方。一方未為先期通知而逕行終止租約者，應賠償他方最高不得超過一個月租金額之違約金。</p>`);
+  P.push(`<p class="ind">（三）前項承租人應賠償之違約金，得由押金中抵充，如有不足，並得向承租人請求給付不足之金額。</p>`);
+  P.push(`<p class="ind">（四）租期屆滿前，依第一項終止租約者，出租人已預收之租金應返還予承租人。</p>`);
+
+  // 第十四~十八條
+  [CLAUSES.c14,CLAUSES.c15,CLAUSES.c16,CLAUSES.c17,CLAUSES.c18].forEach(c=>pushClause(P,c));
+
+  // 第十九條
+  pushClause(P,CLAUSES.c19);
+  P.push(`<p class="ind">本契約之通知得經租賃雙方約定以 ${ck(chk('ntEmail'))}電子郵件信箱：${chk('ntEmail')?fv(val('ntEmailAddr'),5):'＿'} ${ck(chk('ntSms'))}手機簡訊 ${ck(chk('ntIm'))}即時通訊軟體 以文字顯示方式為之。</p>`);
+
+  // 第二十條
+  pushClause(P,CLAUSES.c20);
+
+  // 第二十一條　其他約定（公證）
+  // 表單選「同意」時，下方三項逕受強制執行事項自動帶 ■；不論勾選與否，文字皆完整呈現。
+  P.push(`<p class="ct-clause">第二十一條　其他約定</p>`);
+  const ag = radio('notary')==='同意';
+  P.push(`<p class="ind">本契約租賃雙方 ${ck(ag)}同意 ${ck(!ag)}不同意 辦理公證。</p>`);
+  P.push(`<p class="ind">本契約經辦理公證者，租賃雙方 ${ck(!ag)}不同意 ；${ck(ag)}同意 公證書載明下列事項應逕受強制執行：</p>`);
+  P.push(`<p class="ind2">${ck(ag)}一、承租人如於租期屆滿後不返還租賃住宅。</p>`);
+  P.push(`<p class="ind2">${ck(ag)}二、承租人未依約給付之欠繳租金、費用及出租人或租賃住宅所有權人代繳之管理費，或違約時應支付之金額。</p>`);
+  P.push(`<p class="ind2">${ck(ag)}三、出租人如於租期屆滿或本契約終止時，應返還承租人之全部或一部押金。</p>`);
+  P.push(`<p class="ind">公證書載明金錢債務逕受強制執行時，如有保證人者，前項後段第 <span class="bl" style="min-width:2em"></span> 款之效力及於保證人。</p>`);
+
+  // 第二十二條
+  pushClause(P,CLAUSES.c22);
+
+  // 第二十三條 特別約定
+  P.push(`<p class="ct-clause">第二十三條　特別約定事項</p>`);
+  const terms = buildTerms();
+  if(terms.length){
+    terms.forEach((t,i)=>{
+      const lines = t.split('\n');
+      P.push(`<p class="ind">${i+1}、${esc(lines[0])}</p>`);
+      for(let j=1;j<lines.length;j++) P.push(`<p class="ind2">${esc(lines[j])}</p>`);
+    });
+  } else {
+    P.push(`<p class="ind">（無特別約定事項）</p>`);
+  }
+
+  // 第二十四條
+  pushClause(P,CLAUSES.c24);
+
+  // 附件清單
+  P.push(`<p class="ct-clause">附件</p>`);
+  P.push(`<p class="ind">■雙方身分證明文件影本　■租賃標的現況確認書（附件一）　■附屬設備清單</p>`);
+
+  // 簽署
+  P.push(`<div class="sig-block">`);
+  P.push(`<p style="font-weight:700">立契約書人</p>`);
+  // 角色標題（加粗）獨立一行，換行後依序列出該角色每位的姓名與資料；
+  // 多名時不重複角色標籤，只接姓名／身分證字號／戶籍地址／聯絡電話（資料行縮排對齊）
+  const sigRole = (role, label) => {
+    P.push(`<p style="font-weight:700">${label}</p>`);
+    getParties(role).forEach(p=>{
+      P.push(`<p>　　姓名：${fv(p.name,6)}（簽章）</p>`);
+      P.push(`<p>　　身分證字號：${fv(p.id,6)}</p>`);
+      P.push(`<p>　　戶籍地址：${fv(p.addr,14)}</p>`);
+      P.push(`<p>　　聯絡電話：${fv(p.tel,6)}</p>`);
+    });
+  };
+  sigRole('lessor', '出租人');
+  sigRole('lessee', '承租人');
+  // 簽約日期：分散對齊（撐滿整行寬度）。text-align-last 給瀏覽器/PDF；text-justify:distribute-all-lines 給 Word(mso) 認
+  P.push(`<p style="text-align:justify;text-align-last:justify;text-justify:distribute-all-lines;margin-top:10px">${mdate(val('signY'),val('signM'),val('signD'))}</p>`);
+  P.push(`</div>`);
+
+  // ===== 附件一 現況確認書（含第 12 項附屬設備）=====
+  P.push(buildConfirm());
+
+  // ===== 附件二以後 影像附件（現場照片／證件／存摺／鑰匙／其他，有上傳才輸出）=====
+  const att = buildAttachments();
+  if(att) P.push(att);
+
+  return P.join('\n');
+}
+
+function pushClause(P,c){
+  P.push(`<p class="ct-clause">${c.title}</p>`);
+  c.body.forEach(b=> P.push(`<p class="ind">${esc(b)}</p>`));
+}
+
+function anyEq(){ return collectEquipment().length > 0; }
+
+/* 收集「有勾選」的設備（內建 + 自訂），自訂須有填名稱才算 */
+function collectEquipment(){
+  const list = [];
+  EQUIPMENT.forEach(e=>{
+    if(!chk('eq_'+e.key)) return;
+    const q = e.unit ? `${val('eqq_'+e.key)||''} ${e.unit}`.trim() : '';
+    list.push({ name: e.name, q });
+  });
+  customEq.forEach(key=>{
+    if(!chk('eq_'+key)) return;
+    const nm = val('eqname_'+key);
+    if(!nm) return;
+    const unit = val('equnit_'+key);
+    const q = unit ? `${val('eqq_'+key)||''} ${unit}`.trim() : '';
+    list.push({ name: nm, q });
+  });
+  return list;
+}
+
+/* ---- 附件一 現況確認書（3 欄表格：項次｜內容｜備註說明）----
+ * 內容欄：主要勾選由表單帶入；點交時才填的細項（修繕方式、月/季/年繳等）
+ *         比照紙本以靜態 □ 呈現，供現場手動勾選。
+ * 備註欄：固定法定說明，取自 rent-data.js 的 CONFIRM_NOTES。
+ * 第 12 項＝附屬設備（依使用者參考 Word，置於本表最後一格）。      */
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+
+function buildConfirm(){
+  const hasPark = radio('hasPark')==='有';
+  // 各項次「內容」欄
+  const c = [];
+  c[1] = `${ck(radio('c1')==='有')}有 ${ck(radio('c1')==='無')}無 包括未登記之改建、增建、加建、違建部分：<br>`
+       + `□壹樓 ___ 平方公尺 □ ___ 樓 ___ 平方公尺。<br>□頂樓 ___ 平方公尺。<br>□其他處所： ___ 平方公尺。`;
+  c[2] = `建物型態：${fv($('#bldType').value,8)}。<br>`
+       + `建物現況格局：${fv(val('rmRoom'),2)} 房（間、室） ${fv(val('rmHall'),2)} 廳 ${fv(val('rmBath'),2)} 衛 ${ck(radio('partition')==='有')}有 ${ck(radio('partition')==='無')}無 隔間。<br>`
+       + `建物出租型態：${fv($('#rentType').value,8)}。`;
+  c[3] = `本租賃住宅 ${ck(hasPark)}有 ${ck(!hasPark)}無 停車位。`;
+  if(hasPark){
+    c[3] += `<br>汽車停車位種類及編號：<br>`
+         + `地上（下）第 ${fv(val('carFloor'),2)} 層 ${ck(radio('carType')==='平面式')}平面式停車位 ${ck(radio('carType')==='機械式')}機械式停車位 □其他 ___。<br>`
+         + `編號：第 ${fv(val('carSpotNo'),3)} 號停車位 ${fv(val('carCnt'),2)} 個，□有 □無 獨立權狀。<br>`
+         + `□有 □無 檢附分管協議及圖說。<br>`
+         + `機車停車位：地上下第 ___ 層，編號第 ___ 號車位 ${fv(val('motoCnt'),2)} 個或其位置示意圖。`;
+  }
+  c[4] = `${ck(chk('fireAlarm'))}有 □無 住宅用火災警報器。<br>`
+       + `${ck(chk('fireOther'))}有 □無 其他消防設施，若有，項目：${chk('fireOther')?fv(val('fireOtherItem'),6):'___'}。<br>`
+       + `${ck(chk('fireCheck'))}有 □無 定期辦理消防安全檢查。`;
+  // 第 5～10 項：後續「處理方式」依表單勾選帶入 ■（未選則維持 □）
+  const lf = radio('leakFix');
+  c[5] = `${ck(radio('leak')==='有')}有 ${ck(radio('leak')==='無')}無 滲漏水之情形，若有，滲漏水處：${radio('leak')==='有'?fv(val('leakWhere'),5):'___'}。<br>`
+       + `滲漏水處之處理：<br>`
+       + `${ck(lf==='出租人修繕後交屋')}由出租人修繕後交屋。<br>`
+       + `${ck(lf==='承租人修繕')}由承租人修繕。<br>`
+       + `${ck(lf==='現況交屋')}以現況交屋。<br>`
+       + `${ck(lf==='其他')}其他 ${lf==='其他'?fv(val('leakFixOther'),5):'______'}。`;
+  const rr = radio('radResult'), rf = radio('radFix');
+  c[6] = `${ck(radio('radiation')==='有')}有 ${ck(radio('radiation')==='無')}無 曾經做過輻射屋檢測？若有，請檢附檢測證明文件。<br>`
+       + `檢測結果 ${ck(rr==='有')}有 ${ck(rr==='無')}無 輻射異常，若有異常之處理：<br>`
+       + `${ck(rf==='出租人改善後交屋')}由出租人改善後交屋。<br>`
+       + `${ck(rf==='承租人改善')}由承租人改善。<br>`
+       + `${ck(rf==='現況交屋')}以現況交屋。<br>`
+       + `${ck(rf==='其他')}其他 ${rf==='其他'?fv(val('radFixOther'),5):'____'}。`;
+  const co = radio('chlOver'), cf = radio('chlFix');
+  c[7] = `${ck(radio('chloride')==='有')}有 ${ck(radio('chloride')==='無')}無 曾經做過鋼筋混凝土中水溶性氯離子含量檢測（例如海砂屋檢測事項）；若有，檢測結果：${radio('chloride')==='有'?fv(val('chlResultText'),6):'______'}。<br>`
+       + `${ck(co==='有')}有 ${ck(co==='無')}無 超過容許值含量，若有超過之處理：<br>`
+       + `${ck(cf==='出租人修繕後交屋')}由出租人修繕後交屋。<br>`
+       + `${ck(cf==='承租人修繕')}由承租人修繕。<br>`
+       + `${ck(cf==='現況交屋')}以現況交屋。<br>`
+       + `${ck(cf==='其他')}其他 ${cf==='其他'?fv(val('chlFixOther'),5):'____'}。`;
+  const db = radio('deathBefore');
+  c[8] = `本租賃住宅（專有部分）是否曾發生兇殺、自殺、一氧化碳中毒或其他非自然死亡之情事：<br>`
+       + `(1)於產權持有期間 ${ck(radio('death')==='有')}有 ${ck(radio('death')==='無')}無 曾發生上列情事。<br>`
+       + `(2)於產權持有前<br>`
+       + `${ck(db==='無')}無上列情事。<br>`
+       + `${ck(db==='知道')}知道曾發生上列情事。<br>`
+       + `${ck(db==='不知道')}不知道曾否發生上列情事。`;
+  const wf = radio('waterFix');
+  c[9] = `供水及排水 ${ck(radio('water')==='正常')}是 ${ck(radio('water')==='不正常')}否 正常，若不正常，<br>`
+       + `${ck(wf==='出租人修繕後交屋')}由出租人修繕後交屋。<br>`
+       + `${ck(wf==='承租人修繕')}由承租人修繕。<br>`
+       + `${ck(wf==='現況交屋')}以現況交屋。<br>`
+       + `${ck(wf==='其他')}其他 ${wf==='其他'?fv(val('waterFixOther'),5):'____'}。`;
+  const ra = radio('ruleAttach');
+  c[10] = `${ck(radio('rule')==='有')}有 ${ck(radio('rule')==='無')}無 公寓大廈規約或其他住戶應遵行事項；若有，${ck(ra==='有')}有 ${ck(ra==='無')}無 檢附規約或其他住戶應遵行事項。`;
+  const fee = val('mgmtFee');
+  c[11] = `${ck(radio('mgmt')==='有')}有 ${ck(radio('mgmt')==='無')}無 管理委員會統一管理，<br>`
+       + `若有<br>`
+       + `租賃住宅管理費為<br>`
+       + `□月繳新臺幣 ___ 元<br>`
+       + `□季繳新臺幣 ___ 元<br>`
+       + `□年繳新臺幣 ___ 元<br>`
+       + `${fee?'■其他 '+fv(fee,6):'□其他 ______'}。<br><br>`
+       + `停車位管理費為<br>`
+       + `□月繳新臺幣 ___ 元<br>`
+       + `□季繳新臺幣 ___ 元<br>`
+       + `□年繳新臺幣 ___ 元<br>`
+       + `□其他 ______。<br><br>`
+       + `□有 □無 積欠租賃住宅、停車位管理費；若有，新臺幣 ____ 元。`;
+
+  let h = `<div class="pgbreak"></div>`;
+  h += `<p class="attach-title">附件一　租賃標的現況確認書</p>`;
+  h += `<p style="text-align:right;font-size:13px">填表日期：${mdate(val('signY'),val('signM'),val('signD'))}</p>`;
+  h += `<table class="conf"><tr><td class="idx">項次</td><td>內容</td><td class="note">備註說明</td></tr>`;
+  for(let i=1;i<=11;i++){
+    const note = CONFIRM_NOTES[i] || '';
+    h += `<tr><td class="idx">${i}</td><td>${c[i]}</td><td class="note">${nl2br(note)}</td></tr>`;
+  }
+  // 第 12 項：附屬設備（置於表格最後一格）
+  h += `<tr><td class="idx">12</td><td>${eqCellHTML()}</td><td class="note"></td></tr>`;
+  h += `</table>`;
+  // 雙方簽名：出租人、承租人各自一行並加間隔（同一行太擠）
+  h += `<div class="sig-block">`;
+  h += `<p style="margin-bottom:14px">出租人：${partyNames('lessor')}（簽章）</p>`;
+  h += `<p style="margin-bottom:14px">承租人：${partyNames('lessee')}（簽章）</p>`;
+  h += `<p style="text-align:justify;text-align-last:justify;text-justify:distribute-all-lines">簽章日期：${mdate(val('signY'),val('signM'),val('signD'))}</p></div>`;
+  return h;
+}
+
+/* ---- 第 12 項：附屬設備清單（雙欄無框內表，PDF/Word 皆能並排）---- */
+function eqCellHTML(){
+  const list = collectEquipment();
+  const note = val('eqNote');
+  if(!list.length){
+    let h = `本租賃住宅無附屬設備。`;
+    if(note) h += `<div style="margin-top:6px">備註：${esc(note)}</div>`;
+    return h;
+  }
+  let h = `附屬設備項目如下：`;
+  h += `<table class="eq-inner"><tr>`;
+  list.forEach((e,i)=>{
+    h += `<td>■${esc(e.name)}${e.q?' '+esc(e.q):''}</td>`;
+    if(i%2===1) h += `</tr><tr>`;   // 每兩格換列
+  });
+  h += `</tr></table>`;
+  if(note) h += `<div style="margin-top:6px">備註：${esc(note)}</div>`;
+  return h;
+}
+
+/* ---- 附件影像（現場照片／證件／存摺／鑰匙／其他）----
+ * 純前端：上傳後在本機以 canvas 縮圖、轉 JPEG（控制檔案大小、利於 Word 內嵌），
+ * 以 base64 data URI 存於記憶體，不上傳任何伺服器。
+ * 各分類共用同一套上傳／縮圖牆／輸出邏輯，僅以 key 區分。
+ * caption 欄位先保留（目前不填），日後要在每張下加簡短說明可直接沿用。     */
+const ATTACH_GROUPS = [
+  { key:'photo',    title:'現場照片（室內、外觀現況）', desc:'物件室內、外觀等現況照片。' },
+  { key:'idcard',   title:'雙方身分證明文件影本',       desc:'出租人與承租人身分證／證件影本。' },
+  { key:'passbook', title:'出租人存摺帳戶封面',         desc:'供承租人匯款租金核對帳號用。' },
+  { key:'key',      title:'交付鑰匙照片',               desc:'交付承租人的鑰匙、門禁感應扣等。' },
+  { key:'other',    title:'其他文件',                   desc:'其他附件，可於下方自訂附件說明。', custom:true },
+];
+// 各分類的影像陣列：{ photo:[{data,caption}], idcard:[...], ... }
+const ATTACH = {};
+ATTACH_GROUPS.forEach(g => ATTACH[g.key] = []);
+
+/* 依設定生成各分類上傳區（頁面載入時呼叫一次） */
+function renderAttachUI(){
+  $('#attachGroups').innerHTML = ATTACH_GROUPS.map(g=>`
+    <div class="attach-group">
+      <div class="attach-head">${g.title}　<span class="hint" id="hint_${g.key}">尚未選取</span></div>
+      <div class="attach-sub">${g.desc}</div>
+      ${g.custom ? `<div class="row" style="margin-bottom:9px"><div class="field lg">
+        <input id="attachTitle_other" type="text" placeholder="附件說明（例：鑰匙清點單、車位租賃同意書）"></div></div>` : ''}
+      <label class="btn ghost sm" style="cursor:pointer;display:inline-block">
+        ＋ 選擇照片（可多選）
+        <input type="file" accept="image/*" multiple onchange="addAttach('${g.key}', event)" style="display:none">
+      </label>
+      <div class="photo-grid" id="grid_${g.key}"></div>
+    </div>`).join('');
+}
+
+/* 上傳：縮至最長邊 1000px、轉 JPEG 後存入該分類陣列 */
+function addAttach(key, ev){
+  const files = [...ev.target.files];
+  ev.target.value = '';   // 清空，允許之後再選同一檔
+  files.forEach(file=>{
+    if(!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const max = 1000;
+        let w = img.width, h = img.height;
+        if(w>max || h>max){ const r = Math.min(max/w, max/h); w = Math.round(w*r); h = Math.round(h*r); }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        ATTACH[key].push({ data: cv.toDataURL('image/jpeg', 0.82), caption: '' });
+        renderAttach(key);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAttach(key){
+  const list = ATTACH[key];
+  // 每張縮圖：左上旋轉、右上移除、左下序號；整張可拖曳調整順序（draggable）
+  $('#grid_'+key).innerHTML = list.map((p,i)=>`
+    <div class="photo-thumb" draggable="true"
+         ondragstart="attachDragStart('${key}',${i},event)" ondragover="attachDragOver(event)"
+         ondrop="attachDrop('${key}',${i},event)" ondragend="attachDragEnd(event)">
+      <button class="rot" onclick="rotateAttach('${key}',${i})" title="旋轉 90°">↻</button>
+      <button class="rm" onclick="removeAttach('${key}',${i})" title="移除">×</button>
+      <img src="${p.data}" alt="附件 ${i+1}" draggable="false">
+      <span class="ord">${i+1}</span>
+      <span class="mv">
+        <button onclick="moveAttach('${key}',${i},-1)" title="往前" ${i===0?'disabled':''}>‹</button>
+        <button onclick="moveAttach('${key}',${i},1)" title="往後" ${i===list.length-1?'disabled':''}>›</button>
+      </span>
+    </div>`).join('');
+  $('#hint_'+key).textContent = list.length ? `已選取 ${list.length} 張（可拖曳或用 ‹ › 調整順序）` : '尚未選取';
+}
+
+/* 左右移動：與相鄰那張對調順序（手機友善；dir = -1 往前、+1 往後） */
+function moveAttach(key, i, dir){
+  const list = ATTACH[key];
+  const j = i + dir;
+  if(j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  renderAttach(key);
+}
+
+function removeAttach(key, i){ ATTACH[key].splice(i,1); renderAttach(key); }
+
+/* 單張旋轉：把該張影像順時針旋轉 90°（直式照片可轉正），回存後重畫 */
+function rotateAttach(key, i){
+  const p = ATTACH[key][i];
+  const img = new Image();
+  img.onload = ()=>{
+    const cv = document.createElement('canvas');
+    cv.width = img.height; cv.height = img.width;               // 寬高對調
+    const ctx = cv.getContext('2d');
+    ctx.translate(img.height, 0); ctx.rotate(Math.PI/2);       // 順時針 90°
+    ctx.drawImage(img, 0, 0);
+    p.data = cv.toDataURL('image/jpeg', 0.85);
+    renderAttach(key);
+  };
+  img.src = p.data;
+}
+
+/* 拖曳排序（同一分類內互換順序）。桌機原生拖放；only 同 key 才接受。 */
+let attachDrag = null;   // { key, from }
+function attachDragStart(key, i, e){
+  attachDrag = { key, from: i };
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('dragging');
+}
+function attachDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function attachDrop(key, i, e){
+  e.preventDefault();
+  if(!attachDrag || attachDrag.key !== key || attachDrag.from === i) return;
+  const list = ATTACH[key];
+  const [moved] = list.splice(attachDrag.from, 1);   // 取出被拖的那張
+  list.splice(i, 0, moved);                          // 插到放開的位置
+  attachDrag = null;
+  renderAttach(key);
+}
+function attachDragEnd(e){ e.currentTarget.classList.remove('dragging'); attachDrag = null; }
+
+/* ---- 附件影像（輸出，雙欄網格）----
+ * 各分類有上傳才輸出；附件編號從「二」起連續遞增（附件一為現況確認書）。
+ * 其他文件以使用者自訂的附件說明為標題（未填則用預設「其他文件」）。      */
+function buildAttachments(){
+  const CN = ['一','二','三','四','五','六','七','八','九','十'];
+  let n = 1;            // 索引 1 對應「附件二」（附件一已給現況確認書）
+  let h = '';
+  ATTACH_GROUPS.forEach(g=>{
+    const list = ATTACH[g.key];
+    if(!list.length) return;
+    n++;
+    // 其他文件：優先用自訂說明當標題
+    let title = g.title;
+    if(g.custom){
+      const t = (val('attachTitle_other')||'').trim();
+      if(t) title = t;
+    }
+    h += `<div class="pgbreak"></div><p class="attach-title">附件${CN[n-1]}　${esc(title)}</p>`;
+    h += `<table class="photo-out"><tr>`;
+    list.forEach((p,i)=>{
+      h += `<td><img src="${p.data}">${p.caption?`<div class="photo-cap">${esc(p.caption)}</div>`:''}</td>`;
+      if(i%2===1) h += `</tr><tr>`;   // 每兩張換列
+    });
+    h += `</tr></table>`;
+  });
+  return h;
+}
+
+/* ---- 懸掛縮排（首行突出）----
+ * 讓帶有項目符號的條文段落，換行後對齊「符號後第一個字」（而非退回符號處）。
+ * 偵測 .ind / .ind2 段落開頭的括號項目符號（全形（一）／半形(一)／(十一) 等），
+ * 量出符號寬度（全形字算 1em、半形字算 0.5em），以「負首行縮排 + 等寬左邊距」達成。
+ * 用 inline 樣式覆寫 class 的 margin-left，故 PDF（列印）與 Word 匯出皆能呈現。
+ * 各類段落的基礎縮排：.ind=1.6em、.ind2=3em。                                 */
+const HANG_BASE = { ind: 1.6, ind2: 3 };
+function applyHangingIndent(html){
+  // 僅匹配「緊接段落開頭」的括號項目符號（中間 1～4 字），避免誤抓內文中的括號
+  return html.replace(/<p class="(ind2?)">(（[^）]{1,4}）|\([^)]{1,4}\))/g, (full, cls, mk) => {
+    let w = 0;
+    for(const ch of mk) w += (ch.charCodeAt(0) < 128 ? 0.5 : 1);   // 半形 0.5em、全形 1em
+    const ml = (HANG_BASE[cls] + w).toFixed(2);
+    return `<p class="${cls}" style="margin-left:${ml}em;text-indent:-${w}em">${mk}`;
+  });
+}
+
+/* ============================================================
+ * 身分證 OCR（第二階段 ①）— 純前端、影像不外傳
+ *  上傳／拍攝身分證 → Tesseract.js 在本機辨識 → 帶入姓名 / 身分證字號 / 戶籍地址。
+ *  辨識結果一律視為「草稿」，帶入的欄位以橘底（.ocr-filled）標示，務必人工核對。
+ *  函式庫用時才以 CDN 載入，不拖慢首次開頁（維持零後端、零建置）。
+ * ============================================================ */
+const OCR_TESSERACT_CDN = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const OCR_PDFJS_CDN    = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+const OCR_PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
+// 動態載入外部 script（每個網址只載一次）
+const _ocrScripts = {};
+function loadScript(url){
+  if(_ocrScripts[url]) return _ocrScripts[url];
+  return _ocrScripts[url] = new Promise((res,rej)=>{
+    const s = document.createElement('script');
+    s.src = url; s.onload = res; s.onerror = ()=>rej(new Error('載入失敗：'+url));
+    document.head.appendChild(s);
+  });
+}
+
+// Tesseract worker 單例：避免每次重建、重複下載中文模型（chi_tra）
+let _tessWorker = null;
+let _ocrProgress = null;   // 目前進度回呼（單例 worker 的 logger 讀這個）
+async function getTessWorker(){
+  await loadScript(OCR_TESSERACT_CDN);
+  if(!_tessWorker){
+    _tessWorker = (async () => {
+      const w = await Tesseract.createWorker('chi_tra+eng', 1, {
+        logger: m => { if(_ocrProgress && m.status === 'recognizing text') _ocrProgress(m.progress); }
+      });
+      // PSM 6＝把整塊當「單一文字區塊」（含多行），對證件裁切通常比預設自動分版穩
+      await w.setParameters({ tessedit_pageseg_mode: '6' });
+      return w;
+    })();
+  }
+  return _tessWorker;
+}
+
+// 對單張影像（File / dataURL / canvas）做 OCR，回傳純文字
+async function ocrImage(image, onProgress){
+  const worker = await getTessWorker();
+  _ocrProgress = onProgress || null;
+  try{
+    const { data:{ text } } = await worker.recognize(image);
+    return text;
+  } finally { _ocrProgress = null; }
+}
+
+// 讀檔成 Image 物件
+function loadImageFile(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = e => { const img = new Image(); img.onload = ()=>res(img); img.onerror = rej; img.src = e.target.result; };
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+/* 影像前處理：縮放到合理解析度 → 轉灰階 → 對比拉伸（min-max 正規化）。
+ * 接受已載入的影像或 canvas（通常是使用者框選後的證件範圍）。
+ * 框選已去除黑背景，對比拉伸這時才真正有效。 */
+function processForOcr(src){
+  let w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+  // 目標最長邊約 1600px：太大縮小（省時）；框得小（如只框姓名）則「放大」最多 3 倍，
+  //  讓字夠大，Tesseract 對複雜字（如「儒」）辨識更準。
+  const target = 1600;
+  const s = Math.max(0.3, Math.min(3, target / Math.max(w, h)));
+  w = Math.max(1, Math.round(w*s)); h = Math.max(1, Math.round(h*s));
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';   // 放大時較平滑
+  ctx.drawImage(src, 0, 0, w, h);
+  const imgData = ctx.getImageData(0, 0, w, h), d = imgData.data;
+  let min = 255, max = 0;
+  for(let i=0;i<d.length;i+=4){
+    const g = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114) | 0;  // 灰階
+    d[i]=d[i+1]=d[i+2]=g;
+    if(g<min) min=g; if(g>max) max=g;
+  }
+  const range = Math.max(1, max-min);
+  for(let i=0;i<d.length;i+=4){
+    const g = (d[i]-min) * 255 / range;               // 對比拉伸
+    d[i]=d[i+1]=d[i+2]=g;
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return cv;
+}
+
+/* 框選範圍：跳出視窗讓使用者在影像上拖出一個框，回傳「框內」原始解析度的 canvas。
+ *  - 按「辨識框選範圍」→ 回傳框內（框太小則視為整張）。
+ *  - 按「整張辨識」→ 回傳整張。
+ *  - 按「取消這張」→ 回傳 null。
+ *  以原圖解析度裁切（非縮圖），保留最多細節給 OCR。支援滑鼠與觸控（Pointer Events）。 */
+function cropImage(file){
+  return new Promise(resolve => {
+    loadImageFile(file).then(img => {
+      const modal = $('#ocrCrop'), stage = $('#ocrCropStage'), elImg = $('#ocrCropImg'), sel = $('#ocrCropSel');
+      // src＝目前的顯示／裁切來源；旋轉後會換成旋轉後的 canvas（img 與 canvas 都可當 drawImage 來源）。
+      let src = img;
+      let ds, dispW, dispH, box;
+      const dimW = () => src.naturalWidth || src.width;        // img 用 naturalWidth、canvas 用 width
+      const dimH = () => src.naturalHeight || src.height;
+      const drawSel = () => { sel.style.left=box.x+'px'; sel.style.top=box.y+'px'; sel.style.width=box.w+'px'; sel.style.height=box.h+'px'; };
+      // 依目前 src 重算顯示尺寸、套圖、重置預設框（內縮 6%）。旋轉後也呼叫這個。
+      const applySrc = () => {
+        const natW = dimW(), natH = dimH();
+        // 顯示尺寸：塞進螢幕（最寬 900 / 視窗 92%，最高 60% 視窗）
+        ds = Math.min(Math.min(window.innerWidth*0.92, 900)/natW, window.innerHeight*0.6/natH, 1);
+        dispW = Math.round(natW*ds); dispH = Math.round(natH*ds);
+        elImg.src = src.toDataURL ? src.toDataURL('image/jpeg', 0.92) : src.src;
+        elImg.width = dispW; elImg.height = dispH;
+        stage.style.width = dispW+'px'; stage.style.height = dispH+'px';
+        box = { x: dispW*0.06, y: dispH*0.06, w: dispW*0.88, h: dispH*0.88 };
+        drawSel();
+      };
+      applySrc();
+      modal.classList.add('show');
+
+      // 順時針旋轉 90°：把目前 src 畫到寬高對調的 canvas，成為新的裁切來源（直式照片可轉正）
+      const rotate = () => {
+        const sw = dimW(), sh = dimH();
+        const cv = document.createElement('canvas');
+        cv.width = sh; cv.height = sw;                          // 寬高對調
+        const ctx = cv.getContext('2d');
+        ctx.translate(sh, 0); ctx.rotate(Math.PI/2);           // 順時針 90°
+        ctx.drawImage(src, 0, 0);
+        src = cv;
+        applySrc();                                            // 以旋轉後的圖重畫、重置框
+      };
+
+      // 拖曳畫新框（在 stage 內以顯示座標計算）
+      let drag = null;
+      const pt = e => { const r = stage.getBoundingClientRect();
+        return { x: Math.max(0, Math.min(dispW, e.clientX-r.left)), y: Math.max(0, Math.min(dispH, e.clientY-r.top)) }; };
+      const onDown = e => { drag = pt(e); box = {x:drag.x, y:drag.y, w:0, h:0}; drawSel(); stage.setPointerCapture(e.pointerId); };
+      const onMove = e => { if(!drag) return; const p = pt(e);
+        box = { x:Math.min(drag.x,p.x), y:Math.min(drag.y,p.y), w:Math.abs(p.x-drag.x), h:Math.abs(p.y-drag.y) }; drawSel(); };
+      const onUp = () => { drag = null; };
+      stage.addEventListener('pointerdown', onDown);
+      stage.addEventListener('pointermove', onMove);
+      stage.addEventListener('pointerup', onUp);
+
+      const cleanup = () => {
+        modal.classList.remove('show');
+        stage.removeEventListener('pointerdown', onDown);
+        stage.removeEventListener('pointermove', onMove);
+        stage.removeEventListener('pointerup', onUp);
+        $('#ocrCropOk').onclick = $('#ocrCropFull').onclick = $('#ocrCropCancel').onclick = $('#ocrCropRotate').onclick = null;
+      };
+      // 由目前 src（旋轉後的原始解析度）裁出指定區域
+      const cropTo = (sx,sy,sw,sh) => {
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(sw)); cv.height = Math.max(1, Math.round(sh));
+        cv.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+        return cv;
+      };
+      $('#ocrCropRotate').onclick = rotate;
+      $('#ocrCropOk').onclick = () => {
+        const small = box.w < 10 || box.h < 10;                 // 框太小→當整張
+        const x = small?0:box.x, y = small?0:box.y, w = small?dispW:box.w, h = small?dispH:box.h;
+        cleanup(); resolve(cropTo(x/ds, y/ds, w/ds, h/ds));     // 顯示座標 ÷ 縮放比 → 原圖座標
+      };
+      $('#ocrCropFull').onclick = () => { cleanup(); resolve(cropTo(0, 0, dimW(), dimH())); };
+      $('#ocrCropCancel').onclick = () => { cleanup(); resolve(null); };
+    });
+  });
+}
+
+/* 解析身分證辨識文字 → {name, id, addr}
+ * - 身分證字號：1 英文字母 + 性別碼(1/2) + 8 碼數字，最穩定，先抓這個。
+ * - 姓名：靠「姓名」標籤後 2～4 個中文字。
+ * - 戶籍地址（反面）：抓含「縣／市…號」的最長中文地址字串。
+ * 中文姓名、地址辨識率較不穩，抓不到時留空，由使用者看原文手動補。 */
+/* Tesseract chi_tra 偶爾把字吐成簡體（如 號→号、樓→楼、區→区），
+ * 會同時害到「顯示」與「以繁體字當錨點的比對」。解析前先做簡→繁正規化。
+ * 僅收一對一、不致誤改姓名的字；模糊對應（后/台/范/余/谷…）刻意不收，避免改錯姓名。 */
+const S2T = {'区':'區','号':'號','楼':'樓','邻':'鄰','镇':'鎮','乡':'鄉','县':'縣','园':'園','华':'華',
+  '东':'東','龙':'龍','凤':'鳳','丰':'豐','兴':'興','长':'長','门':'門','阳':'陽','阴':'陰','桥':'橋',
+  '树':'樹','庄':'莊','万':'萬','湾':'灣','学':'學','国':'國','农':'農','车':'車','头':'頭','卫':'衛',
+  '齐':'齊','静':'靜','实':'實','宝':'寶','简':'簡','旧':'舊','应':'應','龟':'龜','广':'廣','营':'營'};
+const s2t = s => (s||'').replace(/[一-鿿]/g, c => S2T[c] || c);
+
+function parseIdCard(text){
+  const out = {};
+  text = s2t(text);                       // 先簡→繁，後續比對才不會因簡體字落空
+  const flat = text.replace(/\s+/g,'');
+  // 身分證字號（最穩）：英文字母 + 性別碼(1/2) + 8 碼數字
+  const mId = flat.match(/[A-Z][12]\d{8}/);
+  if(mId) out.id = mId[0];
+  // 清掉空白與常見 OCR 雜訊標點，讓「名」「縣市」當錨點時不被空格切斷
+  const stripJunk = s => s.replace(/[ \t.,#|，。、·:：!！?？*\\/_=~^"'`’()（）\[\]]+/g,'');
+  // 姓名：以「姓」或「名」標籤當錨點，抓後面 2～3 個中文字（台灣姓名多 2～3 字，
+  //  上限收 3 字避免貪婪多吃到後方雜訊；複姓四字者請手動補）。先試「姓名?」再試「名」。
+  //  ※ 整張掃描常連「姓名」標籤都讀不到（無錨點），此時抓不到屬正常，請手動填或改框小範圍。
+  const compactName = stripJunk(text);
+  const mName = compactName.match(/姓名?([一-鿿]{2,3})/) || compactName.match(/名([一-鿿]{2,3})/);
+  if(mName) out.name = mName[1];
+  // 戶籍地址：身分證地址常跨兩行（第一行 縣市區里鄰、第二行 街號樓）。
+  //  逐行找出含「區/鄉/鎮」的地址起始行，再把後續含 街/路/段/巷/弄/號/樓 的續行併入。
+  //  不強制要有「號」（OCR 偶爾漏門牌數字）；屬草稿，需核對。
+  const lines = text.split(/\r?\n/).map(stripJunk).filter(l => l.length);
+  for(let i=0;i<lines.length;i++){
+    if(/[一-鿿]{2}[縣市][一-鿿]{1,4}[區鄉鎮市]/.test(lines[i])){
+      const m = lines[i].match(/[一-鿿]{2}[縣市].*/);   // 取本行自縣市起的部分（去掉「住址」標籤等前綴）
+      let addr = m ? m[0] : lines[i];
+      for(let j=i+1;j<lines.length && j<=i+2;j++){       // 最多再併兩行地址續行
+        if(/[路街段巷弄號樓]/.test(lines[j])) addr += lines[j];
+        else break;
+      }
+      out.addr = addr;
+      break;
+    }
+  }
+  return out;
+}
+
+// 設定欄位值並標示為 OCR 帶入（橘底）；空值不覆寫，回傳是否有填
+function ocrSet(el, v){ if(!el || !v) return false; el.value = v; el.classList.add('ocr-filled'); return true; }
+
+// 把辨識原文塞進該列的 <details>，供核對 / 手動複製
+function showOcrRaw(id, text){
+  const d = document.getElementById(id);
+  if(!d) return;
+  d.style.display = '';
+  d.querySelector('pre').textContent = text.trim();
+}
+
+/* 掃描某位當事人的身分證：可一次選正反兩面（或分次選），合併辨識後帶入該列 */
+// 由「選檔」按鈕觸發
+function scanId(rid, ev){ const files = [...ev.target.files]; ev.target.value = ''; runIdScan(rid, files); }
+// 桌機：把照片拖曳到上傳區
+function ocrDragOver(e, el){ e.preventDefault(); el.classList.add('drag'); }
+function ocrDragLeave(el){ el.classList.remove('drag'); }
+function ocrDrop(rid, e, el){
+  e.preventDefault(); el.classList.remove('drag');
+  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+  if(files.length) runIdScan(rid, files);
+}
+
+async function runIdScan(rid, files){
+  if(!files.length) return;
+  const row = document.getElementById(rid);
+  const st  = document.getElementById('ocrst_'+rid);
+  const btn = row?.querySelector('.ocr-btn');
+  if(!row || !st) return;
+  btn?.classList.add('busy');
+  st.className = 'ocr-status';
+  st.textContent = '準備辨識…（首次需下載中文模型，請稍候）';
+  try{
+    let text = '', done = 0;
+    for(const f of files){
+      if(!f.type.startsWith('image/')) continue;
+      st.textContent = '請在跳出的視窗框選證件範圍…';
+      const crop = await cropImage(f);             // 框選證件（去黑邊/條碼/浮水印）
+      if(!crop) continue;                          // 取消這張
+      const proc = processForOcr(crop);            // 灰階＋對比前處理
+      text += await ocrImage(proc, p => { st.textContent = `辨識中… ${Math.round(p*100)}%`; }) + '\n';
+      done++;
+    }
+    if(!done){ st.textContent = '已取消框選'; return; }
+    const d = parseIdCard(text);
+    const filled = [];
+    if(ocrSet(row.querySelector('.p-name'), d.name)) filled.push('姓名');
+    if(ocrSet(row.querySelector('.p-id'),   d.id))   filled.push('身分證字號');
+    if(ocrSet(row.querySelector('.p-addr'), d.addr)) filled.push('戶籍地址');
+    showOcrRaw('ocrraw_'+rid, text);
+    if(filled.length){
+      st.textContent = `已帶入：${filled.join('、')}（草稿，請務必核對）`;
+    } else {
+      st.className = 'ocr-status err';
+      st.textContent = '未能自動辨識欄位，請展開下方原文手動填入';
+    }
+  } catch(e){
+    st.className = 'ocr-status err';
+    st.textContent = '辨識失敗：' + e.message;
+  } finally {
+    btn?.classList.remove('busy');
+  }
+}
+
+/* ============================================================
+ * 電傳／謄本辨識（第二階段 ②）— 純前端、影像不外傳
+ *  ① 電子謄本 PDF：用 PDF.js 直接抽「文字層」→ 最準、免 OCR。
+ *  ② 掃描 PDF（無文字層）：PDF.js 把頁面 render 成影像 → 走 Tesseract OCR。
+ *  ③ 截圖／拍照圖檔：框選範圍 → 影像前處理 → OCR。
+ *  解析（parseDeed）以「標籤」為錨點，已對地政正式謄本、ibigfun（比房）、
+ *  foundi（房地）三種電傳格式校準；全形數字、「*」填充、全形空白皆先正規化。
+ *  帶入欄位一律視為草稿（橘底 .ocr-filled），務必人工核對。
+ * ============================================================ */
+
+// PDF.js 單例：載入 UMD 版並設定 worker 路徑（worker 在 file:// 下會被擋，需用 http 開）
+let _pdfjs = null;
+async function getPdfLib(){
+  await loadScript(OCR_PDFJS_CDN);
+  if(!_pdfjs){
+    _pdfjs = window.pdfjsLib;
+    _pdfjs.GlobalWorkerOptions.workerSrc = OCR_PDFJS_WORKER;
+  }
+  return _pdfjs;
+}
+
+/* 由 PDF.js 的 getTextContent 重建「每行文字」：
+ * 依每個文字片段的 y 座標分行（容差 3），同一行內再依 x 由左到右排序後接合。
+ * 接合不補空白（中文不需要），跨欄的標籤靠後續 regex 各自尋找。 */
+function reconstructLines(items){
+  const rows = [];
+  items.forEach(it => {
+    if(!it.str) return;
+    const y = Math.round(it.transform[5]), x = it.transform[4];
+    let row = rows.find(r => Math.abs(r.y - y) <= 3);
+    if(!row){ row = { y, parts: [] }; rows.push(row); }
+    row.parts.push({ x, s: it.str });
+  });
+  rows.sort((a,b) => b.y - a.y);                 // y 大者在上（PDF 座標原點在左下）
+  return rows.map(r => { r.parts.sort((a,b)=>a.x-b.x); return r.parts.map(p=>p.s).join(''); });
+}
+
+// 抽取 PDF 文字層（全部頁），回傳 {text, charCount}
+async function extractPdfText(file, onProgress){
+  const lib = await getPdfLib();
+  const buf = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: buf }).promise;
+  let lines = [];
+  for(let i=1;i<=pdf.numPages;i++){
+    const tc = await (await pdf.getPage(i)).getTextContent();
+    lines = lines.concat(reconstructLines(tc.items));
+    onProgress && onProgress(i / pdf.numPages);
+  }
+  const text = lines.join('\n');
+  return { text, charCount: text.replace(/\s/g,'').length };
+}
+
+// 掃描 PDF（無文字層）：把頁面 render 成影像再 OCR（最多前 3 頁，避免過久）
+async function ocrPdfPages(file, onProgress){
+  const lib = await getPdfLib();
+  const buf = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: buf }).promise;
+  const n = Math.min(pdf.numPages, 3);
+  let text = '';
+  for(let i=1;i<=n;i++){
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 2 });   // 放大 2 倍提高辨識率
+    const cv = document.createElement('canvas');
+    cv.width = vp.width; cv.height = vp.height;
+    await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    text += await ocrImage(processForOcr(cv), p => onProgress && onProgress((i-1+p)/n)) + '\n';
+  }
+  return text;
+}
+
+/* 謄本文字正規化：簡→繁、全形數字/英文→半形、全形空白→半形、去掉「*」填充。
+ * 之後的 regex 都跑在正規化後的文字上。 */
+function normDeed(t){
+  t = s2t(t || '');
+  t = t.replace(/\r\n?/g, '\n');                                                       // 統一換行
+  t = t.replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); // 全形→半形
+  t = t.replace(/－/g, '-');                                                           // 全形連字號→半形
+  t = t.replace(/　/g, ' ').replace(/[*]/g, '').replace(/[ \t]+/g, ' ');
+  // OCR（截圖辨識）常在每個中文字之間插入空白，使「建 物 門 牌」對不上標籤錨點。
+  //  去除相鄰中文字之間的空白即可（PDF 文字層無此現象，故對 PDF 解析無影響）。
+  t = t.replace(/(?<=[一-鿿])[ \t]+(?=[一-鿿])/g, '');
+  return t;
+}
+
+/* 中文樓層 → 阿拉伯數字（十四→14、九→9）；非單純樓層（地下、突出物）保留原字。
+ *  注意：中文數字碼位不連續（四/六/八 落在「九」之後），不能用 [一-九] 範圍，須列舉。 */
+function cnFloor(s){
+  s = (s || '').replace(/[層樓]/g, '').trim();
+  if(/^\d+$/.test(s)) return s;
+  const d = {零:0,一:1,二:2,兩:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+  if(s === '十') return '10';
+  let m = s.match(/^十([一二三四五六七八九])$/);            if(m) return String(10 + d[m[1]]);
+  m = s.match(/^([一二三四五六七八九])十([一二三四五六七八九]?)$/); if(m) return String(d[m[1]]*10 + (m[2]?d[m[2]]:0));
+  if(d[s] != null) return String(d[s]);
+  return s;
+}
+
+/* 解析謄本文字 → 物件欄位。以標籤為錨點，盡量通吃三種格式。
+ *  建號 5-3（09883-000）、地號 4-4（0937-0000）格式不同，可分辨。
+ *  抓不到的欄位留空，由使用者看原文手動補；屬草稿、須核對。 */
+function parseDeed(raw){
+  const T = normDeed(raw);
+  const out = {};
+
+  // 段名正規化：標題「林口區力行段」會把「區」吃進來，去掉縣市區鄉鎮前綴只留段名
+  const cleanSeg = s => s.replace(/.*[縣市區鄉鎮]/, '');
+
+  // 段 + 專有建號：標題列「○○段 09883-000建號」（全文第一個 5-3 建號＝專有）
+  let m = T.match(/([一-鿿]{1,3})段\s*(\d{5})-(\d{3})\s*建號/);
+  if(m){ out.landSeg = cleanSeg(m[1]); out.exclNo = m[2] + '-' + m[3]; }
+
+  // 建物門牌：懶抓到下一個標籤前（F3 門牌與坐落地號同行，需避免吃進「建物坐落地號」）
+  m = T.match(/建物門牌\s*[:：]\s*(.+?)(?=\s*(?:建物坐落|登記原因|主要用途)|\n|$)/);
+  if(m){
+    let h = m[1].replace(/\s+/g, '').trim();
+    // 門牌常缺縣市區，由「建物標示部」補上。務必把搜尋限縮在標示部，
+    //  否則會抓到後面所有權人／他項權利人（如銀行）的住址而補錯縣市。
+    if(!/[縣市]/.test(h.slice(0,3))){
+      const markEnd = T.search(/建物所有權部|建物他項權利部|所有權人/);
+      const mark = markEnd > 0 ? T.slice(0, markEnd) : T;
+      // 先找完整「○○縣/市○○區」；謄本標示部常只寫「○○區○○段」沒有縣市，
+      //  則由段名取「區」、由管轄／核發機關取「縣市」（同段之地政機關必與不動產同縣市）
+      let pref = (mark.match(/[一-鿿]{2}[縣市][一-鿿]{1,3}[區鄉鎮市]/) || [])[0];
+      if(!pref){
+        const dist = (mark.match(/([一-鿿]{2,3}[區鄉鎮市])[一-鿿]{1,3}段/) || [])[1] || '';
+        const city = (mark.match(/(?:管轄機關|核發機關|登記機關)\s*[:：]\s*([一-鿿]{2}[縣市])/) || [])[1] || '';
+        pref = city + dist;
+      }
+      if(pref) h = pref + h;
+    }
+    out.addr = h;
+  }
+
+  // 建物坐落地號：段（若門牌段沒抓到才用）+ 地號 4-4；值可能在同行或下一行
+  m = T.match(/建物坐落地號\s*[:：]\s*(?:[一-鿿]{1,3}段\s*)?(\d{4})-(\d{4})/);
+  if(!m) m = T.match(/建物坐落地號\s*[:：][\s\S]{0,40}?([一-鿿]{1,3})段\s*(\d{4})-(\d{4})/);
+  if(m){
+    if(m.length === 3){ out.landNo = m[1] + '-' + m[2]; }
+    else { if(m[1] && !out.landSeg) out.landSeg = cleanSeg(m[1]); out.landNo = m[2] + '-' + m[3]; }
+  }
+
+  // 層次（樓層）：層 次：十四層 → 14
+  m = T.match(/層\s*次\s*[:：]\s*([一-鿿\d]+?)層/);
+  if(m) out.mainFloor = cnFloor(m[1]);
+
+  // 主建物面積：以「層次面積」為準（單層住宅與總面積相同）
+  m = T.match(/層次面積\s*[:：]\s*([\d,]+\.\d+)/);
+  if(!m) m = T.match(/總面積\s*[:：]\s*([\d,]+\.\d+)/);   // OCR 偶把「層次面積」讀糊，退而取「總面積」（單層住宅兩者相同）
+  if(m) out.mainArea = m[1].replace(/,/g, '');
+
+  // 專有權利範圍：所有權部「（全部）N分之N」→ 1/1
+  m = T.match(/全部\s*(\d+)\s*分之\s*(\d+)/);
+  if(m) out.exclShare = m[2] + '/' + m[1];
+
+  // 附屬建物（陽台）：用途固定取陽台；面積取「附屬建物」段落內第一個平方公尺數
+  //  三家附屬面積標籤不同（面積／建物面積／無標籤），但都緊接在「附屬建物」之後，
+  //  且坪數標「坪」、面積標「平方公尺」，故取段落內第一個平方公尺數即為陽台面積。
+  //  附屬段落起點：取含「陽台」的「附屬建物」處（排除開頭「總面積+附屬建物+共有部分」摘要）
+  out.subs = [];
+  let aIdx = -1, re = /附屬建物/g, mm;
+  while((mm = re.exec(T))){ if(T.slice(mm.index, mm.index + 120).includes('陽台')){ aIdx = mm.index; break; } }
+  if(aIdx < 0){ const x = T.indexOf('陽台'); if(x >= 0) aIdx = Math.max(0, x - 20); }
+  if(aIdx >= 0){
+    let end = T.indexOf('共有部分', aIdx);
+    if(end < 0) end = Math.min(T.length, aIdx + 200);
+    const region = T.slice(aIdx, end);
+    // 用途與面積依出現順序配對（坪數標「坪」、登記面積標「平方公尺」，只取平方公尺數）
+    const uses = region.match(/陽台|雨遮|花台|平台|露台|遮陽板|屋簷/g) || [];
+    const areas = []; let ma2, reA = /([\d]+\.\d+)\s*平方公[一-鿿]/g;   // 「平方公尺」末字放寬：OCR 常把「尺」讀成「盡／反」
+    while((ma2 = reA.exec(region))) areas.push(ma2[1]);
+    const n = Math.max(uses.length, areas.length);
+    for(let k=0;k<n;k++) out.subs.push({ use: uses[k] || '', area: areas[k] || '' });
+  }
+  if(out.subs.length){ out.subUse = out.subs[0].use; out.subArea = out.subs[0].area; }  // 相容舊欄位
+
+  // 專有部分面積共計：電傳/謄本不直接列此欄，依公式＝主建物面積 ＋ 全部附屬建物面積（含雨遮等）
+  if(out.mainArea){
+    let a = parseFloat(out.mainArea);
+    out.subs.forEach(s => { if(s.area) a += parseFloat(s.area); });
+    if(!isNaN(a)) out.exclArea = round2(a);
+  }
+
+  // 共有部分（可多筆）：一棟常有公設、停車空間等多個共有建號，全部擷取。
+  //  範圍＝自「共有部分」到「建物所有權部」之間；持分面積＝直接給的「持分」優先，否則公式＝共有總面積×權利範圍。
+  out.commons = [];
+  const ci = T.indexOf('共有部分');
+  if(ci >= 0){
+    const oi = T.search(/建物所有權部|所有權人|他項權利部/);
+    const csec = T.slice(ci, (oi > ci ? oi : ci + 1800));
+    const reNo = /(\d{5})-(\d{3})\s*建號/g, idxs = []; let mn;
+    while((mn = reNo.exec(csec))) idxs.push({ no: mn[1] + '-' + mn[2], end: reNo.lastIndex, at: mn.index });
+    idxs.forEach((it, k) => {
+      const winEnd = k + 1 < idxs.length ? idxs[k+1].at : csec.length;
+      const win = csec.slice(it.end, Math.min(winEnd, it.end + 220));
+      const ms = win.match(/(\d{4,7})\s*分之\s*(\d{1,7})/);              // 權利範圍（持分比例）
+      const share = ms ? ms[1] + '分之' + ms[2] : '';
+      let area = '';
+      const mHold = win.match(/持分\s*([\d,]+(?:\.\d+)?)\s*平方公[一-鿿]/); // 電傳常直接給持分面積（整數小數皆可；末字放寬容忍 OCR）
+      const mTot  = win.match(/([\d,]+(?:\.\d+)?)\s*平方公[一-鿿]/);       // 否則用共有總面積換算（如 03232 為整數「101平方公尺」）
+      if(mHold) area = mHold[1].replace(/,/g, '');
+      else if(ms && mTot){ const v = parseFloat(mTot[1].replace(/,/g,'')) * (+ms[2]) / (+ms[1]); if(!isNaN(v)) area = round2(v); }
+      out.commons.push({ no: it.no, share, area });
+    });
+  }
+
+  // 車位：電傳/謄本常把車位掛在共有部分。偵測到車位 → 標記有車位；本戶車位編號帶入。
+  //  編號可能英數混合（如 B2-828）；優先抓「含停車位」脈絡（本戶），避免誤抓全棟車位編號。
+  if(/含停車位|停車位編號|車位編號|車位\s*[\d.]+\s*坪/.test(T)){
+    out.hasPark = true;
+    // 本戶車位編號：一戶可能有多個車位（如「含停車位：編號：086…編號：087」）。
+    //  限縮在「含停車位」脈絡內擷取所有編號，避免抓到全棟「停車位共計N位…不予編號」等非本戶資訊。
+    let nums = [];
+    const ctx = T.match(/含停車位[\s\S]{0,180}/);
+    if(ctx){
+      let mp, re = /編號\s*[:：]\s*([A-Za-z0-9-]+)/g;                       // foundi/本案：「編號：086」可多筆
+      while((mp = re.exec(ctx[0])) && nums.length < 12) nums.push(mp[1]);
+      if(!nums.length){ const mi = ctx[0].match(/編號\s*([A-Za-z0-9-]+)/); if(mi) nums.push(mi[1]); } // 官方 inline「含停車位編號127」無冒號
+    }
+    if(!nums.length){ const mb = T.match(/車位\s*編號\s*[:：]?\s*([A-Za-z0-9-]+)/); if(mb) nums.push(mb[1]); } // 比房「車位編號:180」
+    nums = nums.map(n => n.replace(/[-]+$/, '')).filter(Boolean);
+    if(nums.length){ out.parkNo = nums.join('、'); out.carCnt = String(nums.length); }  // 編號多筆以「、」連接，車位數＝筆數
+  }
+
+  // 他項權利：「權利種類」僅出現在他項權利部，抓到即視為有（多為最高限額抵押權）
+  const mKind = T.match(/權利種類\s*[:：]\s*(最高限額抵押權|抵押權|地上權|不動產役權|典權|農育權|耕作權|普通抵押權|[一-鿿]{2,8}權)/);
+  if(mKind){ out.otherRight = '有'; out.otherRightKind = mKind[1].trim(); }
+
+  // 查封／假扣押／假處分／破產登記（標的有強制執行相關限制）
+  if(/查封|假扣押|假處分|破產登記/.test(T)) out.seizure = '有';
+
+  // 預告（限制）登記：標示部其他登記事項出現「限制登記/預告登記」→ 僅警示（合約無對應欄位）
+  if(/預告登記|限制登記/.test(T)) out.advanceReg = true;
+
+  return out;
+}
+// 四捨五入到小數兩位、回傳字串
+function round2(n){ return (Math.round(n * 100) / 100).toString(); }
+
+// 把解析結果帶入租賃標的欄位（橘底標示），回傳已帶入的欄位名陣列
+function applyDeed(d){
+  const filled = [];
+  const fill = (sel, v, label) => { if(v && ocrSet($(sel), v)){ filled.push(label); return true; } return false; };
+  fill('#addr', d.addr, '門牌');
+  fill('#landSeg', d.landSeg, '段');
+  fill('#landNo', d.landNo, '地號');
+  fill('#exclNo', d.exclNo, '專有建號');
+  fill('#exclShare', d.exclShare, '權利範圍');
+  fill('#exclArea', d.exclArea, '面積共計');
+  fill('#mainFloor', d.mainFloor, '主建物樓層');
+  fill('#mainArea', d.mainArea, '主建物面積');
+  // 附屬建物（可多筆：陽台／雨遮…）：重建列表，逐筆帶入並標橘底
+  if(d.subs && d.subs.length){
+    document.getElementById('subList').innerHTML = '';
+    subCount = 0;
+    d.subs.forEach(s => {
+      const row = addSubRow(s);
+      row.querySelectorAll('.s-use, .s-area').forEach(el => { if(el.value) el.classList.add('ocr-filled'); });
+    });
+    filled.push(`附屬建物 ${d.subs.length} 筆`);
+  }
+  // 共有部分（可多筆）：重建列表，逐筆帶入並標橘底
+  if(d.commons && d.commons.length){
+    document.getElementById('commonList').innerHTML = '';
+    commonCount = 0;
+    d.commons.forEach(c => {
+      const row = addCommonRow(c);
+      row.querySelectorAll('.c-no, .c-share, .c-area').forEach(el => { if(el.value) el.classList.add('ocr-filled'); });
+    });
+    filled.push(`共有部分 ${d.commons.length} 筆`);
+  }
+  // 車位：勾選「有」並帶入編號（若有）
+  if(d.hasPark){
+    const yes = document.querySelector('input[name="hasPark"][value="有"]');
+    if(yes && !yes.checked){ yes.checked = true; togglePark(); }
+    ocrSet($('#carCnt'), d.carCnt || '1');   // 車位數（多車位謄本帶入實際筆數）
+    let s = '車位';
+    if(d.parkNo && ocrSet($('#carSpotNo'), d.parkNo)) s = '車位（編號 ' + d.parkNo + '）';
+    filled.push(s);
+  }
+  // 他項權利：勾「有」並帶入權利種類（橘底）
+  if(d.otherRight === '有'){
+    const r = document.querySelector('input[name="otherRight"][value="有"]'); if(r) r.checked = true;
+    ocrSet($('#otherRightKind'), d.otherRightKind);
+    filled.push('他項權利（' + (d.otherRightKind || '有') + '）');
+  }
+  // 查封登記：偵測到才勾「有」
+  if(d.seizure === '有'){
+    const r = document.querySelector('input[name="seizure"][value="有"]'); if(r) r.checked = true;
+    filled.push('查封登記（有）');
+  }
+  return filled;
+}
+
+/* 上傳電傳／謄本：PDF 取單一文件先抽文字層，無文字層才退回影像 OCR；截圖可多張，逐張框選＋OCR 後合併。 */
+function scanDeed(ev){ const files = [...ev.target.files]; ev.target.value = ''; runDeedScan(files); }
+function deedDrop(e, el){
+  e.preventDefault(); el.classList.remove('drag');
+  const files = [...e.dataTransfer.files].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name) || f.type.startsWith('image/'));
+  if(files.length) runDeedScan(files);
+}
+async function runDeedScan(files){
+  files = [...files].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name) || f.type.startsWith('image/'));
+  if(!files.length) return;
+  const st = $('#ocrst_deed'), btn = $('#deedZone .ocr-btn');
+  btn?.classList.add('busy');
+  st.className = 'ocr-status';
+  try{
+    let text = '';
+    const isPdf = f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+    if(isPdf(files[0])){
+      const f = files[0];                                // PDF 為單一文件（本身可多頁，故只取第一個）
+      st.textContent = '讀取 PDF…';
+      const r = await extractPdfText(f, p => { st.textContent = `讀取 PDF 文字… ${Math.round(p*100)}%`; });
+      if(r.charCount >= 30){
+        text = r.text;                                   // 電子謄本：有文字層，直接用
+      } else {
+        st.textContent = '此 PDF 無文字層（掃描檔），改用影像辨識…（首次需下載中文模型）';
+        text = await ocrPdfPages(f, p => { st.textContent = `辨識中… ${Math.round(p*100)}%`; });
+      }
+    } else {
+      // 截圖／拍照：可一次多張（例如標示部一張、所有權部一張補持分），逐張框選辨識後合併文字再解析
+      const imgs = files.filter(f => f.type.startsWith('image/'));
+      for(let i = 0; i < imgs.length; i++){
+        const tag = imgs.length > 1 ? `（第 ${i+1}/${imgs.length} 張）` : '';
+        st.textContent = `請在跳出的視窗框選謄本範圍…${tag}`;
+        const crop = await cropImage(imgs[i]);            // 逐張框選
+        if(!crop) continue;                               // 這張取消則略過，續處理下一張
+        st.textContent = `辨識中…${tag}（首次需下載中文模型）`;
+        text += await ocrImage(processForOcr(crop), p => { st.textContent = `辨識中…${tag} ${Math.round(p*100)}%`; }) + '\n';
+      }
+      if(!text.trim()){ st.textContent = '已取消框選'; return; }
+    }
+    const d = parseDeed(text);
+    const filled = applyDeed(d);
+    showOcrRaw('ocrraw_deed', text);
+    // 預告/限制登記無對應欄位，僅警示提醒人工查證
+    const warn = d.advanceReg ? '　⚠ 偵測到預告／限制登記，合約無此欄位，請人工查證！' : '';
+    if(filled.length){
+      st.className = d.advanceReg ? 'ocr-status err' : 'ocr-status';
+      st.textContent = `已帶入：${filled.join('、')}（草稿，請務必核對）` + warn;
+    } else {
+      st.className = 'ocr-status err';
+      st.textContent = '未能自動辨識欄位，請展開下方原文手動填入' + warn;
+    }
+  } catch(e){
+    st.className = 'ocr-status err';
+    st.textContent = '處理失敗：' + e.message;
+  } finally {
+    btn?.classList.remove('busy');
+  }
+}
+
+/* ---- 動作 ---- */
+function generate(){
+  $('#contractDoc').innerHTML = applyHangingIndent(buildContract());
+  $('#formArea').style.display='none';
+  $('#contract').classList.add('show');
+  $('#printTip').style.display='block';
+  window.scrollTo(0,0);
+  toast('合約已產生，可列印或匯出');
+}
+function backToForm(){
+  $('#formArea').style.display='block';
+  $('#contract').classList.remove('show');
+  $('#printTip').style.display='none';
+  window.scrollTo(0,0);
+}
+function printPDF(){
+  if(!$('#contract').classList.contains('show')) generate();
+  window.print();
+}
+function exportWord(){
+  if(!$('#contract').classList.contains('show')) generate();
+  const css = `body{font-family:'標楷體','DFKai-SB',serif;font-size:12pt;line-height:1.7;color:#000}
+    h1.ct-title{text-align:center;font-size:18pt;letter-spacing:4px;margin:8pt 0 12pt}
+    .ct-clause{font-weight:700;font-size:13pt;margin:10pt 0 4pt}
+    .ind{margin-left:1.6em}.ind2{margin-left:3em}p{margin:2pt 0;text-align:justify}
+    .fv{font-weight:700;text-decoration:underline}
+    .attach-title{text-align:center;font-size:15pt;font-weight:700;letter-spacing:2px;margin:10pt 0}
+    table.conf{width:100%;border-collapse:collapse;font-size:11pt}
+    table.conf td{border:1px solid #333;padding:5pt;vertical-align:top}.idx{width:36px;text-align:center;font-weight:700}
+    table.conf td.note{width:30%;font-size:9.5pt;color:#333}
+    table.eq-inner{width:100%;border-collapse:collapse}
+    table.eq-inner td{border:none;padding:2pt 5pt;font-size:10.5pt;width:50%}
+    table.photo-out{width:100%;border-collapse:collapse}
+    table.photo-out td{width:50%;padding:6pt;vertical-align:top}
+    table.photo-out img{width:100%;border:1px solid #ccc}
+    .photo-cap{font-size:10pt;text-align:center}
+    .pgbreak{page-break-before:always}.eq-out{font-size:11pt}.sig-block{line-height:2}`;
+  // Word 不認空 div 的 page-break-before；改用 MS Office 專用換頁符，分頁才會生效
+  const wordBreak = "<br clear=all style='mso-special-character:line-break;page-break-before:always'>";
+  const inner = $('#contractDoc').innerHTML.replace(/<div class="pgbreak"><\/div>/g, wordBreak);
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head><meta charset='utf-8'><title>住宅租賃契約書</title>
+    <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+    <style>@page{size:A4;margin:2.54cm 3.17cm}${css}</style></head>
+    <body>${inner}</body></html>`;
+  const blob = new Blob(['﻿'+html], {type:'application/msword'});
+  const name = (val('lesseeName')||'租約') + '_住宅租賃契約書.doc';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已匯出 Word 檔');
+}
+
+/* ---- 載入範例（不含真實個資） ---- */
+function loadSample(){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  set('revY','115');set('revM','05');set('revD','03');
+  set('lessorName','王大明');set('lessorId','A123456789');set('lessorAddr','新北市林口區○○路○號');set('lessorTel','0900-000-000');
+  set('lesseeName','陳小華');set('lesseeId','B223456789');set('lesseeAddr','新北市○○區○○路○號');set('lesseeTel','0911-111-111');
+  set('addr','新北市林口區忠孝路○號○樓');set('landSeg','建林');set('landNo','0059-0000');
+  set('exclNo','11638-000');set('exclShare','1/1');set('exclArea','60.93');
+  set('mainFloor','10');set('mainArea','57.29');set('subUse','陽台');set('subArea','3.64');
+  set('commonNo','11834-000');set('commonShare','100000分之481');set('commonArea','58.63');
+  set('carCnt','1');set('carFloor','4');set('carSpotNo','66');
+  set('startY','115');set('startM','05');set('startD','16');set('endY','117');set('endM','05');set('endD','31');
+  set('rent','33,000');set('rentPer','1');set('rentDay','5');
+  set('bankName','○○銀行-○○分行');set('bankAcctName','王大明');set('bankAcctNo','0000000000');
+  set('depMonths','2');set('depAmount','66,000');
+  set('rmRoom','2');set('rmHall','2');set('rmBath','2');
+  set('signY','115');set('signM','05');set('signD','06');
+  ['eq_curtain','eq_fridge','eq_stove','eq_hood','eq_heater','eq_aircon','eq_aircon_rc'].forEach(id=>{const e=document.getElementById(id);if(e){e.checked=true;}});
+  EQUIPMENT.forEach(e=>syncEq(e.key));
+  document.getElementById('term_no_smoking').checked=true;
+  document.getElementById('term_deposit_not_rent').checked=true;
+  document.getElementById('term_allow_household').checked=true;
+  onTermChange();
+  toast('已載入範例資料');
+}
+
+/* ---- Toast ---- */
+let toastT;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---- 初始化 ---- */
+buildUI();
+addSubRow();             // 附屬建物先放一列空白（可按「＋新增」或由謄本辨識多筆覆蓋）
+addCommonRow();          // 共有部分先放一列空白（可按「＋新增」或由謄本辨識多筆覆蓋）
+renderAttachUI();        // 生成附件影像各分類上傳區（現場照片／證件／存摺／鑰匙／其他）
+togglePark();
+togglePay();
+toggleConf();
+</script>
+</body>
+</html>

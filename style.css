@@ -1,0 +1,77 @@
+/* ================================================
+   林口置產工具箱 — 共用樣式
+   包含：設計系統 CSS 變數、全站導覽列、共用元件
+   ================================================ */
+
+/* 設計系統 — CSS 變數 */
+:root {
+  --bg:#FBF6EE; --bg2:#F4ECDF; --ink:#26221C; --ink-soft:#5C544A;
+  --line:#E4D8C5; --card:#FFFFFF;
+  --clay:#BD5E39; --clay-d:#9C4A2B; --teal:#3C7A62; --teal-d:#2E5F4C;
+  --amber:#C2902B; --red:#B23F2A; --gold:#C9A24A;
+  --shadow:0 8px 28px rgba(60,44,28,.10), 0 2px 6px rgba(60,44,28,.06);
+  --serif:"Noto Serif TC",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+body{background-image:radial-gradient(circle at 12% -5%,#F7EEDF 0,transparent 42%),radial-gradient(circle at 110% 8%,#F0E5D2 0,transparent 46%)}
+
+/* 全站導覽列 */
+.site-nav{background:#2C2620;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.nav-inner{max-width:1120px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:52px}
+.nav-logo{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--gold);text-decoration:none;letter-spacing:.3px;flex-shrink:0}
+.nav-links{display:flex;gap:4px}
+.nav-links a{color:#C9B89B;text-decoration:none;font-size:13.5px;font-weight:700;padding:6px 13px;border-radius:8px;transition:.15s;white-space:nowrap}
+.nav-links a:hover{color:#F7EEDF;background:rgba(255,255,255,.08)}
+.nav-links a.active{color:var(--gold);background:rgba(201,162,74,.15)}
+
+/* 主容器 */
+.wrap{max-width:1120px;margin:0 auto;padding:18px 16px 60px}
+
+/* Hero 標頭 */
+header.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:22px 24px;border-radius:20px;background:linear-gradient(135deg,#2C2620,#3a322a);
+  color:#F7EEDF;box-shadow:var(--shadow);position:relative;overflow:hidden}
+header.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(189,94,57,.55),transparent 70%)}
+.hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(24px,5vw,38px);letter-spacing:.5px;line-height:1.15}
+.hero h1 .mk{color:var(--gold)}
+.hero p{color:#E7D7BE;font-size:14px;margin-top:6px;max-width:46ch}
+.hero .badge{font-family:var(--serif);font-size:13px;font-weight:700;color:#2C2620;background:var(--gold);
+  padding:5px 12px;border-radius:999px;display:inline-block;align-self:flex-start;margin-bottom:8px}
+.hero .yr{text-align:right;line-height:1.6;color:#E7D7BE}
+.hero .yr .yr-biz{display:block;font-family:var(--serif);font-size:16px;font-weight:700;color:#F3E6CE;letter-spacing:.3px}
+.hero .yr .yr-nm{display:block;font-size:15px;font-weight:600;color:#E7D7BE;margin-top:3px}
+
+/* 卡片 */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+
+/* 表單通用元件 */
+.field{flex:1 1 240px;min-width:0}
+label.lbl{display:block;font-size:12.5px;font-weight:700;color:var(--clay-d);margin-bottom:6px;letter-spacing:.3px}
+input[type=text],select,input[type=number]{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+  font-family:var(--sans);font-size:15px;background:#FFFDF9;color:var(--ink);outline:none;transition:.18s}
+input:focus,select:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(189,94,57,.14)}
+
+.btn{border:none;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:15px;padding:12px 20px;
+  border-radius:12px;background:var(--clay);color:#fff;transition:.18s;white-space:nowrap}
+.btn:hover{background:var(--clay-d)}
+.btn.ghost{background:#fff;color:var(--clay-d);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--clay)}
+.hint{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+
+/* 區塊標題 */
+.sec-title{font-family:var(--serif);font-weight:900;font-size:20px;margin:30px 4px 14px;display:flex;align-items:center;gap:10px}
+.sec-title .bar{width:5px;height:22px;background:var(--clay);border-radius:3px}
+
+/* Toast 訊息 */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);
+  color:#fff;padding:11px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.3s;z-index:9999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 免責聲明區塊 */
+.disc{background:#FBF3E0;border:1px solid #EBD8AE;border-radius:12px;padding:12px 16px;font-size:12.5px;color:#7a6a3e;margin-top:14px}
+
+/* Footer */
+footer{margin-top:34px;font-size:12px;color:var(--ink-soft);text-align:center;line-height:1.8}

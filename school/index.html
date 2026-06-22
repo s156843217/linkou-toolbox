@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>林口學區快查</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<script>
+/* 防同業以 iframe 內嵌冒用本工具：偵測到被「他站」內嵌就把整頁導回本站。
+ * （純前端、原始碼公開，無法真正防複製；此舉只擋「嵌進別人網站冒充自家工具」。） */
+(function(){
+  if(window.top===window.self)return;                 // 沒被內嵌 → 正常
+  try{
+    if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; }
+  }catch(e){ window.top.location.href=location.href; } // 跨域無法讀 top → 必為他站內嵌，導回本站
+})();
+</script>
+<style>
+  :root{
+    --bg:#FBF6EE; --bg2:#F4ECDF; --ink:#26221C; --ink-soft:#5C544A;
+    --line:#E4D8C5; --card:#FFFFFF;
+    --clay:#BD5E39; --clay-d:#9C4A2B; --teal:#3C7A62; --teal-d:#2E5F4C;
+    --amber:#C2902B; --red:#B23F2A; --gold:#C9A24A;
+    --shadow:0 8px 28px rgba(60,44,28,.10), 0 2px 6px rgba(60,44,28,.06);
+    --serif:"Noto Serif TC",serif; --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{background-image:radial-gradient(circle at 12% -5%,#F7EEDF 0,transparent 42%),radial-gradient(circle at 110% 8%,#F0E5D2 0,transparent 46%)}
+  .wrap{max-width:1120px;margin:0 auto;padding:18px 16px 60px}
+
+  header.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:22px 24px;border-radius:20px;background:linear-gradient(135deg,#2C2620,#3a322a);color:#F7EEDF;
+    box-shadow:var(--shadow);position:relative;overflow:hidden}
+  header.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(189,94,57,.55),transparent 70%)}
+  .hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(24px,5vw,38px);letter-spacing:.5px;line-height:1.15}
+  .hero h1 .mk{color:var(--gold)}
+  .hero p{color:#E7D7BE;font-size:14px;margin-top:6px;max-width:46ch}
+  .hero .badge{font-family:var(--serif);font-size:13px;font-weight:700;color:#2C2620;background:var(--gold);
+    padding:5px 12px;border-radius:999px;display:inline-block;align-self:flex-start;margin-bottom:8px}
+  .hero .yr{text-align:right;line-height:1.6;color:#E7D7BE}
+  .hero .yr .yr-biz{display:block;font-family:var(--serif);font-size:16px;font-weight:700;color:#F3E6CE;letter-spacing:.3px}
+  .hero .yr .yr-nm{display:block;font-size:15px;font-weight:600;color:#E7D7BE;margin-top:3px}
+  /* 右下角固定品牌浮水印（整頁截圖都帶招牌；點擊捲到聯絡區） */
+  .brand-badge{position:fixed;right:14px;bottom:14px;z-index:1200;text-align:right;text-decoration:none;
+    font-family:var(--sans);font-size:12px;line-height:1.45;color:#F3E6CE;
+    background:rgba(44,38,32,.92);padding:8px 12px;border-radius:12px;
+    border:1px solid rgba(243,230,206,.28);box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .25s,transform .2s,background .15s}
+  .brand-badge.show{opacity:1;pointer-events:auto;transform:none}        /* 捲離頂部後才淡入 */
+  .brand-badge b{display:block;font-family:var(--serif);font-size:13px;color:#fff;letter-spacing:.3px}
+  .brand-badge.show:hover{background:rgba(44,38,32,1);transform:translateY(-2px)}
+  @media(max-width:600px){.brand-badge{font-size:11px;padding:6px 9px;right:8px;bottom:8px}.brand-badge b{font-size:12px}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+
+  .search{margin-top:18px;padding:18px}
+  .search .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{flex:1 1 240px;min-width:0}
+  label.lbl{display:block;font-size:12.5px;font-weight:700;color:var(--clay-d);margin-bottom:6px;letter-spacing:.3px}
+  input[type=text],select,input[type=number]{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:var(--sans);font-size:15px;background:#FFFDF9;color:var(--ink);outline:none;transition:.18s}
+  input:focus,select:focus{border-color:var(--clay);box-shadow:0 0 0 3px rgba(189,94,57,.14)}
+  .btn{border:none;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;
+    background:var(--clay);color:#fff;transition:.18s;white-space:nowrap}
+  .btn:hover{background:var(--clay-d)}
+  .btn.ghost{background:#fff;color:var(--clay-d);border:1.5px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--clay)}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+  .or{font-size:12px;color:var(--ink-soft);text-align:center;margin:12px 0 6px;position:relative}
+  .or::before,.or::after{content:"";position:absolute;top:50%;width:38%;height:1px;background:var(--line)}
+  .or::before{left:0}.or::after{right:0}
+  .neigh-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .neigh-wrap .field{flex:1 1 180px}
+  #linInput{flex:0 0 120px}
+
+  /* 不知道鄰里時的外連輔助 */
+  .tgos-help{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;
+    padding:12px 14px;background:var(--bg2);border:1px dashed var(--line);border-radius:12px}
+  .tgos-help-text{font-size:13.5px;color:var(--ink-soft);flex:1 1 auto;min-width:200px}
+  .tgos-help-text b{color:var(--ink);font-weight:700}
+  .tgos-btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-weight:700;
+    font-size:13.5px;padding:9px 16px;border-radius:10px;text-decoration:none;
+    background:var(--teal);color:#fff;border:none;transition:.18s;white-space:nowrap;cursor:pointer}
+  .tgos-btn:hover{background:var(--teal-d)}
+  .tgos-btn .ext{font-size:11px;opacity:.85}
+
+  .layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;margin-top:18px}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}}
+  #map{height:420px;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);background:#e9e2d4}
+  @media(max-width:860px){#map{height:300px}}
+  .map-toggle{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+  .map-toggle .mt-label{font-size:12.5px;font-weight:700;color:var(--clay-d);margin-right:2px}
+  .zt{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;border:1.5px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink-soft);transition:.15s;font-family:var(--sans)}
+  .zt:hover{border-color:var(--clay)}
+  .zt.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  /* 地圖工具列：選學校看學區範圍的下拉（沿用膠囊外觀） */
+  .zt-pick{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1.5px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink);font-family:var(--sans)}
+  .zt-pick:hover{border-color:var(--clay)}
+  .zt-pick.on{border-color:var(--clay);color:var(--clay-d)}
+  /* 學校學區卡：社區清單 */
+  .zc-meta{font-size:13px;color:var(--ink-soft);margin-bottom:4px}
+  .zc-hint{font-size:12.5px;color:var(--ink-soft);margin:8px 0}
+  .zc-list{display:flex;flex-wrap:wrap;gap:6px;max-height:300px;overflow:auto}
+  .zc-comm{font-size:12.5px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;
+    cursor:pointer;text-align:left;font-family:var(--sans);color:var(--ink);transition:.15s}
+  .zc-comm:hover{border-color:var(--clay);background:var(--bg)}
+  .zc-comm .zc-sub{display:block;font-size:11px;color:var(--ink-soft);margin-top:1px}
+  .zc-empty{color:var(--ink-soft);font-size:13px;padding:6px 0}
+  /* 學校特色區（看某校學區時呈現亮點介紹） */
+  .zc-feature{margin:10px 0 4px;padding:10px 12px;background:var(--bg);border-radius:10px}
+  .zc-feature .zc-feature-p{font-size:13px;color:var(--ink);line-height:1.6;margin-top:6px}
+
+  .results{display:flex;flex-direction:column;gap:14px}
+  .placeholder{padding:38px 22px;text-align:center;color:var(--ink-soft)}
+  .placeholder .big{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px}
+
+  .rcard{padding:18px 18px 16px}
+  .rcard h3{font-family:var(--serif);font-size:15px;color:var(--clay-d);display:flex;align-items:center;gap:8px;margin-bottom:12px;
+    letter-spacing:.4px}
+  .rcard h3 .dot{width:9px;height:9px;border-radius:50%;background:var(--clay)}
+  .school{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .school .name{font-family:var(--serif);font-weight:900;font-size:26px;color:var(--ink)}
+  .school .name.jh{color:var(--teal-d)}
+  .tag{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.3px}
+  .tag.base{background:#EAF1EC;color:var(--teal-d)}
+  .tag.free{background:#F3EADb;color:var(--amber)}
+  .schoolmeta{font-size:13.5px;color:var(--ink-soft);margin-top:8px}
+  .pitch{margin-top:10px;font-size:13.5px;background:var(--bg2);border-left:3px solid var(--gold);padding:9px 12px;border-radius:0 10px 10px 0}
+  .pitch b{color:var(--clay-d)}
+
+  .risk{margin-top:12px;border-radius:12px;padding:12px 14px;font-size:13.5px}
+  .risk.hot{background:#FBEAE4;border:1px solid #E8C3B5}
+  .risk.warm{background:#FBF3E0;border:1px solid #EBD8AE}
+  .risk.cool{background:#EAF2EC;border:1px solid #C7E0D0}
+  .risk .rt{font-weight:700;display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .risk .rt .ic{font-size:15px}
+  .risk.hot .rt{color:var(--red)} .risk.warm .rt{color:var(--amber)} .risk.cool .rt{color:var(--teal-d)}
+  table.full{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  table.full th,table.full td{text-align:center;padding:5px 4px;border-bottom:1px dashed var(--line)}
+  table.full th{color:var(--ink-soft);font-weight:700}
+  table.full td.d{font-weight:700;color:var(--clay-d)}
+
+  .freelist{display:flex;flex-direction:column;gap:8px}
+  .freeitem{font-size:13.5px;padding:8px 12px;background:var(--bg2);border-radius:10px}
+  .freebox{margin-top:12px;border:1.5px dashed var(--gold);border-radius:12px;padding:11px 12px;background:#FCFAF4}
+  .freebox-h{font-size:13px;font-weight:700;color:var(--amber);margin-bottom:9px}
+  .tag-mini{font-size:11px;font-weight:700;padding:1px 7px;border-radius:6px;background:#EFE6D2;color:var(--amber);margin-left:3px}
+  .tag-mini.full{background:#FBEAE4;color:var(--red)}
+  .zone-tip{background:var(--ink);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;padding:3px 9px;box-shadow:var(--shadow)}
+  .freeitem b{color:var(--clay-d)}
+
+  details.acc{border-top:1px solid var(--line);margin-top:4px}
+  details.acc summary{cursor:pointer;padding:14px 18px;font-family:var(--serif);font-weight:700;color:var(--ink);list-style:none;
+    display:flex;justify-content:space-between;align-items:center}
+  details.acc summary::-webkit-details-marker{display:none}
+  details.acc summary .chev{transition:.2s;color:var(--clay)}
+  details.acc[open] summary .chev{transform:rotate(180deg)}
+  details.acc .body{padding:0 18px 18px;font-size:13.5px;color:var(--ink-soft)}
+  .steps{counter-reset:s;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  .step{display:flex;gap:10px;align-items:flex-start}
+  .step .n{counter-increment:s;flex:0 0 24px;height:24px;border-radius:50%;background:var(--clay);color:#fff;
+    font-size:12px;font-weight:700;display:grid;place-items:center}
+  .step .n::before{content:counter(s)}
+
+  .kg-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .kg-tab{font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;cursor:pointer;color:var(--ink-soft)}
+  .kg-tab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .kgtable{width:100%;border-collapse:collapse;font-size:13px}
+  .kgtable th,.kgtable td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left}
+  .kgtable th{color:var(--teal-d);font-weight:700;font-size:12px}
+  .kgtable td.num{text-align:center;font-weight:700;color:var(--clay-d)}
+  .kgtable td .muted{color:#bcae97}
+  .sec-title{font-family:var(--serif);font-weight:900;font-size:20px;margin:30px 4px 14px;display:flex;align-items:center;gap:10px}
+  .sec-title .bar{width:5px;height:22px;background:var(--clay);border-radius:3px}
+
+  .copybar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:11px 20px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.3s;z-index:9999}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .leaflet-popup-content{font-family:var(--sans);font-size:13px}
+  .lk-pin{font-weight:700}
+  footer{margin-top:34px;font-size:12px;color:var(--ink-soft);text-align:center;line-height:1.8}
+  .disc{background:#FBF3E0;border:1px solid #EBD8AE;border-radius:12px;padding:12px 16px;font-size:12.5px;color:#7a6a3e;margin-top:14px}
+
+  .contact{margin-top:18px;padding:22px}
+  .contact .co{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--clay-d);display:flex;align-items:center;gap:8px}
+  .contact .sub{font-size:13px;color:var(--ink-soft);margin:4px 0 16px}
+  .agents{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  /* 手機版：改直排（照片在上置中、文字在下滿寬靠左），讓照片可以放到最大 */
+  @media(max-width:680px){.agents{grid-template-columns:1fr} .agent .top{flex-direction:column;align-items:stretch} .agent .photo{width:210px;height:280px;align-self:center;margin-bottom:4px} .agent .info{text-align:center;max-width:300px;margin:0 auto} .agent .lic{text-align:center} .agent .nm{font-size:25px} .agent .ph{font-size:16px}}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg2)}
+  /* 照片在左、姓名／電話／按鈕在右 */
+  .agent .top{display:flex;gap:14px;align-items:center}
+  /* 去背透明 PNG 為半身照、四周留白多：改用直式框 + object-fit:cover，讓 CSS 自動裁掉左右留白、往上對齊只露上半身，人臉才會明顯放大（不動原圖）。object-position 的垂直值可微調對齊（值越小越往上） */
+  .agent .photo{width:160px;height:210px;flex:0 0 auto;border-radius:12px;object-fit:cover;object-position:50% 12%;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow)}
+  .agent .info{flex:1 1 auto;min-width:0}
+  .agent .nm{font-family:var(--serif);font-weight:900;font-size:30px}
+  .agent .ph{font-size:19px;color:var(--ink-soft);margin:4px 0 16px}
+  .agent .acts{display:flex;gap:9px;flex-wrap:wrap}
+  /* 聯絡卡按鈕加大（不動全站共用的 .btn 本體） */
+  .agent .acts a{flex:1 1 auto;text-align:center;text-decoration:none;font-size:16px;padding:14px 20px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
+  .lic{font-size:11px;color:#aa9b85;margin-top:11px;line-height:1.55}
+
+  /* 社區搜尋自動完成 */
+  .autocomplete{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;z-index:1000;display:none}
+  .autocomplete.show{display:block}
+  .ac-item{padding:11px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--bg2);transition:.15s}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:hover,.ac-item.active{background:var(--bg2)}
+  .ac-item .li-tag{font-size:11px;color:var(--clay-d);background:var(--bg2);padding:2px 7px;border-radius:6px;margin-left:8px;font-weight:700}
+  .ac-empty{padding:12px 14px;font-size:13px;color:var(--ink-soft);font-style:italic}
+  .ac-online{margin-top:8px;display:inline-block;font-style:normal;cursor:pointer;border:none;
+    background:var(--teal);color:#fff;font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;font-family:var(--sans)}
+  .ac-online:hover{background:var(--teal-d)}
+
+  /* 學校聯絡資訊區 */
+  .schools-info{margin-top:14px;padding:18px}
+  .schools-info h3{font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .school-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .school-tab{font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;border:1.5px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink-soft);transition:.15s}
+  .school-tab.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .school-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:680px){.school-list{grid-template-columns:1fr}}
+  .school-card{padding:13px 15px;background:var(--bg2);border-radius:11px;border:1px solid var(--line)}
+  .school-card .sn{font-family:var(--serif);font-weight:900;font-size:16px;color:var(--ink);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .school-card .sn .badge-mini{font-size:10px;padding:2px 6px;background:var(--gold);color:#2C2620;border-radius:5px;font-weight:700;letter-spacing:.3px}
+  .school-card .sa{font-size:12px;color:var(--ink-soft);margin-bottom:6px;line-height:1.45}
+  .school-card .sx{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .school-card .sx a{flex:1;text-align:center;text-decoration:none;font-size:12px;font-weight:700;padding:7px 8px;border-radius:8px;white-space:nowrap}
+  .sx .stel{background:var(--clay);color:#fff}
+  .sx .sweb{background:#fff;color:var(--ink-soft);border:1px solid var(--line)}
+  .sx .stel:hover{background:var(--clay-d)} .sx .sweb:hover{border-color:var(--clay);color:var(--clay-d)}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/" class="active">學區快查</a>
+      <a href="../bus/">公車路線</a>
+      <a href="../mortgage/">房貸試算</a>
+      <a href="../rent/">租約產生器</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge">114 學年度官方學區</span>
+      <h1>林口<span class="mk">學區</span>快查</h1>
+      <p>輸入地址或選里鄰，立刻查出國小、國中學區、額滿風險與設籍提醒，並在地圖上確認位置與里界範圍。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <!-- 查詢區 -->
+  <section class="panel search">
+    <div class="row">
+      <div class="field" style="position:relative">
+        <label class="lbl">🏘️ 輸入社區名稱（建檔過的最準）</label>
+        <input type="text" id="commInput" placeholder="例：陽光社區、凡爾賽、春城麗池…" autocomplete="off">
+        <div id="commList" class="autocomplete"></div>
+      </div>
+      <button class="btn ghost" id="commBtn">查社區學區</button>
+    </div>
+    <div class="hint">內建 <b>962 筆</b>林口區社區大樓資料庫，<b>已用官方門牌資料校正里鄰、絕大多數可直接顯示精準「里＋鄰」</b>，支援模糊搜尋（打「馥御」、「未來」、「春城」都查得到）。本地查不到時會自動上網搜尋並定位。仍查無則改用下方「地址定位」。</div>
+
+    <div class="or">或輸入地址定位</div>
+
+    <div class="row">
+      <div class="field">
+        <label class="lbl">① 輸入地址（房屋位置）</label>
+        <input type="text" id="addrInput" placeholder="例：林口區文化三路一段100號" autocomplete="off">
+      </div>
+      <button class="btn" id="addrBtn">🔍 定位並判斷里別</button>
+    </div>
+    <div class="hint">系統會<b>先用官方門牌資料庫精準比對</b>你輸入的門牌，直接判定所屬「里＋鄰」（連鄰都自動帶入，額滿學校分發看的就是鄰）。門牌表查不到時，才退回線上路名／路段定位。輸入越完整（含路段、巷弄、號）越準。</div>
+
+    <div class="or">或直接選里 / 鄰（最準）</div>
+
+    <div class="neigh-wrap">
+      <div class="field">
+        <label class="lbl">② 選擇里別</label>
+        <select id="liSelect"><option value="">— 請選擇里 —</option></select>
+      </div>
+      <div class="field" id="linInput">
+        <label class="lbl">③ 鄰（選填）</label>
+        <input type="number" id="linNo" min="1" max="60" placeholder="如 18">
+      </div>
+      <button class="btn ghost" id="queryBtn">查學區</button>
+    </div>
+    <div class="hint" id="splitHint" style="display:none"></div>
+
+    <div class="tgos-help">
+      <div class="tgos-help-text">
+        🤔 <b>不知道自己的里／鄰？</b>可直接到內政部 TGOS 地圖，輸入門牌即可查到完整里鄰資訊（更準確）。
+      </div>
+      <a class="tgos-btn" href="https://map.tgos.tw/TGOSCloudMap" target="_blank" rel="noopener noreferrer">
+        🗺️ 前往 TGOS 查鄰里 <span class="ext">↗</span>
+      </a>
+    </div>
+
+    <div class="tgos-help" style="background:#F0F4EF;border-color:#C7E0D0">
+      <div class="tgos-help-text">
+        🏛️ <b>想百分百確認學區？</b>本工具僅供快查參考，最終以官方公告為準。可點右側前往<b>新北市政府教育局「國中小學區查詢」</b>官方頁面核對。
+      </div>
+      <a class="tgos-btn" href="https://www.ntpc.edu.tw/home.jsp?id=3d145d2a095e211d&act=be4f48068b2b0031&dataserno=1c7444cb5c0f98e9555ff2988f781147" target="_blank" rel="noopener noreferrer">
+        🏫 查教育局官方學區 <span class="ext">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- 主結果 -->
+  <div class="layout">
+    <div>
+      <div class="map-toggle">
+        <span class="mt-label">地圖範圍</span>
+        <button class="zt on" data-zone="es">國小學區</button>
+        <button class="zt" data-zone="jh">國中學區</button>
+        <button class="zt" data-zone="li">里界</button>
+        <select class="zt-pick" id="schoolPick" title="先選上方「國小學區／國中學區」，再從這裡挑學校看範圍">
+          <option value="">🏫 選學校看範圍…</option>
+        </select>
+      </div>
+      <div id="map"></div>
+    </div>
+    <div class="results" id="results">
+      <div class="panel placeholder">
+        <div class="big">🏫 還沒有查詢結果</div>
+        輸入地址或選擇里別後，這裡會顯示對應的<br>國小、國中學區與設籍提醒。
+      </div>
+    </div>
+  </div>
+
+  <div class="copybar" id="copybar" style="display:none">
+    <button class="btn" id="copyBtn">📋 複製摘要給家長</button>
+    <button class="btn ghost" id="printBtn">🖨️ 列印 / 存成圖</button>
+  </div>
+
+  <!-- 學校聯絡資訊 -->
+  <h2 class="sec-title"><span class="bar"></span>學校聯絡資訊</h2>
+  <section class="panel schools-info">
+    <div class="school-tabs">
+      <div class="school-tab on" data-sch="es">國小（10所）</div>
+      <div class="school-tab" data-sch="jh">國中（4所）</div>
+    </div>
+    <div id="schoolListEs" class="school-list"></div>
+    <div id="schoolListJh" class="school-list" style="display:none"></div>
+    <div class="hint" style="margin-top:12px">點電話可直撥、點官網可開啟學校網站查詢招生簡章與最後設籍日。</div>
+  </section>
+
+  <!-- 幼兒園名額 -->
+  <h2 class="sec-title"><span class="bar"></span>林口區幼兒園招生名額（參考）</h2>
+  <section class="panel" style="padding:18px">
+    <div class="kg-tabs">
+      <div class="kg-tab on" data-kg="public">公立 / 非營利・名額</div>
+      <div class="kg-tab" data-kg="private">私立幼兒園・聯絡電話</div>
+    </div>
+    <div id="kgPublic"></div>
+    <div id="kgPrivate" style="display:none"></div>
+    <div class="hint" style="margin-top:10px">幼兒園採全區登記／抽籤，非依里鄰學區分發；名額為 115/04 公告參考值，請以各園最新公告為準。資料來源：新北市幼兒教育資源網。</div>
+  </section>
+
+  <div class="disc">
+    ⚠️ <b>重要提醒</b>：本工具依「114 學年度新北市國小／國中學區一覽表」整理。新北市將於 115 年實施「114 年轄里鄰編組調整案」，<b>林口里鄰將重新編號、115 學年度起學區可能調整</b>（例：南勢國小基本學區已改新編號）。額滿學校的最後設籍日每年變動，務必以學校與區公所「當年度最新公告」為準。
+  </div>
+
+  <!-- 聯絡卡（置底） -->
+  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact">
+    <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
+    <div class="sub">買林口、問學區，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
+    <div class="agents">
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">李天夏</div>
+            <div class="ph">📞 0936-123-288</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+      </div>
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">温美慈</div>
+            <div class="ph">📞 0976-109-326</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">營業員字號 (113)登字第471408號</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    林口學區快查　|　資料來源：新北市政府教育局 114 學年度學區公告、新北市幼兒教育資源網、新北市林口區門牌座標資料<br>
+    地圖：© OpenStreetMap 貢獻者　|　里界範圍依官方門牌座標重建　|　本工具僅供參考，正式入學資格請以學校公告為準
+  </footer>
+</div>
+
+<!-- 右下角固定品牌浮水印：往下捲離頂部後才淡入（避免和右上品牌資訊重疊），點擊捲到聯絡區 -->
+<a class="brand-badge" href="#contact"><b>太平洋房屋 · 林口捷運加盟店</b>李天夏 · 温美慈　☎ 點我聯絡</a>
+<script>
+/* 浮水印只在捲離頂部（hero）後顯示，看頂部時不擋、看地圖/結果時帶招牌 */
+(function(){
+  var b=document.querySelector('.brand-badge'); if(!b)return;
+  var f=function(){ b.classList.toggle('show', window.scrollY>220); };
+  window.addEventListener('scroll',f,{passive:true}); f();
+})();
+</script>
+
+<div class="toast" id="toast"></div>
+
+<!-- 資料檔：所有名單/對照表都在這裡，要改資料改它就好 -->
+<script src="../linkou-data.js"></script>
+<script>
+// 相容舊變數名（程式其他地方仍以 SCHOOL_ADDR 取地址）
+const SCHOOL_ADDR = Object.fromEntries(Object.entries(SCHOOLS).map(([k,v])=>[k,v.addr]));
+
+
+
+
+
+
+
+
+/* ============================ 工具函式 ============================ */
+const $=s=>document.querySelector(s);
+const LI_NAMES=Object.keys(LI);
+const geoCache={};
+let map,addrMarker,schoolMarkers=[],liLayer=null;
+let lastResult=null;
+
+/* 點是否在多邊形內（ray casting，支援 Polygon / MultiPolygon 與內環孔洞） */
+function pointInRing(x,y,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;}return inside;}
+function pointInFeature(lon,lat,geom){const polys=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates;for(const poly of polys){if(pointInRing(lon,lat,poly[0])){let hole=false;for(let h=1;h<poly.length;h++){if(pointInRing(lon,lat,poly[h])){hole=true;break;}}if(!hole)return true;}}return false;}
+function liAtPoint(lat,lon){for(const f of LK_GEO.features){if(pointInFeature(lon,lat,f.geometry))return f.properties.li;}return null;}
+function drawLi(name){if(liLayer){map.removeLayer(liLayer);liLayer=null;}const f=LK_GEO.features.find(x=>x.properties.li===name);if(!f)return;liLayer=L.geoJSON(f,{style:{color:'#BD5E39',weight:2,fillColor:'#BD5E39',fillOpacity:.10}}).addTo(map);}
+/* 把地圖移到目前框圖層範圍 */
+function fitToLayer(){if(liLayer){try{map.fitBounds(liLayer.getBounds(),{padding:[40,40],maxZoom:16});}catch(e){}}}
+function focusLi(name){const f=LK_GEO.features.find(x=>x.properties.li===name);if(!f)return;try{const lyr=L.geoJSON(f);map.fitBounds(lyr.getBounds(),{padding:[40,40],maxZoom:16});}catch(e){}}
+
+/* ============================ 地圖框：里界 / 國小學區 / 國中學區 ============================ */
+let mapZone='es';                          // 預設顯示國小學區框，可由上方按鈕切換里界/國中
+let zoneCtx={li:null,es:null,jh:null};     // 目前查詢結果對應的 里 / 基本國小 / 基本國中
+function drawZone(fit){
+  if(liLayer){map.removeLayer(liLayer);liLayer=null;}
+  // 國小／國中學區：改用里界組合畫該校完整學區（原 SCHOOL_GEO 圖資有誤，已不採用）
+  if((mapZone==='es'&&zoneCtx.es)||(mapZone==='jh'&&zoneCtx.jh)){
+    const school=mapZone==='es'?zoneCtx.es:zoneCtx.jh;
+    const {group}=buildSchoolZoneLayer(school,mapZone);
+    if(group.getLayers().length){ group.addTo(map); liLayer=group; if(fit)fitToLayer(); return; }
+  }
+  // 里界，或（自由學區／未指定鄰，無單一基本學校時）退回顯示所在里
+  if(zoneCtx.li){
+    const color=mapZone==='jh'?'#3C7A62':'#BD5E39';
+    const g=LK_GEO.features.find(x=>x.properties.li===zoneCtx.li);
+    if(g){ liLayer=L.geoJSON(g,{style:{color,weight:2.5,fillColor:color,fillOpacity:.10}}).addTo(map);
+           liLayer.bindTooltip(zoneCtx.li,{permanent:false,direction:'center',className:'zone-tip'}); if(fit)fitToLayer(); }
+  }
+}
+function setZoneCtx(li,res){
+  const esB=(res&&res.es&&res.es.length===1&&res.es[0].base)?res.es[0].base:null;
+  const jhB=(res&&res.jh&&res.jh.length===1&&res.jh[0].base)?res.jh[0].base:null;
+  zoneCtx={li,es:esB,jh:jhB};
+}
+
+/* ============================ 門牌精準查詢（政府門牌索引 HOUSE） ============================
+   原理：把使用者輸入的地址正規化（全形→半形、去樓層、之→-），拆出 路名 / 巷 / 弄 / 號，
+   直接比對 HOUSE 索引，命中即回傳「里 + 鄰」，完全不靠線上地理編碼，所以精準。 */
+const _FWMAP={'０':'0','１':'1','２':'2','３':'3','４':'4','５':'5','６':'6','７':'7','８':'8','９':'9','－':'-','～':'~','／':'/','　':' '};
+function toHalf(s){return (s||'').replace(/[０-９－～／　]/g,c=>_FWMAP[c]);}
+function parseHouse(addr){
+  let a=toHalf(addr).trim();
+  if(a.indexOf('林口')>=0) a=a.replace(/^.*林口區/,'');     // 取林口區之後
+  a=a.replace(/^\d{3}/,'').replace(/(新北市|臺北市|台北市)/g,'');
+  a=a.replace(/[\u4e00-\u9fff]+(村|里)/g,'').replace(/\d+鄰/g,'').trim();  // 去 X村/X里、N鄰
+  const mFirst=a.search(/\d/); if(mFirst<0) return null;       // 沒有數字＝沒門牌號
+  const road=a.slice(0,mFirst).replace(/[\s\-,，、]/g,'').trim();
+  let rest=a.slice(mFirst), lane='', alley='';
+  const ml=rest.match(/(\d+)\s*巷/); if(ml)lane=ml[1];
+  const ma=rest.match(/(\d+)\s*弄/); if(ma)alley=ma[1];
+  let r2=rest.replace(/\d+\s*巷/,'').replace(/\d+\s*弄/,'').replace(/之/g,'-');
+  const mn=r2.match(/(\d+(?:-\d+)?)/); if(!mn)return null;
+  if(!road)return null;
+  return {road,lk:lane+'-'+alley,num:mn[1],lane,alley};
+}
+function houseLookup(addr){
+  const p=parseHouse(addr); if(!p)return null;
+  const node=(typeof HOUSE!=='undefined')&&HOUSE[p.road]; if(!node)return null;
+  function dec(val){ // "里|鄰;里|鄰*緯偏,經偏" → {codes, lat, lon}
+    const [codes,co]=val.split('*');
+    let lat=null,lon=null;
+    if(co){const [a,b]=co.split(',');lat=25.0+(+a)/100000;lon=121.3+(+b)/100000;}
+    return {codes,lat,lon};
+  }
+  let codes=null, lat=null, lon=null;
+  if(node[p.lk]&&node[p.lk][p.num]){                                       // 路+巷+弄+號 完全命中
+    const d=dec(node[p.lk][p.num]); codes=d.codes; lat=d.lat; lon=d.lon;
+  }else if(node[p.lk]){                                                     // 同巷弄、找同基底號（如 100 對應 100-1）
+    const base=p.num.split('-')[0]; const s=new Set();
+    for(const k in node[p.lk]) if(k.split('-')[0]===base){const d=dec(node[p.lk][k]);d.codes.split(';').forEach(x=>s.add(x));if(lat==null){lat=d.lat;lon=d.lon;}}
+    if(s.size)codes=[...s].join(';');
+  }
+  if(!codes){                                                              // 退一步：忽略巷弄，整條路該號若只屬單一里
+    const s=new Set(); let rl=null,rn=null;
+    for(const lk in node) if(node[lk][p.num]){const d=dec(node[lk][p.num]);d.codes.split(';').forEach(x=>s.add(x));if(rl==null){rl=d.lat;rn=d.lon;}}
+    if(s.size===1){codes=[...s][0];lat=rl;lon=rn;}
+  }
+  if(!codes)return null;
+  const cands=codes.split(';').map(c=>{const [i,n]=c.split('|');return {li:LI_HOUSE_IDX[+i],lin:+n};});
+  return {parsed:p,cands,lat,lon};
+}
+/* 在地圖標出精確門牌位置（座標來自門牌表，免地理編碼） */
+function pinAt(lat,lon,label){
+  if(lat==null||lon==null)return false;
+  const ll=[lat,lon];
+  if(addrMarker)map.removeLayer(addrMarker);
+  addrMarker=L.marker(ll).addTo(map).bindPopup(`<b class="lk-pin">📍 ${label}</b>`).openPopup();
+  map.setView(ll,17);
+  return true;
+}
+
+function inRange(n,rule){
+  if(rule.r==="all")return true;
+  if(rule.r==="else"){ // 排除某些鄰，其餘成立
+    if(n==null)return false;
+    return !(rule.exclude||[]).some(([a,b])=>n>=a&&n<=b);
+  }
+  if(n==null)return false;
+  return rule.r.some(([a,b])=>n>=a&&n<=b);
+}
+function rangeLabel(rule){
+  if(rule.r==="all")return"全里";
+  if(rule.r==="else")return"其餘鄰";
+  return rule.r.map(([a,b])=>a===b?`${a}`:`${a}-${b}`).join("、")+"鄰";
+}
+
+function resolve(li,lin){
+  const d=LI[li]; if(!d)return null;
+  function pick(rules){
+    if(lin!=null && lin!==""){ const n=parseInt(lin,10);
+      const hit=rules.find(rl=>inRange(n,rl)); return hit?[hit]:[];
+    }
+    return rules.length===1?[rules[0]]:rules; // 沒填鄰→列全部
+  }
+  return {es:pick(d.es), jh:pick(d.jh), hasSplit:(d.es.length>1||d.jh.length>1)};
+}
+
+/* 反查：某社區（里＋鄰）對某校（zone es/jh）的關係 — 'base' 主學區 / 'free' 自由可選 / null 不屬於。
+ * 重用 inRange，故與正向查詢的鄰判斷完全一致（精準到鄰）。 */
+function communityForSchool(li,lin,school,zone){
+  const d=LI[li]; if(!d)return null;
+  const n=(lin==null||lin==="")?null:parseInt(lin,10);
+  for(const rl of d[zone]){
+    if(!inRange(n,rl))continue;
+    if(rl.base===school)return 'base';
+    if(rl.free&&rl.free.includes(school))return 'free';
+  }
+  return null;
+}
+
+/* 學校學區卡：呈現該校基本資料、特色與額滿狀態，寫入右側結果區。
+ * （不再列出符合社區清單——社區改由地圖範圍與地址／社區查詢呈現。） */
+function renderSchoolZone(school,zone,skipped){
+  const info=SCHOOLS[school]||{};   // 地址 / 電話 / 官網
+  const note=INFO[school]||{};      // 亮點標籤 tag、介紹話術 p
+  // 統計主學區涵蓋幾個里（僅供地圖說明用，不再逐一列出社區）
+  const liSet=new Set();
+  for(const name in COMMUNITY){
+    const c=COMMUNITY[name];
+    if(communityForSchool(c.li,c.lin,school,zone)==='base')liSet.add(c.li);
+  }
+  const dotColor=zone==='es'?'var(--clay)':'var(--teal)';
+  let html=`<div class="panel rcard">
+      <h3><span class="dot" style="background:${dotColor}"></span>${school} · ${zone==='es'?'國小':'國中'}學區範圍</h3>
+      <div class="zc-meta">${info.addr?`📍 ${info.addr}`:''}${info.tel?`　☎ ${info.tel}`:''}${info.web?`　🌐 <a href="https://${info.web}" target="_blank" rel="noopener noreferrer">官網↗</a>`:''}</div>`;
+  // 學校特色 / 亮點
+  if(note.tag||note.p)html+=`<div class="zc-feature">${note.tag?`<span class="tag free">${note.tag}</span>`:''}${note.p?`<div class="zc-feature-p">${note.p}</div>`:''}</div>`;
+  // 額滿狀態（額滿與否、歷年最後設籍日；額滿制度為國小適用，國中不顯示）
+  if(zone==='es')html+=riskBlock(school);
+  // 地圖說明
+  html+=`<div class="zc-hint">主學區涵蓋 <b>${liSet.size}</b> 個里。地圖<b>實線</b>為整里屬本校、<b>虛線</b>為里內部分鄰屬本校（概略範圍，以里為單位）。</div>`;
+  if(skipped&&skipped.length)html+=`<div class="disc" style="margin:8px 0">ℹ️ <b>${skipped.join('、')}</b> 的里界圖資有誤，暫未顯示於地圖（學區判定仍正確，圖資待以官方資料修復）。</div>`;
+  html+=`</div>`;
+  $("#results").innerHTML=html;
+  $("#copybar").style.display="none";   // 學校範圍模式：不顯示「複製查詢摘要」
+}
+
+/* 反查某校「確定學區(base)」涵蓋的里：full＝整里屬該校、partial＝里內僅部分鄰屬該校。
+ * 只取 base、不含自由學區(free)——free 只是「可選填」之一，畫進地圖會讓人誤會整片都是該校學區。 */
+function liSetForSchool(school,zone){
+  const full=new Set(), partial=new Set();
+  for(const li in LI){
+    for(const rl of (LI[li][zone]||[])){
+      if(rl.base!==school) continue;                          // 只畫確定學區（base）
+      if(rl.r==="all") full.add(li); else partial.add(li);   // "all"＝整里、其餘（鄰範圍/else）＝部分鄰
+    }
+  }
+  full.forEach(li=>partial.delete(li));   // 同里若有整里規則，以 full 為準
+  return {full:[...full], partial:[...partial]};
+}
+
+/* 里界圖資是否落在林口合理範圍（經度<121.45）。仁愛/太平/東勢里的 LK_GEO 含離群座標，
+ * 會讓地圖暴衝到坪林/汐止；繪製前先檢查，異常者略過，待日後以官方村里界圖資修復。 */
+function liGeoUsable(f){
+  let ok=true;
+  (function scan(cs){ for(const c of cs){ if(!ok)return; Array.isArray(c[0])?scan(c):(c[0]>121.45&&(ok=false)); } })(f.geometry.coordinates);
+  return ok;
+}
+
+/* 建立某校學區的里界圖層（整里實線、部分鄰里虛線；界線異常的里略過）。
+ * 回傳 {group, skipped}，供「看某校學區」下拉與一般查詢的 drawZone 共用。 */
+function buildSchoolZoneLayer(school,zone){
+  const {full,partial}=liSetForSchool(school,zone);
+  const color=zone==='es'?'#BD5E39':'#3C7A62';
+  const group=L.featureGroup(), skipped=[];
+  const add=(arr,opts)=>arr.forEach(li=>{
+    const f=LK_GEO.features.find(x=>x.properties.li===li);
+    if(!f) return;
+    if(!liGeoUsable(f)){ skipped.push(li); return; }   // 略過界線異常的里，避免地圖跑掉
+    L.geoJSON(f,{style:Object.assign({color,weight:2,fillColor:color},opts)})
+      .bindTooltip(li,{direction:'center',className:'zone-tip'}).addTo(group);
+  });
+  add(full,{fillOpacity:.18,dashArray:null});
+  add(partial,{fillOpacity:.06,dashArray:'5,4'});
+  return {group,skipped};
+}
+
+/* 下拉「看某校學區」用：建圖層、加到地圖、縮放，回傳被略過的里。 */
+function drawSchoolZoneByLi(school,zone){
+  if(liLayer){map.removeLayer(liLayer);liLayer=null;}
+  const {group,skipped}=buildSchoolZoneLayer(school,zone);
+  group.addTo(map); liLayer=group;
+  try{ if(group.getLayers().length) map.fitBounds(group.getBounds(),{padding:[40,40],maxZoom:15}); }catch(e){}
+  return skipped;
+}
+
+/* ============================ 地圖 ============================ */
+function initMap(){
+  map=L.map('map',{scrollWheelZoom:false}).setView([25.0772,121.3645],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19, attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click',()=>map.scrollWheelZoom.enable());
+}
+async function geocode(q){
+  if(geoCache[q])return geoCache[q];
+  try{
+    const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&countrycodes=tw&accept-language=zh-TW&q=${encodeURIComponent(q)}`;
+    const r=await fetch(u,{headers:{'Accept':'application/json'}});
+    const j=await r.json();
+    if(j&&j[0]){const res={lat:+j[0].lat,lon:+j[0].lon,addr:j[0].address||{},name:j[0].display_name};geoCache[q]=res;return res;}
+  }catch(e){console.warn('geocode fail',e);}
+  return null;
+}
+/* 產生由精到粗的查詢變體：完整門牌→去號→去巷→到段→只到路 */
+function geoVariants(raw){
+  const b=raw.includes('林口')?raw:('新北市林口區'+raw);
+  const v=[b];const add=s=>{s=(s||'').trim();if(s&&s.length>=6&&!v.includes(s))v.push(s);};
+  add(b.replace(/\d+(之\d+)?號.*$/,''));
+  add(b.replace(/\d+巷.*$/,''));
+  add(b.replace(/(段).*$/,'$1'));
+  add(b.replace(/([路街道])[^路街道]*$/,'$1'));
+  return v;
+}
+async function geocodeMulti(raw){
+  const vs=geoVariants(raw);
+  for(let i=0;i<vs.length;i++){
+    const g=await geocode(vs[i]);
+    if(g)return{g,coarse:i>0};
+    await new Promise(r=>setTimeout(r,350));
+  }
+  return null;
+}
+function clearSchoolMarkers(){schoolMarkers.forEach(m=>map.removeLayer(m));schoolMarkers=[];}
+async function plotSchools(names,homeLatLng){
+  clearSchoolMarkers(); const pts=[];
+  for(const nm of names){
+    if(!SCHOOL_ADDR[nm])continue;
+    const g=await geocode(SCHOOL_ADDR[nm]);
+    if(g){
+      const isJh=nm.includes("國中");
+      const ic=L.divIcon({className:'',html:`<div style="background:${isJh?'#3C7A62':'#BD5E39'};color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);transform:translate(-50%,-120%)">${nm}</div>`,iconSize:[0,0]});
+      const m=L.marker([g.lat,g.lon],{icon:ic}).addTo(map);
+      schoolMarkers.push(m); pts.push([g.lat,g.lon]);
+    }
+    await new Promise(r=>setTimeout(r,900)); // 尊重 Nominatim 流量限制
+  }
+  if(homeLatLng)pts.push(homeLatLng);
+  if(pts.length){ if(pts.length===1)map.setView(pts[0],15); else map.fitBounds(pts,{padding:[50,50],maxZoom:16}); }
+}
+
+/* ============================ 渲染結果 ============================ */
+function schoolBlock(rules,kind){
+  const isJh=kind==="jh";
+  let html="";
+  rules.forEach(rl=>{
+    const seg = rules.length>1 ? `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px">📍 ${rangeLabel(rl)}</div>` : "";
+    if(rl.base){
+      const info=INFO[rl.base]||{};
+      html+=`${seg}<div class="school"><span class="name ${isJh?'jh':''}">${rl.base}</span><span class="tag base">基本學區</span>${info.tag?`<span class="tag free">${info.tag}</span>`:""}</div>`;
+      if(info.p)html+=`<div class="pitch"><b>學校特色：</b>${info.p}</div>`;
+      if(rl.free&&rl.free.length){
+        html+=`<div class="freebox"><div class="freebox-h">＋ 本鄰另可選讀「自由學區」學校（共 ${rl.free.length} 所，可擇一就讀）</div>`;
+        html+=`<div class="freelist">`+rl.free.map(s=>{const i=INFO[s]||{};const full=FULL_ES.includes(s)?'<span class="tag-mini full">額滿校</span>':'';return`<div class="freeitem"><b>${s}</b>${i.tag?` <span class="tag-mini">${i.tag}</span>`:""}${full}${i.p?`<br><span style="color:var(--ink-soft)">${i.p}</span>`:""}</div>`}).join("")+`</div></div>`;
+      }
+      if(rl.note)html+=`<div class="schoolmeta">※ ${rl.note}</div>`;
+      if(!isJh){html+=riskBlock(rl.base); if(rl.free)rl.free.filter(s=>FULL_ES.includes(s)).forEach(s=>html+=riskBlock(s));}
+    }else{
+      html+=`${seg}<div class="school"><span class="name ${isJh?'jh':''}" style="font-size:20px">自由學區</span></div>`;
+      html+=`<div class="freelist" style="margin-top:8px">`+rl.free.map(s=>{const i=INFO[s]||{};return`<div class="freeitem"><b>${s}</b> ${i.tag?`· ${i.tag}`:""}${i.p?`<br><span style="color:var(--ink-soft)">${i.p}</span>`:""}</div>`}).join("")+`</div>`;
+      if(rl.note)html+=`<div class="schoolmeta">※ ${rl.note}</div>`;
+      if(!isJh){rl.free.filter(s=>FULL_ES.includes(s)).forEach(s=>html+=riskBlock(s));}
+    }
+  });
+  return html;
+}
+
+function riskBlock(school){
+  if(FULL_ES.includes(school)){
+    const rows=FULL_DATA[school]||[];
+    const latest=rows[0];
+    const tbl=`<table class="full"><tr><th>學年度</th><th>最後設籍日</th><th>需提前</th><th>班數</th></tr>`+
+      rows.map(r=>`<tr><td>${r[0]}</td><td class="d">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")+`</table>`;
+    return `<div class="risk hot"><div class="rt"><span class="ic">🔥</span>額滿熱區 — 必須提早設籍！</div>
+      ${school} 為額滿學校。114 學年度最後錄取設籍日約 <b>${latest?latest[1]:"—"}</b>，等於要提前 <b>${latest?latest[2]:"數年"}</b>設籍。
+      <b>不是買了就有位子</b>，須父母與學童在學區內共同設籍＋居住事實，超額時依「設籍時間先後」排序。越早設籍越保險。${tbl}
+      <div style="font-size:12px;margin-top:6px;color:#9c6">↑ 歷年最後設籍日趨勢，僅供研判，實際以當年度公告為準。</div>
+      <div style="margin-top:10px"><a href="https://www.thes.ntpc.edu.tw/var/file/0/1000/img/532293659.pdf" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--red);text-decoration:none;background:#fff;padding:6px 12px;border-radius:9px;border:1.5px solid #E8C3B5">📄 額滿學校常見問題 Q&A ↗</a></div></div>`;
+  }
+  if(CITY_FREE_ES.includes(school)){
+    return `<div class="risk cool"><div class="rt"><span class="ic">✅</span>近年未額滿・全市自由學區</div>
+      ${school}為全市自由學區學校，設籍後通常可順利入學，跨區生亦可申請（額滿時抽籤）。</div>`;
+  }
+  return `<div class="risk cool"><div class="rt"><span class="ic">✅</span>近年未列額滿</div>
+      設籍於本學區、具居住事實後，通常可順利分發入學。建議仍向學校確認當年度招生情形。</div>`;
+}
+
+const SETJI_HTML=`
+  <div style="margin-bottom:10px">額滿學校（如頭湖、南勢、新林、東湖、崇林）採以下優先順序：</div>
+  <div class="steps">
+    <div class="step"><div class="n"></div><div><b>優先資格</b>：學童需與父母雙方（或法定監護人）在學區內<b>共同設籍</b>，且有「居住事實」。</div></div>
+    <div class="step"><div class="n"></div><div><b>居住事實證明</b>（擇一）：①設籍地房屋所有權狀（所有人需為直系血親）②經法院公證之房屋租賃契約 ③公家宿舍配住證明。</div></div>
+    <div class="step"><div class="n"></div><div><b>超額排序</b>：符合優先資格者若超過名額，依「<b>設籍時間先後</b>」排序——所以越早設籍越有利。</div></div>
+  </div>`;
+
+function render(li,lin,homeLatLng){
+  const sp=$("#schoolPick"); if(sp){sp.value="";sp.classList.remove('on');}   // 一般查詢→重置「看某校學區」下拉
+  const res=resolve(li,lin);
+  if(!res){toast("查無此里資料");return;}
+  lastResult={li,lin,res};
+  const linTxt=(lin!=null&&lin!=="")?` ${lin}鄰`:"（未指定鄰）";
+  let html=`<div class="panel rcard">
+      <h3><span class="dot"></span>${li}${linTxt} · 國小學區</h3>
+      ${schoolBlock(res.es,"es")}
+    </div>
+    <div class="panel rcard">
+      <h3><span class="dot" style="background:var(--teal)"></span>${li}${linTxt} · 國中學區</h3>
+      ${schoolBlock(res.jh,"jh")}
+    </div>`;
+  if(res.hasSplit&&(lin==null||lin==="")){
+    html=`<div class="disc" style="margin-top:0">ℹ️ <b>${li}</b> 的學區依「鄰」不同而異，下方已列出各鄰對應學校。填入「鄰」可精準鎖定單一結果。</div>`+html;
+  }
+  html+=`<details class="acc panel"><summary>📑 設籍與入學條件（必看）<span class="chev">▾</span></summary><div class="body">${SETJI_HTML}</div></details>`;
+  $("#results").innerHTML=html;
+  $("#copybar").style.display="flex";
+  setZoneCtx(li,res);          // 設定地圖框對應的 里/基本國小/基本國中
+  drawZone(false);             // 依目前選的框型別繪製（不強制縮放，交給學校標記）
+  // 地圖：標出基本學校
+  const names=[]; res.es.forEach(r=>{if(r.base)names.push(r.base);else (r.free||[]).forEach(f=>names.push(f));});
+  res.jh.forEach(r=>{if(r.base)names.push(r.base);});
+  plotSchools([...new Set(names)],homeLatLng);
+}
+
+function buildSummary(){
+  if(!lastResult)return"";
+  const {li,lin,res}=lastResult;
+  const linTxt=(lin!=null&&lin!=="")?`${lin}鄰`:"";
+  let t=`🏠 太平洋房屋 · 林口捷運加盟店 ｜ 林口學區快查\n\n【林口學區查詢】${li}${linTxt}\n`;
+  const esLines=res.es.map(r=>{const seg=res.es.length>1?`(${rangeLabel(r)})`:"";return r.base?`國小${seg}：${r.base}${FULL_ES.includes(r.base)?"（額滿學校，須提早設籍）":""}`:`國小${seg}：自由學區 ${r.free.join("/")}`;});
+  const jhLines=res.jh.map(r=>{const seg=res.jh.length>1?`(${rangeLabel(r)})`:"";return r.base?`國中${seg}：${r.base}`:`國中${seg}：自由學區 ${r.free.join("/")}`;});
+  t+=esLines.join("\n")+"\n"+jhLines.join("\n");
+  t+=`\n\n※額滿學校須父母與學童共同設籍＋居住事實，超額依設籍先後排序，越早設籍越好。實際以學校當年度公告為準。`;
+  t+=`\n\n———\n太平洋房屋 林口捷運加盟店\n李天夏 0936-123-288　LINE：https://line.me/ti/p/oCqi-eVJvI\n温美慈 0976-109-326　LINE：https://line.me/ti/p/KLYEW95HzP`;
+  t+=`\n🔎 線上學區快查：https://s156843217.github.io/linkou-school-zone/`;
+  return t;
+}
+
+/* ============================ 幼兒園表 ============================ */
+function renderKg(){
+  let h=`<table class="kgtable"><tr><th>園所名稱</th><th>類別</th><th>招生名額（各年齡）</th></tr>`;
+  KG_PUBLIC.forEach(k=>{
+    const cells=k.a.map(([age,num])=>`${age} <b style="color:var(--clay-d)">${num}</b>`).join("　");
+    h+=`<tr><td>${k.n}</td><td style="color:var(--ink-soft);font-size:12px">${k.t}</td><td>${cells}</td></tr>`;
+  });
+  h+=`</table>`; $("#kgPublic").innerHTML=h;
+  let p=`<table class="kgtable"><tr><th>私立幼兒園</th><th>電話</th><th>私立幼兒園</th><th>電話</th></tr>`;
+  for(let i=0;i<KG_PRIVATE.length;i+=2){
+    const a=KG_PRIVATE[i],b=KG_PRIVATE[i+1];
+    p+=`<tr><td>${a[0]}</td><td style="color:var(--clay-d)">${a[1]}</td>`+
+       (b?`<td>${b[0]}</td><td style="color:var(--clay-d)">${b[1]}</td>`:`<td></td><td></td>`)+`</tr>`;
+  }
+  p+=`</table>`; $("#kgPrivate").innerHTML=p;
+}
+
+/* ============================ 事件 ============================ */
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+
+function matchLiFromAddr(a){
+  const cand=[a.village,a.neighbourhood,a.quarter,a.suburb,a.city_district,a.hamlet].filter(Boolean);
+  for(const c of cand){const hit=LI_NAMES.find(n=>c.includes(n)||c.includes(n.replace("里","")));if(hit)return hit;}
+  return null;
+}
+
+$("#addrBtn").addEventListener('click',async()=>{
+  let q=$("#addrInput").value.trim(); if(!q){toast("請先輸入地址");return;}
+  $("#splitHint").style.display="none";
+
+  /* ① 先用門牌精準索引（離線、最準，直接給里＋鄰＋座標） */
+  const hit=houseLookup(q);
+  if(hit){
+    if(hit.cands.length===1){
+      const {li,lin}=hit.cands[0];
+      $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+      $("#linNo").value=lin;                 // 自動帶入鄰，額滿分發看鄰
+      drawLi(li);
+      const ll=(hit.lat!=null)?[hit.lat,hit.lon]:null;
+      if(ll)pinAt(hit.lat,hit.lon,q); else focusLi(li);
+      render(li,lin,ll);
+      toast(`✅ 門牌精準對應：${li} ${lin}鄰`);
+      return;
+    }else{
+      // 同門牌跨里（長路段橫跨里界）→ 列出候選請房仲確認
+      const list=hit.cands.map(c=>`${c.li} ${c.lin}鄰`).join("　或　");
+      $("#splitHint").style.display="block";
+      $("#splitHint").innerHTML=`⚠️ 此門牌「${hit.parsed.road}${hit.parsed.num}號」位於里界、橫跨多里：<b>${list}</b>。已先帶入第一個，請確認後於下方下拉切換。`;
+      const {li,lin}=hit.cands[0];
+      $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+      $("#linNo").value=lin;
+      drawLi(li);
+      const ll=(hit.lat!=null)?[hit.lat,hit.lon]:null;
+      if(ll)pinAt(hit.lat,hit.lon,q); else focusLi(li);
+      render(li,lin,ll);
+      toast(`此門牌跨里，已先帶入 ${li}，請確認`);
+      return;
+    }
+  }
+
+  /* ② 門牌查無（地址不完整或非住宅）→ 退回線上地理編碼定位 */
+  $("#addrBtn").textContent="定位中…"; $("#addrBtn").disabled=true;
+  const r=await geocodeMulti(q);
+  $("#addrBtn").textContent="🔍 定位並判斷里別"; $("#addrBtn").disabled=false;
+  if(!r){toast("門牌表查無，且線上也找不到，請確認地址或改用下方里／鄰查詢");return;}
+  const ll=[r.g.lat,r.g.lon];
+  if(addrMarker)map.removeLayer(addrMarker);
+  addrMarker=L.marker(ll).addTo(map).bindPopup(`<b class="lk-pin">📍 ${q}</b>`).openPopup();
+  const li=liAtPoint(r.g.lat,r.g.lon);
+  if(li){
+    drawLi(li);
+    $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+    render(li,$("#linNo").value,ll);
+    toast(r.coarse?`門牌表無此號，改用線上推估為「${li}」(請務必確認鄰別)`:`門牌表無此號，線上定位為「${li}」，請確認鄰別`);
+  }else{
+    map.setView(ll,16);
+    toast("已標出位置，但落點不在林口里界，請改用里/鄰查詢");
+  }
+});
+
+$("#queryBtn").addEventListener('click',()=>{
+  const li=$("#liSelect").value; if(!li){toast("請先選擇里別");return;}
+  render(li,$("#linNo").value, addrMarker?addrMarker.getLatLng&&[addrMarker.getLatLng().lat,addrMarker.getLatLng().lng]:null);
+});
+$("#liSelect").addEventListener('change',()=>{
+  const li=$("#liSelect").value; const d=LI[li];
+  if(d&&(d.es.length>1||d.jh.length>1)){$("#splitHint").style.display="block";$("#splitHint").innerHTML=`⚠️「${li}」依鄰別有不同學區，建議填入鄰數以精準鎖定。`;}
+  else $("#splitHint").style.display="none";
+});
+
+$("#copyBtn").addEventListener('click',async()=>{
+  const t=buildSummary(); if(!t)return;
+  try{await navigator.clipboard.writeText(t);toast("已複製摘要，可貼給家長 ✅");}
+  catch(e){toast("複製失敗，請長按選取");}
+});
+$("#printBtn").addEventListener('click',()=>window.print());
+
+document.querySelectorAll('.kg-tab').forEach(tb=>tb.addEventListener('click',()=>{
+  document.querySelectorAll('.kg-tab').forEach(x=>x.classList.remove('on'));tb.classList.add('on');
+  const k=tb.dataset.kg;
+  $("#kgPublic").style.display=k==="public"?"block":"none";
+  $("#kgPrivate").style.display=k==="private"?"block":"none";
+}));
+
+/* ============================ 學校聯絡資訊 ============================ */
+function renderSchoolList(){
+  const esList=Object.entries(SCHOOLS).filter(([n])=>n.endsWith("國小"));
+  const jhList=Object.entries(SCHOOLS).filter(([n])=>n.endsWith("國中"));
+  const make=(arr)=>arr.map(([n,d])=>{
+    const isFull=FULL_ES.includes(n);
+    const isFree=CITY_FREE_ES.includes(n);
+    const badge=isFull?'<span class="badge-mini">額滿學校</span>':isFree?'<span class="badge-mini" style="background:#3C7A62;color:#fff">全市自由</span>':'';
+    const telDigits=d.tel.replace(/-/g,'');
+    return `<div class="school-card">
+      <div class="sn">${n}${badge}</div>
+      <div class="sa">📍 ${d.addr}</div>
+      <div class="sx">
+        <a class="stel" href="tel:${telDigits}">📞 ${d.tel}</a>
+        <a class="sweb" href="https://${d.web}/" target="_blank" rel="noopener">🌐 官網</a>
+      </div></div>`;
+  }).join("");
+  $("#schoolListEs").innerHTML=make(esList);
+  $("#schoolListJh").innerHTML=make(jhList);
+}
+document.querySelectorAll('.school-tab').forEach(tb=>tb.addEventListener('click',()=>{
+  document.querySelectorAll('.school-tab').forEach(x=>x.classList.remove('on'));tb.classList.add('on');
+  const k=tb.dataset.sch;
+  $("#schoolListEs").style.display=k==="es"?"grid":"none";
+  $("#schoolListJh").style.display=k==="jh"?"grid":"none";
+}));
+
+/* 地圖框切換：里界 / 國小學區 / 國中學區 */
+document.querySelectorAll('.zt').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.zt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  mapZone=b.dataset.zone;
+  fillSchoolOptions(mapZone);   // 切國小／國中時，下方下拉內容跟著換（里界則隱藏）
+  drawZone(true);
+  if(mapZone==='es'&&!zoneCtx.es&&zoneCtx.li) toast("此結果非單一國小學區（自由學區或未指定鄰），已顯示里界");
+  if(mapZone==='jh'&&!zoneCtx.jh&&zoneCtx.li) toast("此結果非單一國中學區（自由學區或未指定鄰），已顯示里界");
+}));
+
+/* 地圖工具列「看某校學區」下拉：生成選項、切換時高亮該校學區範圍並列出社區。 */
+/* 依目前 mapZone（國小 es／國中 jh）填入下拉的學校選項；里界模式則隱藏下拉。 */
+function fillSchoolOptions(zone){
+  const sel=$("#schoolPick"); if(!sel)return;
+  if(zone!=='es'&&zone!=='jh'){ sel.style.display='none'; return; }   // 里界：不需選校
+  sel.style.display='';
+  const fc = zone==='es' ? (typeof SCHOOL_GEO_ES!=='undefined'?SCHOOL_GEO_ES:null)
+                         : (typeof SCHOOL_GEO_JH!=='undefined'?SCHOOL_GEO_JH:null);
+  const ph = zone==='es' ? '🏫 選國小看範圍…' : '🏫 選國中看範圍…';
+  sel.innerHTML = `<option value="">${ph}</option>` +
+    (fc ? fc.features.map(f=>`<option value="${f.properties.school}">${f.properties.school}</option>`).join('') : '');
+  sel.classList.remove('on');
+}
+
+function buildSchoolPicker(){
+  const sel=$("#schoolPick"); if(!sel)return;
+  fillSchoolOptions(mapZone);   // 依目前選的國小／國中（預設國小）填入
+  sel.addEventListener('change',()=>{
+    const school=sel.value;
+    sel.classList.toggle('on',!!school);
+    if(!school){   // 清空→回查詢模式
+      if(liLayer){map.removeLayer(liLayer);liLayer=null;}
+      $("#results").innerHTML=`<div class="panel placeholder"><div class="big">🏫 還沒有查詢結果</div>輸入地址或選擇里別後，這裡會顯示對應的<br>國小、國中學區與設籍提醒。</div>`;
+      $("#copybar").style.display="none"; return;
+    }
+    const zone = mapZone==='jh' ? 'jh' : 'es';   // 看國小或國中由上方鈕決定
+    renderSchoolZone(school,zone,drawSchoolZoneByLi(school,zone));
+  });
+}
+
+/* ============================ 社區搜尋（autocomplete） ============================ */
+const COMM_NAMES=Object.keys(COMMUNITY);
+
+
+// 標準化：忽略「管理委員會/管委會/社區/大廈/大樓/公寓/住戶」等通用字，提升模糊比對命中率
+function normalizeComm(s){return (s||'').replace(/管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人/g,'').toLowerCase().trim();}
+const COMM_NORM=Object.fromEntries(COMM_NAMES.map(n=>[n,normalizeComm(n)]));
+let acIdx=-1;
+function searchComm(q){
+  if(!q)return [];
+  // 先看俗稱字典是否命中
+  const aliasKey=Object.keys(ALIASES).find(k=>k.includes(q)||q.includes(k));
+  if(aliasKey && COMMUNITY[ALIASES[aliasKey]]) return [ALIASES[aliasKey]];
+  const nq=normalizeComm(q);
+  if(!nq)return [];
+  return COMM_NAMES.filter(n=>COMM_NORM[n].includes(nq)||n.toLowerCase().includes(q.toLowerCase())).slice(0,12);
+}
+function showAc(items,q){
+  const box=$("#commList");
+  if(!items.length){
+    if(q&&q.length>=1){
+      box.innerHTML=`<div class="ac-empty">本地資料庫查無「${q}」。<br>
+        <button class="ac-online" data-q="${q.replace(/"/g,'&quot;')}">🌐 上網查這個社區名稱並定位</button></div>`;
+      box.classList.add('show');
+      const btn=box.querySelector('.ac-online');
+      if(btn)btn.addEventListener('click',()=>onlineLookup(btn.dataset.q));
+    }
+    else box.classList.remove('show');
+    return;
+  }
+  box.innerHTML=items.map((n,i)=>{
+    const c=COMMUNITY[n];
+    let tag='';
+    if(c.li)tag=`<span class="li-tag">${c.li}${c.lin?' '+c.lin+'鄰':''}</span>`;
+    else if(c.cands)tag=`<span class="li-tag" style="background:#FBF3E0;color:#7a6a3e">跨里待確認</span>`;
+    else tag=`<span class="li-tag" style="background:#FBF3E0;color:#7a6a3e">里別待定位</span>`;
+    return `<div class="ac-item${i===acIdx?' active':''}" data-name="${n.replace(/"/g,'&quot;')}">${n}${tag}</div>`;
+  }).join("");
+  box.classList.add('show');
+  box.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>pickComm(el.dataset.name)));
+}
+
+/* 線上查社區：本地查不到時，把社區名丟到 OpenStreetMap 定位，再用里界比對出里 */
+async function onlineLookup(name){
+  $("#commList").classList.remove('show');
+  $("#commInput").value=name;
+  toast(`本地查無，正在上網搜尋「${name}」…`);
+  // 嘗試多種查法：社區名直接查、加「林口」、加「新北市林口區」
+  const tries=[`${name} 林口`, `新北市林口區 ${name}`, name];
+  let g=null;
+  for(const t of tries){
+    const res=await geocode(t);
+    if(res){
+      // 確認落點在林口里界內才採信（避免查到外地同名地點）
+      const li=liAtPoint(res.lat,res.lon);
+      if(li){g={...res,li};break;}
+      if(!g)g=res; // 暫存，萬一所有都落在界外，至少標個位置
+    }
+    await new Promise(r=>setTimeout(r,400));
+  }
+  if(!g){toast(`網路上也查不到「${name}」，請改用下方「地址定位」輸入門牌`);return;}
+  const ll=[g.lat,g.lon];
+  if(addrMarker)map.removeLayer(addrMarker);
+  addrMarker=L.marker(ll).addTo(map).bindPopup(`<b class="lk-pin">🌐 ${name}（網路查詢）</b>`).openPopup();
+  const li=g.li||liAtPoint(g.lat,g.lon);
+  if(li){
+    drawLi(li);
+    $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+    render(li,$("#linNo").value,ll);
+    toast(`網路查到「${name}」→ ${li}（請再確認鄰別）`);
+  }else{
+    map.setView(ll,16);
+    toast(`已標出「${name}」位置，但不在林口里界內，請確認或改用地址定位`);
+  }
+}
+async function pickComm(name){
+  const c=COMMUNITY[name]; if(!c)return;
+  $("#commInput").value=name;
+  $("#commList").classList.remove('show');
+  // 1) 已知里：直接套用，地圖標記優先用門牌精確座標
+  if(c.li){
+    $("#liSelect").value=c.li; $("#liSelect").dispatchEvent(new Event('change'));
+    $("#linNo").value=c.lin||"";   // 有建檔鄰就帶入，沒有就清空（避免沿用上一個社區的鄰）
+    drawLi(c.li);
+    let lin=c.lin||"";
+    const hit=c.addr?houseLookup(c.addr):null;
+    if(hit&&hit.cands.length===1){            // 門牌精確命中→精準標記，並補上鄰
+      if(!lin){lin=hit.cands[0].lin; $("#linNo").value=lin;}
+      const ll=(hit.lat!=null)?[hit.lat,hit.lon]:null;
+      if(ll)pinAt(hit.lat,hit.lon,name); else focusLi(c.li);
+      render(c.li,lin||$("#linNo").value,ll);
+      toast(`已查到「${name}」→ ${c.li}${lin?(' '+lin+'鄰'):''}`);
+      return;
+    }
+    // 門牌無精確座標→退回線上定位標記（里別仍用建檔的）
+    let ll=null;
+    if(c.addr){
+      const r=await geocodeMulti(c.addr);
+      if(r){ll=[r.g.lat,r.g.lon];if(addrMarker)map.removeLayer(addrMarker);addrMarker=L.marker(ll).addTo(map).bindPopup(`<b class="lk-pin">🏘️ ${name}</b>`).openPopup();}
+    }
+    if(!ll) focusLi(c.li);
+    render(c.li,c.lin||$("#linNo").value,ll);
+    toast(`已查到「${name}」→ ${c.li}${c.lin?(' '+c.lin+'鄰'):''}`);
+    return;
+  }
+  // 2) 跨里 / 無里：先用門牌精準表比對地址，再退回線上定位
+  $("#linNo").value="";   // 跨里社區無固定鄰，清空避免沿用上一個社區的殘留鄰
+  if(c.addr){
+    const hit=houseLookup(c.addr);
+    if(hit&&hit.cands.length===1){
+      const {li,lin}=hit.cands[0];
+      $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+      $("#linNo").value=lin; drawLi(li);
+      const ll=(hit.lat!=null)?[hit.lat,hit.lon]:null;
+      if(ll)pinAt(hit.lat,hit.lon,name); else focusLi(li);
+      render(li,lin,ll);
+      toast(`✅ 門牌對應「${name}」→ ${li} ${lin}鄰`); return;
+    }
+    if(hit&&hit.cands.length>1){
+      const list=hit.cands.map(x=>`${x.li} ${x.lin}鄰`).join("　或　");
+      $("#splitHint").style.display="block";
+      $("#splitHint").innerHTML=`⚠️「${name}」門牌跨里：<b>${list}</b>，已先帶入第一個請確認。`;
+      const {li,lin}=hit.cands[0];
+      $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+      $("#linNo").value=lin; drawLi(li);
+      const ll=(hit.lat!=null)?[hit.lat,hit.lon]:null;
+      if(ll)pinAt(hit.lat,hit.lon,name); else focusLi(li);
+      render(li,lin,ll);
+      toast(`「${name}」門牌跨里，已先帶入 ${li}`); return;
+    }
+  }
+  toast(`「${name}」門牌表無精準對應，正以地址線上定位…`);
+  if(!c.addr){toast("此社區無地址可定位，請手動選里");return;}
+  const r=await geocodeMulti(c.addr);
+  if(!r){toast("地址定位失敗，請手動選里");return;}
+  const ll=[r.g.lat,r.g.lon];
+  if(addrMarker)map.removeLayer(addrMarker);
+  addrMarker=L.marker(ll).addTo(map).bindPopup(`<b class="lk-pin">🏘️ ${name}</b><br>${c.addr}`).openPopup();
+  const li=liAtPoint(r.g.lat,r.g.lon);
+  if(li){
+    drawLi(li);
+    $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
+    render(li,$("#linNo").value,ll);
+    toast(`已定位「${name}」→ ${li}（請再確認鄰別）`);
+  }else{
+    map.setView(ll,16);
+    const hint=c.cands?`可能里別：${c.cands.join('、')}`:'無里資訊';
+    toast(`定位完成但無法自動判定里。${hint}，請手動選里`);
+  }
+}
+$("#commInput").addEventListener('input',e=>{acIdx=-1;showAc(searchComm(e.target.value),e.target.value);});
+$("#commInput").addEventListener('focus',e=>{if(e.target.value)showAc(searchComm(e.target.value),e.target.value);});
+$("#commInput").addEventListener('keydown',e=>{
+  const items=searchComm($("#commInput").value);
+  if(e.key==='ArrowDown'){e.preventDefault();acIdx=Math.min(items.length-1,acIdx+1);showAc(items,$("#commInput").value);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acIdx=Math.max(0,acIdx-1);showAc(items,$("#commInput").value);}
+  else if(e.key==='Enter'){e.preventDefault();if(acIdx>=0&&items[acIdx])pickComm(items[acIdx]);else if(items.length===1)pickComm(items[0]);else if(items.length>1)showAc(items,$("#commInput").value);else onlineLookup($("#commInput").value.trim());}
+  else if(e.key==='Escape'){$("#commList").classList.remove('show');}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#commInput')&&!e.target.closest('#commList'))$("#commList").classList.remove('show');});
+$("#commBtn").addEventListener('click',()=>{
+  const q=$("#commInput").value.trim(); if(!q){toast("請輸入社區名稱");return;}
+  const items=searchComm(q);
+  if(items.length===1)pickComm(items[0]);
+  else if(items.length>1){toast(`找到 ${items.length} 個相符社區，請從清單點選`);showAc(items,q);}
+  else onlineLookup(q);  // 本地查不到 → 自動上網查
+});
+
+/* init */
+LI_NAMES.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;$("#liSelect").appendChild(o);});
+initMap(); renderKg(); renderSchoolList(); buildSchoolPicker();
+$("#addrInput").addEventListener('keydown',e=>{if(e.key==="Enter")$("#addrBtn").click();});
+</script>
+</body>
+</html>

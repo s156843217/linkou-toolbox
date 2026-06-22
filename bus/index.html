@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>林口公車路線地圖</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<script>
+/* 防同業以 iframe 內嵌冒用本工具（與學區頁一致） */
+(function(){
+  if(window.top===window.self)return;
+  try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
+  catch(e){ window.top.location.href=location.href; }
+})();
+</script>
+<style>
+  /* === 沿用學區頁的版面元件（hero / search / layout / map / autocomplete / 聯絡卡）=== */
+  .wrap{max-width:1120px;margin:0 auto;padding:18px 16px 60px}
+  header.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    padding:22px 24px;border-radius:20px;background:linear-gradient(135deg,#2C2620,#3a322a);color:#F7EEDF;
+    box-shadow:var(--shadow);position:relative;overflow:hidden}
+  header.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(60,122,98,.55),transparent 70%)}
+  .hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(24px,5vw,38px);letter-spacing:.5px;line-height:1.15}
+  .hero h1 .mk{color:var(--gold)}
+  .hero p{color:#E7D7BE;font-size:14px;margin-top:6px;max-width:46ch}
+  .hero .badge{font-family:var(--serif);font-size:13px;font-weight:700;color:#2C2620;background:var(--gold);
+    padding:5px 12px;border-radius:999px;display:inline-block;align-self:flex-start;margin-bottom:8px}
+  .hero .yr{text-align:right;line-height:1.6;color:#E7D7BE}
+  .hero .yr .yr-biz{display:block;font-family:var(--serif);font-size:16px;font-weight:700;color:#F3E6CE;letter-spacing:.3px}
+  .hero .yr .yr-nm{display:block;font-size:15px;font-weight:600;color:#E7D7BE;margin-top:3px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .search{margin-top:18px;padding:18px}
+  .search .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{flex:1 1 240px;min-width:0}
+  label.lbl{display:block;font-size:12.5px;font-weight:700;color:var(--clay-d);margin-bottom:6px;letter-spacing:.3px}
+  input[type=text],select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:var(--sans);font-size:15px;background:#FFFDF9;color:var(--ink);outline:none;transition:.18s}
+  input:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(60,122,98,.14)}
+  .btn{border:none;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:15px;padding:12px 20px;border-radius:12px;
+    background:var(--teal);color:#fff;transition:.18s;white-space:nowrap}
+  .btn:hover{background:var(--teal-d)}
+  .btn.ghost{background:#fff;color:var(--teal-d);border:1.5px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--teal)}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:10px}
+  .or{font-size:12px;color:var(--ink-soft);text-align:center;margin:12px 0 6px;position:relative}
+  .or::before,.or::after{content:"";position:absolute;top:50%;width:38%;height:1px;background:var(--line)}
+  .or::before{left:0}.or::after{right:0}
+
+  /* 步行範圍切換（沿用膠囊外觀）*/
+  .radius-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .radius-row .rr-label{font-size:12.5px;font-weight:700;color:var(--teal-d)}
+  .rt{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;border:1.5px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink-soft);transition:.15s;font-family:var(--sans)}
+  .rt:hover{border-color:var(--teal)}
+  .rt.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  .layout{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;margin-top:18px}
+  @media(max-width:860px){.layout{grid-template-columns:1fr}}
+  #map{height:460px;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow);background:#e9e2d4}
+  @media(max-width:860px){#map{height:340px}}
+  .results{display:flex;flex-direction:column;gap:14px}
+  .placeholder{padding:38px 22px;text-align:center;color:var(--ink-soft)}
+  .placeholder .big{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px}
+
+  /* === 公車頁專屬：結果卡 === */
+  .bsum{padding:16px 18px}
+  .bsum h3{font-family:var(--serif);font-size:16px;color:var(--teal-d);display:flex;align-items:center;gap:8px}
+  .bsum .bsub{font-size:13px;color:var(--ink-soft);margin-top:4px}
+  .bsec-t{font-size:12.5px;font-weight:700;color:var(--clay-d);letter-spacing:.3px;margin:14px 0 8px}
+  /* 路線膠囊 */
+  .broutes{display:flex;flex-wrap:wrap;gap:8px}
+  .bchip{font-size:13.5px;font-weight:700;padding:7px 13px;border-radius:10px;border:1.5px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink);transition:.15s;font-family:var(--sans);line-height:1.1}
+  .bchip:hover{border-color:var(--teal);background:var(--bg)}
+  .bchip.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .bchip .src{font-size:10px;font-weight:700;opacity:.7;margin-left:5px}
+  .alias{font-size:10px;font-weight:700;color:var(--clay-d);background:#F6E5DC;border-radius:5px;padding:1px 5px;margin-left:5px;white-space:nowrap}
+  .bchip.on .alias{background:rgba(255,255,255,.25);color:#fff}
+  /* 附近站牌清單 */
+  .bstop{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;margin-bottom:8px}
+  .bstop .bd{flex:0 0 52px;text-align:center;font-size:11px;font-weight:700;color:var(--teal-d);
+    background:var(--bg2);border-radius:8px;padding:4px 0}
+  .bstop .bn{font-size:14px;font-weight:700;color:var(--ink)}
+  .bstop .br{margin-top:4px;display:flex;flex-wrap:wrap;gap:5px}
+  .bstop .br span{font-size:11.5px;color:var(--teal-d);background:var(--bg2);border-radius:6px;padding:1px 7px;cursor:pointer}
+  .bstop .br span:hover{background:var(--teal);color:#fff}
+  /* 路線詳情 */
+  .bdetail{padding:16px 18px}
+  .bdetail .bback{font-size:12.5px;color:var(--teal-d);cursor:pointer;font-weight:700;display:inline-block;margin-bottom:10px}
+  .bdetail h3{font-family:var(--serif);font-size:18px;color:var(--clay-d);display:flex;align-items:center;gap:8px}
+  .bdir{margin-top:12px}
+  .bdir .bdir-h{font-size:13px;font-weight:700;color:var(--teal-d);display:flex;align-items:center;gap:7px;cursor:pointer;
+    padding:8px 10px;background:var(--bg2);border-radius:9px}
+  .bdir .bdir-h .dot{width:8px;height:8px;border-radius:50%;background:var(--clay)}
+  .bdir ol{list-style:none;margin:8px 0 0;padding:4px 0 4px 14px;border-left:2px dashed var(--line);
+    max-height:240px;overflow:auto}
+  .bdir li{font-size:12.5px;color:var(--ink);padding:3px 0 3px 12px;position:relative}
+  .bdir li::before{content:"";position:absolute;left:-5px;top:9px;width:7px;height:7px;border-radius:50%;
+    background:#fff;border:2px solid var(--teal)}
+  .bdir li.here::before{background:var(--clay);border-color:var(--clay)}
+  .bdir li.here{font-weight:700;color:var(--clay-d)}
+  /* 路線詳情：你附近的上車站牌（醒目區塊） */
+  .bboard{margin-top:12px;padding:12px 13px;border:1.5px solid var(--clay);border-radius:12px;background:#FBF1EB}
+  .bboard-t{font-size:13px;font-weight:700;color:var(--clay-d);margin-bottom:8px}
+  .bboard-it{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px dashed #E6CFC2}
+  .bboard-it:first-of-type{border-top:none;padding-top:0}
+  .bboard-it .bd{flex:0 0 50px;text-align:center;font-size:11px;font-weight:700;color:#fff;background:var(--clay);border-radius:8px;padding:5px 0}
+  .bboard-it .bn{font-size:15px;font-weight:700;color:var(--ink)}
+  .bboard-it .bgo{font-size:12px;color:var(--teal-d);margin-top:2px}
+  .bfull{margin-top:10px;width:100%}
+
+  /* === 聯絡卡（與學區頁一致）=== */
+  .contact{margin-top:18px;padding:22px}
+  .contact .co{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--clay-d);display:flex;align-items:center;gap:8px}
+  .contact .sub{font-size:13px;color:var(--ink-soft);margin:4px 0 16px}
+  .agents{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.agents{grid-template-columns:1fr} .agent .top{flex-direction:column;align-items:stretch} .agent .photo{width:210px;height:280px;align-self:center;margin-bottom:4px} .agent .info{text-align:center;max-width:300px;margin:0 auto} .agent .lic{text-align:center} .agent .nm{font-size:25px} .agent .ph{font-size:16px}}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg2)}
+  .agent .top{display:flex;gap:14px;align-items:center}
+  .agent .photo{width:160px;height:210px;flex:0 0 auto;border-radius:12px;object-fit:cover;object-position:50% 12%;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow)}
+  .agent .info{flex:1 1 auto;min-width:0}
+  .agent .nm{font-family:var(--serif);font-weight:900;font-size:30px}
+  .agent .ph{font-size:19px;color:var(--ink-soft);margin:4px 0 16px}
+  .agent .acts{display:flex;gap:9px;flex-wrap:wrap}
+  .agent .acts a{flex:1 1 auto;text-align:center;text-decoration:none;font-size:16px;padding:14px 20px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
+  .lic{font-size:11px;color:#aa9b85;margin-top:11px;line-height:1.55}
+
+  /* 社區搜尋自動完成（與學區頁一致）*/
+  .autocomplete{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;z-index:1000;display:none}
+  .autocomplete.show{display:block}
+  .ac-item{padding:11px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--bg2);transition:.15s}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:hover,.ac-item.active{background:var(--bg2)}
+  .ac-item .li-tag{font-size:11px;color:var(--teal-d);background:var(--bg2);padding:2px 7px;border-radius:6px;margin-left:8px;font-weight:700}
+  .ac-empty{padding:12px 14px;font-size:13px;color:var(--ink-soft);font-style:italic}
+  .ac-online{margin-top:8px;display:inline-block;font-style:normal;cursor:pointer;border:none;
+    background:var(--teal);color:#fff;font-size:13px;font-weight:700;padding:8px 14px;border-radius:9px;font-family:var(--sans)}
+  .ac-online:hover{background:var(--teal-d)}
+
+  /* 地圖標記 */
+  .home-pin{background:var(--clay);color:#fff;font-size:12px;font-weight:700;padding:4px 9px;border-radius:9px;
+    white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);transform:translate(-50%,-130%)}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">學區快查</a>
+      <a href="../bus/" class="active">公車路線</a>
+      <a href="../mortgage/">房貸試算</a>
+      <a href="../rent/">租約產生器</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge">附近公車路線一目了然</span>
+      <h1>林口<span class="mk">公車</span>路線地圖</h1>
+      <p>輸入社區或地址，立刻在地圖上看到附近的公車站牌、有哪幾條路線經過，點路線還能看完整走向與沿途站牌。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <!-- 查詢區 -->
+  <section class="panel search">
+    <div class="row">
+      <div class="field" style="position:relative">
+        <label class="lbl">🏘️ 輸入社區名稱（建檔過的最準）</label>
+        <input type="text" id="commInput" placeholder="例：陽光社區、凡爾賽、春城麗池…" autocomplete="off">
+        <div id="commList" class="autocomplete"></div>
+      </div>
+      <button class="btn" id="commBtn">🚌 查附近公車</button>
+    </div>
+    <div class="hint">內建林口區社區資料庫，支援模糊搜尋（打「馥御」、「未來」、「春城」都查得到）。本地查不到時會自動上網搜尋並定位。也可改用下方「地址定位」。</div>
+
+    <div class="or">或輸入地址定位</div>
+
+    <div class="row">
+      <div class="field">
+        <label class="lbl">輸入地址</label>
+        <input type="text" id="addrInput" placeholder="例：林口區文化三路一段100號" autocomplete="off">
+      </div>
+      <button class="btn ghost" id="addrBtn">🔍 定位並查公車</button>
+    </div>
+    <div class="hint">先用官方門牌資料庫精準定位，查不到才退回線上路名／路段定位。輸入越完整（含路段、巷弄、號）越準。</div>
+
+    <div class="or">或直接查公車路線</div>
+
+    <div class="row">
+      <div class="field">
+        <label class="lbl">🚌 輸入公車路線編號</label>
+        <input type="text" id="routeInput" placeholder="例：936、946、F236、林口-臺北車站…" autocomplete="off">
+      </div>
+      <button class="btn ghost" id="routeBtn">查整條走向</button>
+    </div>
+    <div class="hint">直接看整條路線「停哪些站、往哪裡開」。同編號的副線／區間車（如 946、946副）會一起列出來比較。</div>
+
+    <div class="radius-row">
+      <span class="rr-label">🚶 步行範圍</span>
+      <button class="rt" data-r="300">300 公尺</button>
+      <button class="rt on" data-r="500">500 公尺</button>
+      <button class="rt" data-r="800">800 公尺</button>
+    </div>
+  </section>
+
+  <!-- 主結果 -->
+  <div class="layout">
+    <div id="map"></div>
+    <div class="results" id="results">
+      <div class="panel placeholder">
+        <div class="big">🚌 還沒有查詢結果</div>
+        輸入社區或地址後，這裡會列出附近的<br>公車站牌與經過的路線。
+      </div>
+    </div>
+  </div>
+
+  <!-- 聯絡卡（置底） -->
+  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact">
+    <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
+    <div class="sub">買林口、問交通，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
+    <div class="agents">
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">李天夏</div>
+            <div class="ph">📞 0936-123-288</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+      </div>
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">温美慈</div>
+            <div class="ph">📞 0976-109-326</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">營業員字號 (113)登字第471408號</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="disc">
+    ⚠️ <b>提醒</b>：公車站牌與路線資料來自交通部 TDX 運輸資料流通服務平台，會定期更新；實際發車、停靠與路線異動請以各客運業者及站牌公告為準。本工具僅供參考。
+  </div>
+
+  <footer>
+    林口公車路線地圖　|　資料來源：交通部 TDX 運輸資料流通服務平台（市區公車 / 公路客運）<br>
+    地圖：© OpenStreetMap 貢獻者　|　本工具僅供參考，實際路線與班次以業者公告為準
+  </footer>
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<!-- 資料：社區/門牌索引（沿用學區資料檔）＋ 公車資料 -->
+<script src="../linkou-data.js"></script>
+<script src="../bus-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let toastT;
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ============================ 地圖 ============================ */
+let map, homeMarker, homeCircle, stopLayer, routeLayer;
+const C = (window.BUS_DATA&&BUS_DATA.center)||[25.0775,121.3645];
+function initMap(){
+  map=L.map('map',{scrollWheelZoom:false}).setView(C,13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click',()=>map.scrollWheelZoom.enable());
+}
+
+/* ============================ 距離與門牌定位 ============================ */
+function distM(la1,lo1,la2,lo2){
+  const R=6371000,rad=Math.PI/180;
+  const dLa=(la2-la1)*rad,dLo=(lo2-lo1)*rad;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*rad)*Math.cos(la2*rad)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+/* 門牌精準定位（沿用學區頁邏輯：用 linkou-data.js 的 HOUSE 索引，免地理編碼）*/
+const _FWMAP={'０':'0','１':'1','２':'2','３':'3','４':'4','５':'5','６':'6','７':'7','８':'8','９':'9','－':'-','～':'~','／':'/','　':' '};
+function toHalf(s){return (s||'').replace(/[０-９－～／　]/g,c=>_FWMAP[c]);}
+function parseHouse(addr){
+  let a=toHalf(addr).trim();
+  if(a.indexOf('林口')>=0) a=a.replace(/^.*林口區/,'');
+  a=a.replace(/^\d{3}/,'').replace(/(新北市|臺北市|台北市)/g,'');
+  a=a.replace(/[一-鿿]+(村|里)/g,'').replace(/\d+鄰/g,'').trim();
+  const mFirst=a.search(/\d/); if(mFirst<0) return null;
+  const road=a.slice(0,mFirst).replace(/[\s\-,，、]/g,'').trim();
+  let rest=a.slice(mFirst),lane='',alley='';
+  const ml=rest.match(/(\d+)\s*巷/); if(ml)lane=ml[1];
+  const ma=rest.match(/(\d+)\s*弄/); if(ma)alley=ma[1];
+  let r2=rest.replace(/\d+\s*巷/,'').replace(/\d+\s*弄/,'').replace(/之/g,'-');
+  const mn=r2.match(/(\d+(?:-\d+)?)/); if(!mn)return null;
+  if(!road)return null;
+  return {road,lk:lane+'-'+alley,num:mn[1]};
+}
+/* 回傳 {lat,lon}，查不到回 null */
+function houseCoord(addr){
+  const p=parseHouse(addr); if(!p)return null;
+  const node=(typeof HOUSE!=='undefined')&&HOUSE[p.road]; if(!node)return null;
+  function dec(val){const co=val.split('*')[1];if(!co)return null;const [a,b]=co.split(',');return {lat:25.0+(+a)/100000,lon:121.3+(+b)/100000};}
+  if(node[p.lk]&&node[p.lk][p.num])return dec(node[p.lk][p.num]);
+  if(node[p.lk]){const base=p.num.split('-')[0];for(const k in node[p.lk])if(k.split('-')[0]===base){const d=dec(node[p.lk][k]);if(d)return d;}}
+  for(const lk in node)if(node[lk][p.num]){const d=dec(node[lk][p.num]);if(d)return d;}
+  return null;
+}
+/* 線上地理編碼（Nominatim，節流；僅在門牌表查不到時使用）*/
+const geoCache={};
+async function geocode(q){
+  if(geoCache[q])return geoCache[q];
+  try{
+    const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=tw&accept-language=zh-TW&q=${encodeURIComponent(q)}`;
+    const r=await fetch(u,{headers:{'Accept':'application/json'}});
+    const j=await r.json();
+    if(j&&j[0]){const res={lat:+j[0].lat,lon:+j[0].lon};geoCache[q]=res;return res;}
+  }catch(e){console.warn('geocode fail',e);}
+  return null;
+}
+async function geocodeMulti(raw){
+  const b=raw.includes('林口')?raw:('新北市林口區'+raw);
+  const vs=[b,b.replace(/\d+(之\d+)?號.*$/,''),b.replace(/\d+巷.*$/,''),b.replace(/([路街道])[^路街道]*$/,'$1')];
+  const seen=new Set();
+  for(const v of vs){
+    const q=(v||'').trim(); if(!q||seen.has(q))continue; seen.add(q);
+    const g=await geocode(q);
+    if(g){ // 落點需在林口中心 6km 內才採信，避免查到外地同名地點
+      if(distM(g.lat,g.lon,C[0],C[1])<=6000)return g;
+    }
+    await new Promise(r=>setTimeout(r,350));
+  }
+  return null;
+}
+
+/* ============================ 社區搜尋（沿用學區頁）============================ */
+const COMM_NAMES=Object.keys(COMMUNITY||{});
+function normalizeComm(s){return (s||'').replace(/管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人/g,'').toLowerCase().trim();}
+const COMM_NORM=Object.fromEntries(COMM_NAMES.map(n=>[n,normalizeComm(n)]));
+let acIdx=-1;
+function searchComm(q){
+  if(!q)return [];
+  const aliasKey=Object.keys(ALIASES||{}).find(k=>k.includes(q)||q.includes(k));
+  if(aliasKey && COMMUNITY[ALIASES[aliasKey]]) return [ALIASES[aliasKey]];
+  const nq=normalizeComm(q); if(!nq)return [];
+  return COMM_NAMES.filter(n=>COMM_NORM[n].includes(nq)||n.toLowerCase().includes(q.toLowerCase())).slice(0,12);
+}
+function showAc(items,q){
+  const box=$("#commList");
+  if(!items.length){
+    if(q&&q.length>=1){
+      box.innerHTML=`<div class="ac-empty">本地資料庫查無「${q}」。<br>
+        <button class="ac-online" data-q="${q.replace(/"/g,'&quot;')}">🌐 上網查這個社區名稱並定位</button></div>`;
+      box.classList.add('show');
+      const btn=box.querySelector('.ac-online');
+      if(btn)btn.addEventListener('click',()=>onlineLookup(btn.dataset.q));
+    }else box.classList.remove('show');
+    return;
+  }
+  box.innerHTML=items.map((n,i)=>{
+    const c=COMMUNITY[n];
+    const tag=c.li?`<span class="li-tag">${c.li}${c.lin?' '+c.lin+'鄰':''}</span>`:`<span class="li-tag">林口</span>`;
+    return `<div class="ac-item${i===acIdx?' active':''}" data-name="${n.replace(/"/g,'&quot;')}">${n}${tag}</div>`;
+  }).join("");
+  box.classList.add('show');
+  box.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>pickComm(el.dataset.name)));
+}
+/* 選定社區：先用門牌表定位，否則上網查 */
+async function pickComm(name){
+  const c=COMMUNITY[name]; if(!c)return;
+  $("#commInput").value=name;
+  $("#commList").classList.remove('show');
+  let coord=c.addr?houseCoord(c.addr):null;
+  if(coord){ locate(coord.lat,coord.lon,name); return; }
+  // 門牌表查不到 → 上網查社區名
+  await onlineLookup(name);
+}
+/* 線上查社區名 */
+async function onlineLookup(name){
+  $("#commList").classList.remove('show');
+  $("#commInput").value=name;
+  toast(`本地查無精確座標，正在上網搜尋「${name}」…`);
+  for(const t of [`${name} 林口`,`新北市林口區 ${name}`,name]){
+    const g=await geocode(t);
+    if(g&&distM(g.lat,g.lon,C[0],C[1])<=6000){ locate(g.lat,g.lon,name); return; }
+    await new Promise(r=>setTimeout(r,400));
+  }
+  toast(`網路上也查不到「${name}」，請改用「地址定位」輸入門牌`);
+}
+
+/* ============================ 公車：附近站牌與路線 ============================ */
+let curR=500;            // 目前步行範圍（公尺）
+let lastPoint=null;      // 最後定位點 [lat,lon,label]
+const ROUTES=(window.BUS_DATA&&BUS_DATA.routes)||{};
+const STOPS=(window.BUS_DATA&&BUS_DATA.stops)||[];
+
+/* 路線數字自然排序用的鍵 */
+function routeSortKey(n){const m=(n||'').match(/^\d+/);return [m?+m[0]:9999,n||''];}
+
+/* 自動標註「用起迄命名、沒編號」的路線（如「林口-捷運圓山站」）→ 找出同走廊的有號路線，
+ * 標成「≈936 直達」。比對：站名高度重疊(≥70%)且首尾站都被該有號路線涵蓋；
+ * 比對目標只取「乾淨編號」(不含連字號/中文)路線，避免標到 946副、F213黎明 這種本身有號的變體。
+ * 在載入時算一次，資料更新後會自動重算，不需維護對照表。 */
+const aliasOf={};
+(function buildAlias(){
+  const stopNames=r=>{const s=new Set();(r.dirs||[]).forEach(d=>(d.st||[]).forEach(x=>s.add(x[2])));return s;};
+  const keys=Object.keys(ROUTES);
+  const coded=keys.filter(k=>!/[-－]/.test(ROUTES[k].n)&&!/[一-鿿]/.test(ROUTES[k].n))
+                  .map(k=>({n:ROUTES[k].n,set:stopNames(ROUTES[k])}));
+  keys.filter(k=>/[-－]/.test(ROUTES[k].n)).forEach(k=>{
+    const r=ROUTES[k], dset=stopNames(r);
+    if(dset.size<3)return;
+    const ends=new Set();(r.dirs||[]).forEach(d=>{const st=d.st||[];if(st.length){ends.add(st[0][2]);ends.add(st[st.length-1][2]);}});
+    let best=null,bestScore=0;
+    coded.forEach(c=>{
+      let inter=0;dset.forEach(s=>{if(c.set.has(s))inter++;});
+      const score=inter/dset.size;
+      let endsOk=true;ends.forEach(e=>{if(!c.set.has(e))endsOk=false;});
+      if(endsOk&&score>=0.7&&score>bestScore){bestScore=score;best=c;}
+    });
+    if(best)aliasOf[k]=`≈${best.n}${dset.size<best.set.size?' 直達':''}`;
+  });
+})();
+
+/* 路線膠囊 HTML（附來源標籤與「≈936 直達」自動標註）*/
+function chipHtml(k){
+  const r=ROUTES[k]; const sl={NewTaipei:'新北',Taoyuan:'桃園',InterCity:'客運'}[r.src]||'';
+  const al=aliasOf[k]?`<span class="alias">${aliasOf[k]}</span>`:'';
+  return `<button class="bchip" data-k="${k}">${r.n}${al}<span class="src">${sl}</span></button>`;
+}
+
+/* 主流程：定位到某點 → 畫家點、附近站牌、列出路線 */
+function locate(lat,lon,label){
+  lastPoint=[lat,lon,label];
+  if(stopLayer){map.removeLayer(stopLayer);stopLayer=null;}
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  if(homeMarker)map.removeLayer(homeMarker);
+  if(homeCircle)map.removeLayer(homeCircle);
+
+  // 家點標記 + 範圍圈
+  const ll=[lat,lon];
+  homeMarker=L.marker(ll,{icon:L.divIcon({className:'',html:`<div class="home-pin">📍 ${label}</div>`,iconSize:[0,0]})}).addTo(map);
+  homeCircle=L.circle(ll,{radius:curR,color:'#BD5E39',weight:1.5,fillColor:'#BD5E39',fillOpacity:.06}).addTo(map);
+
+  // 找附近站牌（同一實體站牌常因「雙向／不同業者」拆成多筆 StopUID，依站名合併：
+  // 取最近的那一筆座標、聯集所有經過路線，清單才不會被重複站名洗版）
+  const raw=STOPS.map(s=>({s,d:distM(lat,lon,s.la,s.lo)})).filter(o=>o.d<=curR);
+  const byName={};
+  raw.forEach(({s,d})=>{
+    let o=byName[s.n];
+    if(!o){o=byName[s.n]={n:s.n,la:s.la,lo:s.lo,d:d,r:new Set()};}
+    if(d<o.d){o.d=d;o.la=s.la;o.lo=s.lo;}
+    s.r.forEach(k=>o.r.add(k));
+  });
+  const near=Object.values(byName).map(o=>({s:{n:o.n,la:o.la,lo:o.lo,r:[...o.r]},d:o.d})).sort((a,b)=>a.d-b.d);
+
+  // 畫站牌
+  stopLayer=L.featureGroup();
+  near.forEach(({s,d})=>{
+    const m=L.circleMarker([s.la,s.lo],{radius:6,color:'#2E5F4C',weight:2,fillColor:'#fff',fillOpacity:1});
+    const routeNames=[...new Set(s.r.map(k=>ROUTES[k]&&ROUTES[k].n).filter(Boolean))].sort((a,b)=>{const x=routeSortKey(a),y=routeSortKey(b);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+    m.bindPopup(`<b>${s.n}</b><br><span style="font-size:12px;color:#555">約 ${Math.round(d)} 公尺・${routeNames.length} 條路線</span><br>${routeNames.join('、')}`);
+    m.addTo(stopLayer);
+  });
+  stopLayer.addTo(map);
+
+  // 聚合附近路線（去重，記錄到最近站的距離以排序）
+  const routeMap={};   // routeKey → 最近站距離
+  near.forEach(({s,d})=>s.r.forEach(k=>{ if(routeMap[k]==null||d<routeMap[k])routeMap[k]=d; }));
+  const routeKeys=Object.keys(routeMap);
+
+  // 縮放到家點＋附近站牌
+  const pts=[ll,...near.map(o=>[o.s.la,o.s.lo])];
+  if(pts.length>1)map.fitBounds(pts,{padding:[50,50],maxZoom:17}); else map.setView(ll,16);
+
+  renderSummary(label,near,routeKeys,routeMap);
+}
+
+/* 右側：附近路線 + 站牌清單 */
+function renderSummary(label,near,routeKeys,routeMap){
+  if(!near.length){
+    $("#results").innerHTML=`<div class="panel bsum"><h3>🚌 ${label}</h3>
+      <div class="bsub">步行 ${curR} 公尺內找不到公車站牌。可把步行範圍調大，或改用地址定位。</div></div>`;
+    return;
+  }
+  // 路線依數字排序
+  const sortedKeys=routeKeys.slice().sort((a,b)=>{
+    const x=routeSortKey(ROUTES[a].n),y=routeSortKey(ROUTES[b].n);
+    return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);
+  });
+  const chips=sortedKeys.map(chipHtml).join('');
+
+  const stopHtml=near.map(({s,d})=>{
+    const rn=[...new Set(s.r.map(k=>ROUTES[k]&&ROUTES[k].n).filter(Boolean))];
+    const rs=s.r.map(k=>`<span data-k="${k}">${ROUTES[k]?ROUTES[k].n:''}</span>`).join('');
+    return `<div class="bstop"><div class="bd">${Math.round(d)}m</div>
+      <div><div class="bn">${s.n}</div><div class="br">${rs}</div></div></div>`;
+  }).join('');
+
+  $("#results").innerHTML=`
+    <div class="panel bsum">
+      <h3>🚌 ${label}・附近公車</h3>
+      <div class="bsub">步行 <b>${curR}</b> 公尺內有 <b>${near.length}</b> 個站牌、<b>${sortedKeys.length}</b> 條公車路線。點路線可看完整走向。</div>
+      <div class="bsec-t">經過的路線（${sortedKeys.length}）</div>
+      <div class="broutes">${chips}</div>
+      <div class="bsec-t">附近站牌（${near.length}）</div>
+      ${stopHtml}
+    </div>`;
+
+  // 綁定點擊 → 顯示路線
+  $("#results").querySelectorAll('.bchip').forEach(el=>el.addEventListener('click',()=>showRoute(el.dataset.k)));
+  $("#results").querySelectorAll('.bstop .br span').forEach(el=>el.addEventListener('click',()=>showRoute(el.dataset.k)));
+}
+
+/* 顯示單一路線：畫整條走向＋沿途站牌，右側列站序 */
+const DIR_COLORS=['#BD5E39','#3C7A62','#C2902B','#8a5a8a'];
+function showRoute(key){
+  const r=ROUTES[key]; if(!r)return;
+  if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+  routeLayer=L.featureGroup();
+  const allPts=[];
+  r.dirs.forEach((d,i)=>{
+    const col=DIR_COLORS[i%DIR_COLORS.length];
+    // 線型：優先用 shape，沒有就用站牌連線
+    const line=(d.sh&&d.sh.length)?d.sh:d.st.map(s=>[s[0],s[1]]);
+    if(line.length){L.polyline(line,{color:col,weight:5,opacity:.75}).addTo(routeLayer);allPts.push(...line);}
+    // 沿途站牌
+    d.st.forEach(s=>{
+      L.circleMarker([s[0],s[1]],{radius:4,color:col,weight:2,fillColor:'#fff',fillOpacity:1})
+        .bindPopup(`<b>${s[2]}</b>`).addTo(routeLayer);
+    });
+  });
+
+  // 從社區/地址查進來時：找出這條路線在「步行範圍內、各方向最近」的上車站牌
+  const boarding=[];   // {name,d,to,lat,lon}
+  if(lastPoint){
+    r.dirs.forEach(d=>{
+      let best=null;
+      d.st.forEach(s=>{
+        const dd=distM(lastPoint[0],lastPoint[1],s[0],s[1]);
+        if(dd<=curR && (!best||dd<best.d)) best={name:s[2],d:dd,to:d.to,lat:s[0],lon:s[1]};
+      });
+      if(best)boarding.push(best);
+    });
+    // 上車站牌用大橘點醒目標記（疊在一般站牌之上）
+    boarding.forEach(b=>{
+      L.circleMarker([b.lat,b.lon],{radius:9,color:'#BD5E39',weight:3,fillColor:'#BD5E39',fillOpacity:.9})
+        .bindPopup(`<b>${b.name}</b><br><span style="font-size:12px;color:#555">往 ${b.to||'—'}・約 ${Math.round(b.d)} 公尺</span>`)
+        .addTo(routeLayer);
+    });
+  }
+  routeLayer.addTo(map);
+
+  // 地圖縮放：有定位點且找得到上車站 → 聚焦「你家＋上車站」（放大）；否則看整條路線
+  if(lastPoint && boarding.length){
+    map.fitBounds([[lastPoint[0],lastPoint[1]],...boarding.map(b=>[b.lat,b.lon])],{padding:[60,60],maxZoom:17});
+  } else if(allPts.length){
+    map.fitBounds(allPts,{padding:[40,40]});
+  }
+
+  // 右側：路線詳情（每個方向可展開站序）
+  const dirsHtml=r.dirs.map((d,i)=>{
+    const col=DIR_COLORS[i%DIR_COLORS.length];
+    // 標記哪些站在附近（家點 curR 內）
+    const lis=d.st.map(s=>{
+      const here=lastPoint&&distM(lastPoint[0],lastPoint[1],s[0],s[1])<=curR;
+      return `<li class="${here?'here':''}">${s[2]}</li>`;
+    }).join('');
+    return `<div class="bdir">
+      <div class="bdir-h" data-i="${i}"><span class="dot" style="background:${col}"></span>往 ${d.to||'—'}（${d.st.length} 站）<span style="margin-left:auto;font-weight:400;color:var(--ink-soft)">▾</span></div>
+      <ol data-ol="${i}" ${i===0?'':'style="display:none"'}>${lis}</ol>
+    </div>`;
+  }).join('');
+  // 你附近的上車站牌區塊（只有從社區/地址查進來、且範圍內有站時才顯示）
+  const boardHtml=(lastPoint&&boarding.length)?`
+    <div class="bboard">
+      <div class="bboard-t">🚏 在你附近可搭乘的站牌</div>
+      ${boarding.map(b=>`<div class="bboard-it">
+        <span class="bd">${Math.round(b.d)}m</span>
+        <div><div class="bn">${b.name}</div><div class="bgo">往 ${b.to||'—'}</div></div>
+      </div>`).join('')}
+      <button class="btn ghost bfull" id="bfull">🗺️ 看完整路線走向</button>
+    </div>`:'';
+  const srcLabel={NewTaipei:'新北市公車',Taoyuan:'桃園市公車',InterCity:'公路／國道客運'};
+  $("#results").innerHTML=`
+    <div class="panel bdetail">
+      <span class="bback" id="bback">${lastPoint?'← 返回附近路線':'← 清除路線'}</span>
+      <h3>🚌 ${r.n}${aliasOf[key]?` <span class="alias" style="font-size:13px;vertical-align:middle">${aliasOf[key]}</span>`:''}</h3>
+      <div class="bsub" style="font-size:13px;color:var(--ink-soft)">${srcLabel[r.src]||''}${lastPoint?'・大橘點為你附近的上車站牌':''}${aliasOf[key]?`<br><span style="color:var(--clay-d)">※ 這是「${aliasOf[key].replace('≈','')}」同走廊、停站較少的版本（TDX 未給此線編號）</span>`:''}</div>
+      ${boardHtml}
+      ${dirsHtml}
+    </div>`;
+  $("#bback").addEventListener('click',()=>{
+    if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+    if(lastPoint)locate(lastPoint[0],lastPoint[1],lastPoint[2]);   // 從社區/地址查進來 → 回附近路線
+    else { map.setView(C,13); resetResults(); }                    // 從路線編號查進來 → 清空
+  });
+  // 「看完整路線走向」→ 縮放到整條路線
+  const bfull=$("#bfull");
+  if(bfull)bfull.addEventListener('click',()=>{ if(allPts.length)map.fitBounds(allPts,{padding:[40,40]}); });
+  $("#results").querySelectorAll('.bdir-h').forEach(h=>h.addEventListener('click',()=>{
+    const ol=$(`ol[data-ol="${h.dataset.i}"]`); if(!ol)return;
+    const opening=ol.style.display==='none';
+    ol.style.display=opening?'block':'none';
+    // 展開時：自動捲到「你附近的那一站」(.here) 並置中，省得手動往下找
+    if(opening){
+      const li=ol.querySelector('li.here');
+      if(li){
+        const oRect=ol.getBoundingClientRect(),lRect=li.getBoundingClientRect();
+        ol.scrollTop += (lRect.top-oRect.top)-(ol.clientHeight/2-lRect.height/2);
+      }
+    }
+  }));
+}
+
+/* 重置右側結果區為初始提示 */
+function resetResults(){
+  $("#results").innerHTML=`<div class="panel placeholder"><div class="big">🚌 還沒有查詢結果</div>
+    輸入社區或地址後，這裡會列出附近的<br>公車站牌與經過的路線。</div>`;
+}
+
+/* ============================ 依路線編號查整條走向 ============================ */
+function routeMatches(q){
+  q=q.trim().toLowerCase(); if(!q)return [];
+  // 名稱含該字串者全列出：打 946 會一起帶出 946 與 946副、打 920 帶出 920/920A/920副，方便比較
+  return Object.keys(ROUTES).filter(k=>(ROUTES[k].n||'').toLowerCase().includes(q)).slice(0,40);
+}
+function doRouteSearch(q){
+  if(!q){toast("請輸入公車路線編號");return;}
+  const m=routeMatches(q);
+  if(!m.length){toast(`查無路線「${q}」`);return;}
+  if(m.length===1){showRoute(m[0]);return;}                       // 只有一條 → 直接畫
+  // 多條相符 → 列出讓客戶選（同走廊的直達／區間車也會一起出現，方便比較）
+  const sorted=m.sort((a,b)=>{const x=routeSortKey(ROUTES[a].n),y=routeSortKey(ROUTES[b].n);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+  const chips=sorted.map(chipHtml).join('');
+  $("#results").innerHTML=`<div class="panel bsum"><h3>🚌 符合「${q}」的路線（${m.length}）</h3>
+    <div class="bsub">點選要看走向的路線：</div>
+    <div class="broutes" style="margin-top:10px">${chips}</div></div>`;
+  $("#results").querySelectorAll('.bchip').forEach(el=>el.addEventListener('click',()=>showRoute(el.dataset.k)));
+}
+
+/* ============================ 事件綁定 ============================ */
+$("#routeBtn").addEventListener('click',()=>doRouteSearch($("#routeInput").value.trim()));
+$("#routeInput").addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doRouteSearch($("#routeInput").value.trim());}});
+$("#commInput").addEventListener('input',e=>{acIdx=-1;showAc(searchComm(e.target.value),e.target.value);});
+$("#commInput").addEventListener('focus',e=>{if(e.target.value)showAc(searchComm(e.target.value),e.target.value);});
+$("#commInput").addEventListener('keydown',e=>{
+  const items=searchComm($("#commInput").value);
+  if(e.key==='ArrowDown'){e.preventDefault();acIdx=Math.min(items.length-1,acIdx+1);showAc(items,$("#commInput").value);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acIdx=Math.max(0,acIdx-1);showAc(items,$("#commInput").value);}
+  else if(e.key==='Enter'){e.preventDefault();if(acIdx>=0&&items[acIdx])pickComm(items[acIdx]);else if(items.length>=1)pickComm(items[0]);else onlineLookup($("#commInput").value.trim());}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#commInput')&&!e.target.closest('#commList'))$("#commList").classList.remove('show');});
+$("#commBtn").addEventListener('click',()=>{
+  const q=$("#commInput").value.trim(); if(!q){toast("請輸入社區名稱");return;}
+  const items=searchComm(q);
+  if(items.length>=1)pickComm(items[0]); else onlineLookup(q);
+});
+$("#addrBtn").addEventListener('click',async()=>{
+  const q=$("#addrInput").value.trim(); if(!q){toast("請輸入地址");return;}
+  const coord=houseCoord(q);
+  if(coord){ locate(coord.lat,coord.lon,q); return; }
+  toast("門牌表查無，改用線上定位…");
+  const g=await geocodeMulti(q);
+  if(g)locate(g.lat,g.lon,q); else toast("查不到這個地址，請輸入更完整的門牌");
+});
+$("#addrInput").addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$("#addrBtn").click();}});
+// 步行範圍切換
+document.querySelectorAll('.rt').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.rt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); curR=+b.dataset.r;
+  if(lastPoint)locate(lastPoint[0],lastPoint[1],lastPoint[2]);   // 已有定位點就立即重算
+}));
+
+initMap();
+
+/* 深連結：#q=社區名 或 #at=lat,lon,label（方便分享給客戶，也方便直接定位）*/
+function handleHash(){
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(h.startsWith('at=')){const [la,lo,lb]=h.slice(3).split(',');if(la&&lo)locate(+la,+lo,lb||'指定位置');}
+  else if(h.startsWith('q=')){const n=h.slice(2).trim();if(!n)return;$("#commInput").value=n;const items=searchComm(n);if(items.length>=1)pickComm(items[0]);else onlineLookup(n);}
+  else if(h.startsWith('r=')){const n=h.slice(2).trim();if(!n)return;const key=Object.keys(ROUTES).find(k=>ROUTES[k].n===n);if(key)showRoute(key);else toast(`查無路線「${n}」`);}
+}
+window.addEventListener('hashchange',handleHash);
+if(location.hash)handleHash();
+</script>
+</body>
+</html>
