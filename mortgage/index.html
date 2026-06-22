@@ -114,10 +114,10 @@
   <div class="nav-inner">
     <a href="../" class="nav-logo">林口置產工具箱</a>
     <div class="nav-links">
-      <a href="../school/">學區快查</a>
-      <a href="../bus/">公車路線</a>
-      <a href="../mortgage/" class="active">房貸試算</a>
-      <a href="../rent/">租約產生器</a>
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/" class="active">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
     </div>
   </div>
 </nav>
@@ -136,7 +136,7 @@
   </header>
 
   <!-- ── 模組 A：薪資推算 ─────────────────────────────── -->
-  <div class="sec-title"><span class="bar"></span>薪資推算可買房價</div>
+  <div class="sec-title"><span class="bar"></span>💰 <span style="color:var(--clay-d)">薪資</span>推算可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
       <div class="module-title"><span class="dot"></span>根據月薪估算銀行最高可貸金額</div>
@@ -179,7 +179,7 @@
   </section>
 
   <!-- ── 模組 B：月繳反推 ─────────────────────────────── -->
-  <div class="sec-title"><span class="bar"></span>月繳金額反推可買房價</div>
+  <div class="sec-title"><span class="bar"></span>📅 <span style="color:var(--clay-d)">月繳金額</span>反推可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
       <div class="module-title"><span class="dot"></span>設定每月願意負擔的金額，換算可買總房價</div>
@@ -210,7 +210,7 @@
   </section>
 
   <!-- ── 模組 C：自訂貸款試算 ────────────────────────── -->
-  <div class="sec-title"><span class="bar"></span>自訂貸款試算（含寬限期）</div>
+  <div class="sec-title"><span class="bar"></span>🧮 <span style="color:var(--clay-d)">自訂</span>貸款試算（含寬限期）</div>
   <section class="panel calc-panel">
     <div class="module-header">
       <div class="module-title"><span class="dot"></span>輸入借款條件，精算每月還款金額</div>
@@ -287,7 +287,7 @@
   </section>
 
   <!-- ── 模組 D：頭期款反推 ──────────────────────────── -->
-  <div class="sec-title"><span class="bar"></span>頭期款推算可買房價</div>
+  <div class="sec-title"><span class="bar"></span>🔑 <span style="color:var(--clay-d)">頭期款</span>推算可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
       <div class="module-title"><span class="dot"></span>根據手上的頭期款，推算可購買的總房價</div>
@@ -301,12 +301,17 @@
       <div class="field">
         <label class="lbl">貸款成數</label>
         <select id="dLoanRatio">
+          <option value="0.4">4 成貸（自備 60%）</option>
+          <option value="0.5">5 成貸（自備 50%）</option>
+          <option value="0.6">6 成貸（自備 40%）</option>
           <option value="0.7">7 成貸（自備 30%）</option>
           <option value="0.8" selected>8 成貸（自備 20%）</option>
           <option value="0.85">8.5 成貸（自備 15%）</option>
-          <option value="0.9">9 成貸（自備 10%）</option>
         </select>
       </div>
+    </div>
+    <div class="disc" style="margin:0 0 14px">
+      ⚠️ 貸款成數會因<b>銀行鑑價、個人收入與信用條件</b>而不同，常見約 7–8 成；新成屋或條件佳者較高，中古屋、屋齡較高或條件較弱者可能更低。實際成數以銀行核定為準，此處僅為試算假設。
     </div>
     <button class="btn" id="dBtnCalc">試算可買房價</button>
 
