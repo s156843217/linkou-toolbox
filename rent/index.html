@@ -4,10 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>租約產生器 — 林口置產工具箱</title>
+<!-- 搜尋引擎描述 + LINE/FB 分享預覽卡（Open Graph） -->
+<meta name="description" content="依內政部範本填欄位即產生住宅租賃契約，可列印 PDF 或匯出 Word，附現況確認書與附屬設備清單。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="林口置產工具箱">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="租約產生器 — 林口置產工具箱">
+<meta property="og:description" content="依內政部範本填欄位即產生住宅租賃契約，可列印 PDF 或匯出 Word，附現況確認書與附屬設備清單。">
+<meta property="og:url" content="https://s156843217.github.io/linkou-toolbox/rent/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
+<script>
+/* 防同業以 iframe 內嵌冒用本工具（與學區頁一致） */
+(function(){
+  if(window.top===window.self)return;
+  try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
+  catch(e){ window.top.location.href=location.href; }
+})();
+</script>
 <style>
   /* ===== 租約產生器 — 頁面專屬樣式（沿用全站 CSS 變數） ===== */
 

@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>林口學區快查</title>
+<title>學區快查 — 林口置產工具箱</title>
+<!-- 搜尋引擎描述 + LINE/FB 分享預覽卡（Open Graph） -->
+<meta name="description" content="輸入地址或社區名，立刻查出林口國小、國中學區與額滿學校設籍提醒，附地圖里界與幼兒園名額。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="林口置產工具箱">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="學區快查 — 林口置產工具箱">
+<meta property="og:description" content="輸入地址或社區名，立刻查出林口國小、國中學區與額滿學校設籍提醒，附地圖里界與幼兒園名額。">
+<meta property="og:url" content="https://s156843217.github.io/linkou-toolbox/school/">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -383,7 +391,7 @@
   </section>
 
   <div class="disc">
-    ⚠️ <b>重要提醒</b>：本工具依「114 學年度新北市國小／國中學區一覽表」整理。新北市將於 115 年實施「114 年轄里鄰編組調整案」，<b>林口里鄰將重新編號、115 學年度起學區可能調整</b>（例：南勢國小基本學區已改新編號）。額滿學校的最後設籍日每年變動，務必以學校與區公所「當年度最新公告」為準。
+    ⚠️ <b>重要提醒</b>：本工具依「114 學年度新北市國小／國中學區一覽表」整理。新北市林口區里鄰已自 <b>2026/7/1（民國 115 年）起重新編組並新增 4 個里</b>，民眾戶籍里鄰隨之異動；<b>本系統里鄰與學區資料仍為 114 學年度版本、更新中</b>，實際里鄰與 115 學年度學區請以戶政事務所及教育局「當年度最新公告」為準。額滿學校的最後設籍日亦每年變動，請一併向學校與區公所確認。
   </div>
 
   <!-- 聯絡卡（置底） -->
@@ -724,6 +732,11 @@ async function plotSchools(names,homeLatLng){
 /* ============================ 渲染結果 ============================ */
 function schoolBlock(rules,kind){
   const isJh=kind==="jh";
+  // 有填鄰但沒有任何規則命中（鄰別不存在或超出範圍）→ 明確提示，不要留空白卡
+  if(!rules.length){
+    return `<div class="risk warm"><div class="rt"><span class="ic">⚠️</span>查無此鄰的學區資料</div>
+      這個里查不到此鄰的${isJh?'國中':'國小'}學區規則，可能是鄰別打錯或超出範圍。請確認鄰別，或清空「鄰」欄位改查整里。</div>`;
+  }
   let html="";
   rules.forEach(rl=>{
     const seg = rules.length>1 ? `<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px">📍 ${rangeLabel(rl)}</div>` : "";
@@ -779,6 +792,8 @@ function render(li,lin,homeLatLng){
   const sp=$("#schoolPick"); if(sp){sp.value="";sp.classList.remove('on');}   // 一般查詢→重置「看某校學區」下拉
   const res=resolve(li,lin);
   if(!res){toast("查無此里資料");return;}
+  // 有填鄰但國小、國中都查無規則 → 提醒鄰別可能有誤（結果卡內另有詳細說明）
+  if((lin!=null&&lin!=="")&&!res.es.length&&!res.jh.length)toast(`⚠️ ${li}查無 ${lin}鄰的學區資料，請確認鄰別`);
   lastResult={li,lin,res};
   const linTxt=(lin!=null&&lin!=="")?` ${lin}鄰`:"（未指定鄰）";
   let html=`<div class="panel rcard">
@@ -889,7 +904,8 @@ $("#addrBtn").addEventListener('click',async()=>{
   if(li){
     drawLi(li);
     $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
-    render(li,$("#linNo").value,ll);
+    $("#linNo").value="";   // 線上定位只知道里、不知道鄰，清空避免沿用上一次查詢殘留的鄰
+    render(li,"",ll);
     toast(r.coarse?`門牌表無此號，改用線上推估為「${li}」(請務必確認鄰別)`:`門牌表無此號，線上定位為「${li}」，請確認鄰別`);
   }else{
     map.setView(ll,16);
@@ -1057,7 +1073,8 @@ async function onlineLookup(name){
   if(li){
     drawLi(li);
     $("#liSelect").value=li; $("#liSelect").dispatchEvent(new Event('change'));
-    render(li,$("#linNo").value,ll);
+    $("#linNo").value="";   // 線上定位只知道里、不知道鄰，清空避免沿用上一次查詢殘留的鄰
+    render(li,"",ll);
     toast(`網路查到「${name}」→ ${li}（請再確認鄰別）`);
   }else{
     map.setView(ll,16);
