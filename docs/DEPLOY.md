@@ -43,19 +43,15 @@ curl -s <線上網址> | grep "<這次改動的關鍵字>"                      
 | 檔案 | 真相來源 | 流向 |
 |---|---|---|
 | `linkou-data.js`（學區） | 過渡期：my-project dev／收斂後：toolbox | → toolbox（腳本）→ linkou-line-bot（手動複製檔案再 push）|
-| `mortgage-data.js` 的 LINKOU_ZONES 段 | **linkou-mortgage**（每月 1 號 Actions 自動更新，方向跟其他檔相反！） | 每月更新後：`cd C:\repo\linkou-mortgage; git pull`，把 `<<AUTO-ZONES-START>>`～`END` 段的數字人工帶回 my-project 與 toolbox 的 `mortgage-data.js`（兩邊格式不同，比對數字搬，不要整檔覆蓋）|
-| `HOUSE` 門牌庫（在 linkou-data.js 內） | 同 linkou-data.js | ⚠ `linkou-mortgage/update_prices.py` 會線上抓 `raw.githubusercontent.com/s156843217/linkou-school-zone/master/linkou-data.js`——學區獨立站關掉前**必須**先改這個 URL（見第 4 節步驟 1）|
+| `mortgage-data.js` | **toolbox**（2026-07-03 起：每月 1 號本 repo 的 Actions 自動更新地段與三類行情） | Actions 自動 commit 後本機記得 `git pull`。此檔**不在** sync-toolbox.ps1 白名單——要手改（如產品文案）直接改 toolbox 這份，再複製回 my-project。⚠ 腳本遇當月資料量不足會「保留舊值」並在 log 註明，屬正常安全設計 |
+| `HOUSE` 門牌庫（在 linkou-data.js 內） | 同 linkou-data.js | toolbox 的 `update_prices.py` 抓 `raw...linkou-toolbox/main/linkou-data.js`（已斷開對學區獨立站的依賴）。⚠ linkou-mortgage 的舊 pipeline 仍抓學區獨立站 master——該獨立站 repo 在 mortgage 關站前不能刪 |
 
 ## 4. 收斂 runbook（2026 年 7 月底執行，照順序、做完打勾）
 
 前置：跑 `sync-toolbox.ps1` 確認 my-project 與 toolbox 無未同步差異。
 
-1. **房貸 Actions 遷移（最優先，有跨 repo 依賴）**
-   - [ ] 複製 linkou-mortgage 的 `update_prices.py`、`road_zone_map.csv`、`林口價格地圖.geojson`、`.github/workflows/update-prices.yml` 到 toolbox。
-   - [ ] 改 `update_prices.py` 內 HOUSE 來源 URL：`linkou-school-zone/master` → `linkou-toolbox/main`。
-   - [ ] toolbox 的 `mortgage-data.js` 先照 linkou-mortgage 的格式加上 `<<AUTO-ZONES-START>>`／`END` 標記（腳本只覆寫標記之間）。
-   - [ ] push 後 `gh workflow run update-prices.yml` 手動跑一次，確認成功、線上房貸頁數字正常。
-   - [ ] 成功後刪 linkou-mortgage 的 workflow 檔（關掉舊 cron），再處理該站跳轉。
+1. **房貸 Actions 遷移** — ✅ **已於 2026-07-03 提前完成**（pipeline 已在 toolbox 跑通、線上驗證過）。
+   - [ ] 只剩一步：關站時刪 linkou-mortgage 的 `.github/workflows/update-prices.yml`（關掉舊 cron），再處理該站跳轉。
 2. **四個獨立站改跳轉頁**（school-zone 的 master、mortgage、rent-tool、bus）
    - [ ] 各 repo 的 `index.html` 換成跳轉頁：`<meta http-equiv="refresh">` 到 toolbox 對應資料夾頁＋一行手動連結；其餘網站檔可刪。
    - [ ] **不要刪 repo、不要關 Pages**——舊網址已發給客戶，跳轉要永遠活著。

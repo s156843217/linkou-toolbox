@@ -5,6 +5,7 @@
 
 | 日期 | 決定 | 原因／備註 |
 |---|---|---|
+| 2026-07-03 | 房貸實價登錄**自動更新 pipeline 提前遷入 toolbox**（每月 1 號自動跑）；`mortgage-data.js` 真相來源＝toolbox、退出 dev→toolbox 同步白名單；獨立站舊 cron 保留至關站 | 使用者要求整合版要自動更新 |
 | 2026-07-03 | **收斂後直接在 linkou-toolbox 開發**，my-project 退役為歷史檔庫 | 消滅手動同步；runbook 見 DEPLOY.md 第 4 節 |
 | 2026-07-03 | 各 repo 建 CLAUDE.md 並公開 commit；制度文件集中 toolbox/docs；全域規範放 ~/.claude/CLAUDE.md | 讓每個 session 都有脈絡 |
 | 2026-07-02 | 四個獨立站 **2026 年 7 月底關閉**，舊網址改跳轉頁、repo 不刪 | 只維護整合版一份 |
