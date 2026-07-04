@@ -121,6 +121,24 @@
   .zone-card .zc-indoor{font-size:12px;color:var(--clay-d);margin-top:6px}
   .zone-card .zc-indoor b{font-size:14px;font-weight:900}
   .zone-card .zc-note{font-size:11px;color:var(--ink-soft);margin-top:4px}
+
+  /* === 聯絡卡（與學區頁、公車頁一致）=== */
+  .contact{margin-top:18px;padding:22px}
+  .contact .co{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--clay-d);display:flex;align-items:center;gap:8px}
+  .contact .sub{font-size:13px;color:var(--ink-soft);margin:4px 0 16px}
+  .agents{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.agents{grid-template-columns:1fr} .agent .top{flex-direction:column;align-items:stretch} .agent .photo{width:210px;height:280px;align-self:center;margin-bottom:4px} .agent .info{text-align:center;max-width:300px;margin:0 auto} .agent .lic{text-align:center} .agent .nm{font-size:25px} .agent .ph{font-size:16px}}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg2)}
+  .agent .top{display:flex;gap:14px;align-items:center}
+  .agent .photo{width:160px;height:210px;flex:0 0 auto;border-radius:12px;object-fit:cover;object-position:50% 12%;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow)}
+  .agent .info{flex:1 1 auto;min-width:0}
+  .agent .nm{font-family:var(--serif);font-weight:900;font-size:30px}
+  .agent .ph{font-size:19px;color:var(--ink-soft);margin:4px 0 16px}
+  .agent .acts{display:flex;gap:9px;flex-wrap:wrap}
+  .agent .acts a{flex:1 1 auto;text-align:center;text-decoration:none;font-size:16px;padding:14px 20px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
+  .lic{font-size:11px;color:#aa9b85;margin-top:11px;line-height:1.55}
 </style>
 </head>
 <body>
@@ -391,6 +409,43 @@
       ⚠️ 本統計為近一年成交樣本，以門牌座標對應商圈多邊形分配（查無座標者以路名備援），僅供方向性參考。實際市場行情請洽專業房仲確認。
     </div>
   </div>
+
+  <!-- 聯絡卡（置底，與學區頁、公車頁一致） -->
+  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact">
+    <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
+    <div class="sub">買林口、問貸款，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
+    <div class="agents">
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">李天夏</div>
+            <div class="ph">📞 0936-123-288</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+      </div>
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">温美慈</div>
+            <div class="ph">📞 0976-109-326</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">營業員字號 (113)登字第471408號</div>
+      </div>
+    </div>
+  </section>
 
   <div class="disc">
     ⚠️ <b>免責聲明</b>：本工具所有試算結果均為估算，僅供參考。實際核貸金額視個人信用條件、收入核實及銀行政策而定，與試算結果可能有所差異。購屋為重大財務決策，建議向銀行或專業人士確認。

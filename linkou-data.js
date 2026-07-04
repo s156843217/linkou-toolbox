@@ -195,3 +195,16 @@ const ALIASES = {
   // "陽光社區": "○○○○管理委員會",          // 待補
   // 範例：你之後若發現「客戶常打 XX、但資料庫叫 YY」，在這裡加一行即可
 };
+
+/* ─────────────────────────────────────────────────────────────
+   後端相容輸出（瀏覽器無感）
+   瀏覽器：typeof module === 'undefined'，整段跳過，所有 const 仍是全域，網頁行為不變。
+   Node / Cloudflare Worker：把資料匯出，供 LINE bot 等後端重用同一份資料。
+   ───────────────────────────────────────────────────────────── */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    SCHOOLS, COMMUNITY, LI_HOUSE_IDX, HOUSE, FULL_ES, CITY_FREE_ES,
+    LI, FULL_DATA, INFO, KG_PUBLIC, KG_PRIVATE,
+    LK_GEO, SCHOOL_GEO_ES, SCHOOL_GEO_JH, ALIASES
+  };
+}
