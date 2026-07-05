@@ -322,8 +322,11 @@ function initLiff(){
   if(typeof liff==='undefined')return;              // SDK 沒載到 → 當一般網頁，功能不受影響
   liff.init({liffId:LIFF_ID}).then(()=>{
     if(!curD)return;                                 // 沒有報告內容就不需要分享鈕
-    // 只在「LINE 內開啟」或「已登入 LINE」時顯示分享鈕，一般瀏覽器訪客看不到
-    if((liff.isInClient()||liff.isLoggedIn())&&liff.isApiAvailable('shareTargetPicker')){
+    /* 顯示分享鈕的三種情況：LINE 內開啟／已登入 LINE／從「傳圖卡」按鈕轉址過來
+       （手機沒成功跳進 LINE app 時會落在一般瀏覽器，靠第三種接住）；
+       單純輸入網址的一般訪客不會看到。 */
+    let via=false; try{via=sessionStorage.getItem('lkViaLiff')==='1';}catch(e){}
+    if(liff.isInClient()||liff.isLoggedIn()||via){
       const b=$("#liffShare");
       b.style.display='block';
       document.querySelector('.wrap').style.paddingBottom='64px';  // 避免浮動鈕蓋住頁尾
@@ -334,6 +337,11 @@ function initLiff(){
 async function doShare(){
   const b=$("#liffShare");
   try{
+    // 在外部瀏覽器且還沒登入 → 先走 LINE 登入（只有第一次要），回來後再按一次就能選人
+    if(!liff.isInClient()&&!liff.isLoggedIn()){ liff.login({redirectUri:location.href}); return; }
+    if(!liff.isApiAvailable('shareTargetPicker')){
+      alert('這個環境不支援選人分享，請改在 LINE 內開啟本頁再按分享。'); return;
+    }
     const res=await liff.shareTargetPicker([buildFlex(curD)]);
     if(res){ b.textContent='✅ 已送出'; setTimeout(()=>{b.textContent='📤 LINE 分享這份情報';},2500); }
   }catch(e){
@@ -390,6 +398,7 @@ function buildFlex(d){
   /* 從 liff.line.me 進來的第一步會帶 liff.state 轉址參數：
      先顯示讀取中，讓 liff.init 把網址換回真正的 ?c=/?a= 再重新進到這裡 */
   if(q.get('liff.state')!=null){
+    try{sessionStorage.setItem('lkViaLiff','1');}catch(e){}   // 記住「從傳圖卡入口來的」，轉回來後給分享鈕
     $("#content").innerHTML='<div class="panel sh-empty" style="margin-top:14px"><p>資料讀取中…</p></div>';
     initLiff(); return;
   }
