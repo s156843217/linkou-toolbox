@@ -104,12 +104,12 @@
   .sh-empty h2{font-family:var(--serif);font-weight:900;font-size:20px;margin-bottom:8px}
   .sh-empty p{font-size:13.5px;color:var(--ink-soft);margin-bottom:16px}
 
-  /* LIFF 分享鈕：只在 LINE 內開啟時出現（JS 控制），固定在畫面底部 */
-  #liffShare{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:999;display:none;
-    padding:12px 28px;border:none;border-radius:99px;cursor:pointer;white-space:nowrap;
-    font-family:var(--sans);font-size:15px;font-weight:900;color:#fff;background:#06C755;
+  /* LIFF 分享鈕：只在 LINE 內開啟時出現（JS 控制），右下角浮動、不擋主要內容 */
+  #liffShare{position:fixed;right:14px;bottom:16px;z-index:999;display:none;
+    padding:11px 18px;border:none;border-radius:99px;cursor:pointer;white-space:nowrap;
+    font-family:var(--sans);font-size:14px;font-weight:900;color:#fff;background:#06C755;
     box-shadow:0 6px 18px rgba(0,0,0,.28)}
-  #liffShare:active{transform:translateX(-50%) scale(.97)}
+  #liffShare:active{transform:scale(.97)}
 </style>
 </head>
 <body>
@@ -329,7 +329,7 @@ function initLiff(){
     if(liff.isInClient()||liff.isLoggedIn()||via){
       const b=$("#liffShare");
       b.style.display='block';
-      document.querySelector('.wrap').style.paddingBottom='64px';  // 避免浮動鈕蓋住頁尾
+      document.querySelector('.wrap').style.paddingBottom='84px';  // 避免浮動鈕蓋住頁尾
       b.addEventListener('click',doShare);
     }
   }).catch(()=>{});                                  // init 失敗（如本機測試）不影響網頁本身
