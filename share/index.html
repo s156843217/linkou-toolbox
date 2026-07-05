@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社區置產情報 — 林口置產工具箱</title>
+<!-- 客戶版分享頁：無通關碼、手機優先。內容由網址參數決定（?c=社區名 或 ?a=地址，&p=總價萬） -->
+<meta name="robots" content="noindex">
+<meta name="description" content="林口社區置產情報：學區（含額滿提醒）、成交行情、附近公車與房貸月付，一頁看懂。太平洋房屋・林口捷運加盟店。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="林口置產工具箱">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="🏠 林口社區置產情報｜學區・行情・公車・房貸">
+<meta property="og:description" content="學區（含額滿提醒）、近一年成交行情、附近公車站與地圖、房貸月付試算，一頁看懂。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* 防同業以 iframe 內嵌冒用本工具（與全站一致） */
+(function(){
+  if(window.top===window.self)return;
+  try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
+  catch(e){ window.top.location.href=location.href; }
+})();
+</script>
+<style>
+  /* ============ 手機優先的情報卡版型 ============ */
+  .wrap{max-width:640px}
+  .sh-head{padding:20px 22px;border-radius:18px;background:linear-gradient(135deg,#2C2620,#3a322a);
+    color:#F7EEDF;box-shadow:var(--shadow);margin-top:14px}
+  .sh-head .t1{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:2px}
+  .sh-head h1{font-family:var(--serif);font-weight:900;font-size:clamp(22px,6vw,30px);line-height:1.25;margin:4px 0 6px}
+  .sh-head .addr{font-size:13px;color:#E7D7BE;line-height:1.6}
+  .sh-head .brand{font-size:11.5px;color:#C9B89B;margin-top:8px}
+
+  .sh-box{padding:16px 18px;margin-top:14px}
+  .sh-box h2{font-family:var(--serif);font-weight:900;font-size:17px;display:flex;align-items:center;gap:8px;
+    margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px dashed var(--line)}
+  .sh-box h2 .bar{width:5px;height:18px;border-radius:3px;background:var(--clay);flex-shrink:0}
+
+  /* 學區（沿用 report-logic 的 schoolLine/riskMini 產出的 class） */
+  .sch-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:5px 0}
+  .sch-line .k{font-size:12px;font-weight:700;color:var(--ink-soft);flex-shrink:0}
+  .sch-line .nm{font-family:var(--serif);font-weight:900;font-size:20px}
+  .tagx{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+  .tagx.base{background:#EEF4F0;color:var(--teal-d)}
+  .tagx.hot{background:#F9E3DC;color:var(--red)}
+  .tagx.info{background:#F5EDD9;color:#8a6d1f}
+  .sch-note{font-size:12px;color:var(--ink-soft);line-height:1.6;margin-top:4px}
+  .risk-mini{background:#FBF1EC;border:1px solid #EBCDBF;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:12.5px;line-height:1.7}
+  .risk-mini b{color:var(--red)}
+  .free-mini{font-size:12.5px;color:var(--ink-soft);margin-top:5px;line-height:1.7}
+
+  /* 行情 */
+  .mkt-big{display:flex;align-items:baseline;gap:8px;margin:4px 0}
+  .mkt-big .v{font-family:var(--serif);font-weight:900;font-size:34px;color:var(--clay-d);line-height:1}
+  .mkt-big .u{font-size:13px;color:var(--ink-soft)}
+  .mkt-meta{display:flex;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+  .mkt-meta .mi{flex:1;text-align:center}
+  .mkt-meta .mi+.mi{border-left:1px dashed var(--line)}
+  .mkt-meta .mv{font-weight:900;font-size:15.5px}
+  .mkt-meta .mk{font-size:11px;color:var(--ink-soft)}
+  .mkt-ref{font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.7}
+
+  /* 公車 */
+  .bus-sum{font-size:13px;margin-bottom:6px}
+  #smap{height:230px;border:1px solid var(--line);border-radius:12px;margin:8px 0}
+  .bus-stop{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px dotted var(--line)}
+  .bus-stop .d{flex:0 0 76px;font-weight:900;color:var(--teal-d);font-size:13px}
+  .bus-stop .n{font-weight:700;font-size:14px}
+  .bus-stop .r{font-size:12px;color:var(--ink-soft);line-height:1.6}
+  .bus-tpe{background:#EEF4F0;border:1px solid #CFE0D6;border-radius:10px;padding:8px 12px;margin-top:10px;font-size:12.5px;line-height:1.7}
+  .bus-tpe b{color:var(--teal-d)}
+
+  /* 房貸 */
+  .loan-big{display:flex;align-items:baseline;gap:8px}
+  .loan-big .v{font-family:var(--serif);font-weight:900;font-size:32px;color:var(--teal-d);line-height:1.1}
+  .loan-big .u{font-size:13px;color:var(--ink-soft)}
+  .loan-formula{background:var(--bg2);border-radius:10px;padding:9px 12px;margin-top:9px;font-size:13px;line-height:1.8}
+  .loan-note{font-size:11.5px;color:var(--ink-soft);margin-top:8px;line-height:1.6}
+
+  /* 聯絡卡（與房貸頁一致的樣式縮編） */
+  .contact{padding:16px 18px;margin-top:14px}
+  .contact .co{font-family:var(--serif);font-weight:900;font-size:17px;color:var(--clay-d)}
+  .contact .sub{font-size:12.5px;color:var(--ink-soft);margin:4px 0 12px}
+  .agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--bg2)}
+  .agent .top{display:flex;gap:12px}
+  .agent .photo{width:86px;height:112px;flex:0 0 auto;border-radius:10px;object-fit:cover;object-position:50% 12%;border:1px solid var(--line);background:var(--bg)}
+  .agent .nm{font-family:var(--serif);font-weight:900;font-size:17px}
+  .agent .ph{font-size:13.5px;margin:3px 0 8px}
+  .agent .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .agent .acts .btn{padding:8px 14px;font-size:13.5px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#fff;color:var(--clay-d);border:1.5px solid var(--line)}
+  .agent .lic{font-size:10px;color:#aa9b85;margin-top:9px;line-height:1.55}
+
+  .sh-empty{text-align:center;padding:46px 20px}
+  .sh-empty h2{font-family:var(--serif);font-weight:900;font-size:20px;margin-bottom:8px}
+  .sh-empty p{font-size:13.5px;color:var(--ink-soft);margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div id="content"></div>
+</div>
+
+<script src="../linkou-data.js"></script>
+<script src="../mortgage-data.js"></script>
+<script src="../bus-data.js"></script>
+<script src="../report-logic.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+/* ============ 各區塊組裝（內容與 report 頁同源：schoolLine/riskMini 來自 report-logic.js） ============ */
+function render(d){
+  const liTxt=d.li?`${d.li}${d.lin?` ${d.lin}鄰`:''}`:(d.cands?`跨里（${d.cands.join('、')}）`:'');
+
+  /* 學區 */
+  let schoolHtml='';
+  if(d.school){
+    const multiEs=d.school.es.length>1, multiJh=d.school.jh.length>1;
+    schoolHtml=d.school.es.map(rl=>schoolLine(rl,'es',multiEs)).join('')
+              +d.school.jh.map(rl=>schoolLine(rl,'jh',multiJh)).join('');
+    const fulls=new Set();
+    d.school.es.forEach(rl=>{
+      if(rl.base&&FULL_ES.includes(rl.base))fulls.add(rl.base);
+      (rl.free||[]).forEach(s=>{if(FULL_ES.includes(s))fulls.add(s);});
+    });
+    fulls.forEach(s=>schoolHtml+=riskMini(s));
+    if(!fulls.size)schoolHtml+=`<div class="sch-note" style="margin-top:6px">✅ 對應國小近年未列額滿，設籍具居住事實後通常可順利分發（仍以當年度公告為準）。</div>`;
+  }else{
+    schoolHtml=`<div class="sch-note">此${d.cands?'物件跨里（'+d.cands.join('、')+'）':'物件的里別資料不足'}，歡迎用<a href="../school/">學區快查</a>輸入完整門牌精準判定，或直接聯繫我們。</div>`;
+  }
+
+  /* 行情 */
+  let mktHtml='';
+  if(d.zoneData){
+    const z=d.zoneData;
+    mktHtml=`<div style="font-size:12.5px;color:var(--ink-soft)">所在商圈：<b style="color:var(--ink)">${z.name}</b>（近一年 ${z.count} 筆成交）</div>
+      <div class="mkt-big"><span class="v">${z.medPrice}</span><span class="u">萬/坪（中位數，不含車位）</span></div>
+      <div class="mkt-meta">
+        <div class="mi"><div class="mv">${z.priceRange[0]}–${z.priceRange[1]}</div><div class="mk">主力區間(萬/坪)</div></div>
+        <div class="mi"><div class="mv">${z.ageMed} 年</div><div class="mk">屋齡中位</div></div>
+        <div class="mi"><div class="mv">${z.roomMed} 房</div><div class="mk">主流房數</div></div>
+      </div>`;
+  }else{
+    mktHtml=`<div class="sch-note">此位置不在六大商圈範圍內，以下列林口全區行情供參考。</div>`;
+  }
+  if(d.resale){
+    mktHtml+=`<div class="mkt-ref">參考：林口全區成屋中位 ${d.resale.unit} 萬/坪、總價中位 ${fmt(d.resale.totalMed)} 萬（近一年 ${d.resale.n} 筆）。資料：新北市實價登錄，每月自動更新。</div>`;
+  }
+
+  /* 公車 */
+  let busHtml='';
+  if(d.stops.length){
+    const top=d.stops.slice(0,3);
+    const allRoutes=new Set(); d.stops.forEach(s=>s.r.forEach(k=>allRoutes.add(k)));
+    const tpe=[...allRoutes].filter(routeToTaipei)
+      .map(k=>ROUTES[k].n).sort((a,b)=>{const x=routeSortKey(a),y=routeSortKey(b);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+    busHtml=`<div class="bus-sum">步行 500 公尺內：<b>${d.stops.length}</b> 個站牌・<b>${allRoutes.size}</b> 條路線</div>
+      <div id="smap"></div>`;
+    busHtml+=top.map(s=>{
+      const rn=[...new Set(s.r.map(k=>ROUTES[k]&&ROUTES[k].n).filter(Boolean))]
+        .sort((a,b)=>{const x=routeSortKey(a),y=routeSortKey(b);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+      const shown=rn.slice(0,8).join('、')+(rn.length>8?` …等${rn.length}條`:'');
+      const dir=d.coord?dirTxt(d.coord.lat,d.coord.lon,s.la,s.lo):'';
+      return `<div class="bus-stop"><span class="d">${dir} ${Math.round(s.d)}m</span>
+        <span><span class="n">${s.n}</span><br><span class="r">${shown}</span></span></div>`;
+    }).join('');
+    if(tpe.length)busHtml+=`<div class="bus-tpe"><b>🚇 可達雙北捷運／台北市區</b>：${tpe.slice(0,10).join('、')}${tpe.length>10?' …':''}</div>`;
+  }else{
+    busHtml=`<div class="sch-note">${d.coord?'步行 500 公尺內查無公車站牌。':'此位置無法自動定位，歡迎用「公車路線」頁查詢。'}</div>`;
+  }
+
+  /* 房貸（有帶總價才顯示） */
+  let loanHtml='';
+  if(d.mortgage){
+    const m=d.mortgage;
+    loanHtml=`<section class="panel sh-box">
+      <h2><span class="bar" style="background:var(--teal)"></span>🏦 房貸月付試算</h2>
+      <div style="font-size:12.5px;color:var(--ink-soft)">總價 ${fmt(m.price)} 萬・貸 ${m.ratio*100/10} 成試算</div>
+      <div class="loan-big"><span class="v">${fmt(m.monthly)}</span><span class="u">元/月（本息平均攤還）</span></div>
+      <div class="loan-formula">
+        自備款 <b>${fmt(m.downWan)} 萬</b>　＋　貸款 <b>${fmt(m.loanWan)} 萬</b><br>
+        年利率 ${m.rate}%・${m.years} 年期 → 每 100 萬月付約 ${fmt(m.per100)} 元
+      </div>
+      <div class="loan-note">想試不同成數、利率或寬限期？用 <a href="../mortgage/">房貸試算</a> 自己算，或直接問我們。</div>
+    </section>`;
+  }
+
+  const today=new Date();
+  const dateTxt=`${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+
+  $("#content").innerHTML=`
+    <div class="sh-head">
+      <div class="t1">社區置產情報</div>
+      <h1>${d.name}</h1>
+      <div class="addr">📍 ${d.addr||'—'}${liTxt?`　｜　${liTxt}`:''}</div>
+      <div class="brand">太平洋房屋・林口捷運加盟店　製表 ${dateTxt}</div>
+    </div>
+    <section class="panel sh-box"><h2><span class="bar"></span>🏫 學區（114 學年度）</h2>${schoolHtml}</section>
+    <section class="panel sh-box"><h2><span class="bar" style="background:var(--gold)"></span>📈 成交行情</h2>${mktHtml}</section>
+    ${loanHtml}
+    <section class="panel sh-box"><h2><span class="bar" style="background:var(--amber)"></span>🚌 附近公車</h2>${busHtml}</section>
+
+    <!-- 聯絡卡（樣式與房貸頁一致；營業員資料為固定內容） -->
+    <section class="panel contact">
+      <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
+      <div class="sub">想看這個社區、或想了解更多？點一下加 LINE 或直撥 👇</div>
+      <div class="agents">
+        <div class="agent">
+          <div class="top">
+            <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+            <div>
+              <div class="nm">李天夏</div>
+              <div class="ph">📞 0936-123-288</div>
+              <div class="acts">
+                <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+                <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+              </div>
+            </div>
+          </div>
+          <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+        </div>
+        <div class="agent">
+          <div class="top">
+            <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+            <div>
+              <div class="nm">温美慈</div>
+              <div class="ph">📞 0976-109-326</div>
+              <div class="acts">
+                <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+                <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+              </div>
+            </div>
+          </div>
+          <div class="lic">營業員字號 (113)登字第471408號</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="disc">
+      ⚠️ 本頁由林口置產工具箱自動彙整，僅供參考：學區資料具時效性，額滿與分發以當年度學校及區公所公告為準；
+      行情為近一年實價登錄之商圈層級統計（不含車位、排除透天與特殊交易），非個案估價；房貸試算不代表銀行核貸條件。重大決策請洽專業人士確認。
+    </div>
+    <footer>
+      太平洋房屋・林口捷運加盟店 ｜ 李天夏 · 温美慈<br>
+      本頁結果僅供參考，不構成任何財務或法律建議
+    </footer>`;
+
+  drawMap(d);
+}
+
+/* 公車地圖：本案＋最近三站（可拖拉、關滾輪縮放以免滑頁面誤觸） */
+let sMap=null;
+function drawMap(d){
+  const el=document.getElementById('smap');
+  if(!el||!d.coord||!d.stops.length)return;
+  if(typeof L==='undefined'){el.outerHTML='<div class="sch-note">（地圖暫時無法載入，方向與距離見下方清單）</div>';return;}
+  if(sMap){sMap.remove();sMap=null;}
+  const home=[d.coord.lat,d.coord.lon];
+  sMap=L.map(el,{scrollWheelZoom:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(sMap);
+  L.marker(home,{icon:L.divIcon({className:'',html:'<div style="font-size:15px;font-weight:900;color:#9C4A2B;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff">📍 本案</div>',iconSize:[0,0]})}).addTo(sMap);
+  const pts=[home];
+  d.stops.slice(0,3).forEach(s=>{
+    const p=[s.la,s.lo]; pts.push(p);
+    L.polyline([home,p],{color:'#3C7A62',weight:1.5,dashArray:'4 4',opacity:.8}).addTo(sMap);
+    L.circleMarker(p,{radius:6,color:'#2E5F4C',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(sMap)
+      .bindPopup(`<b>${s.n}</b><br>約 ${Math.round(s.d)} 公尺`);
+    L.marker(p,{icon:L.divIcon({className:'',html:`<div style="font-size:11px;font-weight:700;color:#2E5F4C;white-space:nowrap;transform:translate(9px,-7px);text-shadow:0 0 3px #fff,0 0 3px #fff">${s.n} ${Math.round(s.d)}m</div>`,iconSize:[0,0]})}).addTo(sMap);
+  });
+  sMap.fitBounds(pts,{padding:[30,30],maxZoom:17});
+}
+
+/* 查無資料／沒帶參數時的友善畫面 */
+function renderEmpty(){
+  $("#content").innerHTML=`
+    <div class="panel sh-empty" style="margin-top:14px">
+      <h2>找不到這筆社區資訊</h2>
+      <p>連結可能不完整。您可以直接使用我們的免費工具查詢：</p>
+      <a class="btn" href="../school/">🏫 學區快查</a>
+      <a class="btn ghost" href="../mortgage/" style="margin-left:8px">🏦 房貸試算</a>
+    </div>`;
+}
+
+/* ============ 啟動：由網址參數決定內容 ============ */
+(function init(){
+  const q=new URLSearchParams(location.search);
+  const price=parseFloat(q.get('p'))||0;
+  const loan={price,ratio:0.8,rate:2.7,years:30};   // 分享頁用預設條件（8 成、2.7%、30 年）
+  let d=null;
+  const a=q.get('a'), c=q.get('c');
+  if(a)d=buildFromAddress(a,loan);
+  else if(c){
+    if(COMMUNITY[c])d=buildFromCommunity(c,loan);
+    else{ // 容錯：名稱不完全相符時試別名
+      const k=Object.keys(ALIASES||{}).find(k=>k===c);
+      if(k&&COMMUNITY[ALIASES[k]])d=buildFromCommunity(ALIASES[k],loan);
+    }
+  }
+  if(d)render(d); else renderEmpty();
+})();
+</script>
+<script src="../internal-nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社區一頁報告 — 林口置產工具箱（內部）</title>
+<!-- 內部工具：不放 OG 分享卡、不進導覽列，知道網址＋通關碼才能使用 -->
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* 防同業以 iframe 內嵌冒用本工具（與全站一致） */
+(function(){
+  if(window.top===window.self)return;
+  try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
+  catch(e){ window.top.location.href=location.href; }
+})();
+</script>
+<style>
+  /* ============ 螢幕操作區（列印時整塊隱藏） ============ */
+  .ctrl{padding:18px 20px;margin-top:14px}
+  .ctrl .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .ctrl .field.small{flex:0 1 130px}
+  .comm-wrap{position:relative}
+  .ac-list{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);z-index:50;display:none;max-height:290px;overflow-y:auto}
+  .ac-list.show{display:block}
+  .ac-item{padding:10px 14px;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+  .ac-item:hover,.ac-item.active{background:var(--bg2)}
+  .ac-item .li-tag{font-size:11.5px;color:var(--teal-d);white-space:nowrap}
+
+  /* ============ 通關碼門 ============ */
+  .gate{max-width:420px;margin:60px auto;padding:34px 30px;text-align:center}
+  .gate h2{font-family:var(--serif);font-weight:900;font-size:22px;margin-bottom:8px}
+  .gate p{font-size:13.5px;color:var(--ink-soft);margin-bottom:18px}
+  .gate input{text-align:center;letter-spacing:2px;font-size:17px}
+  .gate .btn{width:100%;margin-top:12px}
+  .gate .err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
+
+  /* ============ A4 報告紙（螢幕預覽＝紙上效果） ============ */
+  .sheet-scroll{overflow-x:auto;margin-top:18px}
+  .sheet{width:210mm;min-height:285mm;margin:0 auto;background:#fff;color:#26221C;
+    box-shadow:0 10px 40px rgba(60,44,28,.18);padding:9mm 10mm;font-size:11.5px;line-height:1.5;
+    display:none;transform-origin:top left}
+  .sheet.on{display:block}
+
+  /* 報告表頭 */
+  .rp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;
+    border-bottom:3px solid var(--clay);padding-bottom:8px}
+  .rp-head .t1{font-size:11px;font-weight:700;color:var(--clay-d);letter-spacing:2px}
+  .rp-head h1{font-family:var(--serif);font-weight:900;font-size:27px;line-height:1.2;margin:2px 0 3px}
+  .rp-head h1.long{font-size:19px}
+  .rp-head .addr{font-size:11px;color:var(--ink-soft)}
+  .rp-head .brand{text-align:right;flex-shrink:0}
+  .rp-head .brand .b1{font-family:var(--serif);font-weight:900;font-size:14px;color:var(--clay-d)}
+  .rp-head .brand .b2{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
+
+  /* 區塊卡 */
+  .rp-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
+  .rp-box{border:1.2px solid var(--line);border-radius:9px;padding:9px 11px;break-inside:avoid}
+  .rp-box.full{grid-column:1/-1}
+  .rp-box h3{font-family:var(--serif);font-weight:900;font-size:14px;color:var(--ink);
+    display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:5px;border-bottom:1.5px dashed var(--line)}
+  .rp-box h3 .bar{width:4px;height:15px;border-radius:2px;background:var(--clay);flex-shrink:0}
+
+  /* 學區 */
+  .sch-line{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin:3px 0}
+  .sch-line .k{font-size:10.5px;font-weight:700;color:var(--ink-soft);flex-shrink:0}
+  .sch-line .nm{font-family:var(--serif);font-weight:900;font-size:16.5px}
+  .tagx{font-size:9.5px;font-weight:700;padding:1.5px 7px;border-radius:99px;white-space:nowrap}
+  .tagx.base{background:#EEF4F0;color:var(--teal-d)}
+  .tagx.hot{background:#F9E3DC;color:var(--red)}
+  .tagx.info{background:#F5EDD9;color:#8a6d1f}
+  .sch-note{font-size:10px;color:var(--ink-soft);line-height:1.55;margin-top:2px}
+  .risk-mini{background:#FBF1EC;border:1px solid #EBCDBF;border-radius:7px;padding:6px 9px;margin-top:6px;font-size:10.5px;line-height:1.6}
+  .risk-mini b{color:var(--red)}
+  .free-mini{font-size:10.5px;color:var(--ink-soft);margin-top:4px;line-height:1.6}
+
+  /* 行情 */
+  .mkt-big{display:flex;align-items:baseline;gap:6px;margin:2px 0}
+  .mkt-big .v{font-family:var(--serif);font-weight:900;font-size:27px;color:var(--clay-d);line-height:1}
+  .mkt-big .u{font-size:11px;color:var(--ink-soft)}
+  .mkt-meta{display:flex;gap:0;margin-top:7px;border-top:1px dashed var(--line);padding-top:6px}
+  .mkt-meta .mi{flex:1;text-align:center}
+  .mkt-meta .mi+.mi{border-left:1px dashed var(--line)}
+  .mkt-meta .mv{font-weight:900;font-size:13.5px}
+  .mkt-meta .mk{font-size:9.5px;color:var(--ink-soft)}
+  .mkt-ref{font-size:10px;color:var(--ink-soft);margin-top:7px;line-height:1.6}
+
+  /* 公車（左清單＋右小地圖） */
+  .bus-flex{display:flex;gap:9px;align-items:stretch}
+  .bus-left{flex:1 1 54%;min-width:0}
+  .bus-map{flex:1 1 46%;border:1px solid var(--line);border-radius:7px;overflow:hidden;min-height:170px;position:relative}
+  #rmap{position:absolute;inset:0}
+  .bus-sum{font-size:11px;margin-bottom:5px}
+  .bus-stop{display:flex;gap:8px;align-items:baseline;padding:3.5px 0;border-top:1px dotted var(--line)}
+  .bus-stop .d{flex:0 0 66px;font-weight:900;color:var(--teal-d);font-size:11px}
+  .bus-stop .n{font-weight:700;font-size:11.5px}
+  .bus-stop .r{font-size:10px;color:var(--ink-soft);line-height:1.5}
+  .bus-tpe{background:#EEF4F0;border:1px solid #CFE0D6;border-radius:7px;padding:5px 9px;margin-top:6px;font-size:10.5px;line-height:1.6}
+  .bus-tpe b{color:var(--teal-d)}
+
+  /* 房貸 */
+  .loan-big{display:flex;align-items:baseline;gap:6px}
+  .loan-big .v{font-family:var(--serif);font-weight:900;font-size:25px;color:var(--teal-d);line-height:1.1}
+  .loan-big .u{font-size:11px;color:var(--ink-soft)}
+  .loan-formula{background:var(--bg2);border-radius:7px;padding:6px 9px;margin-top:6px;font-size:10.5px;line-height:1.7}
+  .loan-note{font-size:9.5px;color:var(--ink-soft);margin-top:5px;line-height:1.55}
+
+  /* 頁尾名片＋免責 */
+  .rp-foot{margin-top:9px;border-top:3px solid var(--clay);padding-top:7px;
+    display:flex;justify-content:space-between;gap:14px;align-items:flex-start;break-inside:avoid}
+  .rp-agents{display:flex;gap:18px}
+  .rp-agent .nm{font-family:var(--serif);font-weight:900;font-size:13.5px}
+  .rp-agent .ph{font-size:11px;line-height:1.6}
+  .rp-agent .lic{font-size:8.5px;color:var(--ink-soft);line-height:1.5;margin-top:2px}
+  .rp-co{text-align:right;display:flex;gap:10px;align-items:center}
+  .rp-co .c1{font-family:var(--serif);font-weight:900;font-size:12.5px;color:var(--clay-d)}
+  .rp-co .c2{font-size:9.5px;color:var(--ink-soft);line-height:1.6}
+  .rp-co .qr{flex-shrink:0;text-align:center}
+  .rp-co .qr svg{width:17mm;height:17mm;display:block}
+  .rp-co .qr .qt{font-size:8px;color:var(--ink-soft);margin-top:2px}
+  .rp-disc{font-size:8.5px;color:#8a7a55;background:#FBF3E0;border:1px solid #EBD8AE;border-radius:7px;
+    padding:5px 9px;margin-top:7px;line-height:1.55;break-inside:avoid}
+
+  /* ============ 列印 ============ */
+  @page{size:A4 portrait;margin:0}
+  @media print{
+    body{background:#fff}
+    .site-nav,.ctrl,.no-print,.toast{display:none!important}
+    .wrap{max-width:none;padding:0;margin:0}
+    .sheet-scroll{overflow:visible;margin:0;height:auto!important}
+    .sheet{box-shadow:none;margin:0;width:210mm;min-height:auto;transform:none!important}
+    .bus-map{min-height:46mm}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列（列印時隱藏） -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
+      <a href="./" class="active">📋 社區報告</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ============ 通關碼門（驗過的裝置不再出現） ============ -->
+  <div id="gate" class="panel gate" style="display:none">
+    <h2>🔒 內部工具</h2>
+    <p>本頁為店內帶看用報告產生器，請輸入通關碼。</p>
+    <input type="text" id="gateInput" placeholder="通關碼" autocomplete="off">
+    <button class="btn" id="gateBtn">進入</button>
+    <div class="err" id="gateErr"></div>
+  </div>
+
+  <!-- ============ 主畫面（過門後顯示） ============ -->
+  <div id="app" style="display:none">
+
+    <div class="panel ctrl">
+      <div class="row">
+        <div class="field comm-wrap" style="flex:2 1 240px">
+          <label class="lbl">社區名稱</label>
+          <input type="text" id="commInput" placeholder="輸入社區名，例：世紀長虹" autocomplete="off">
+          <div class="ac-list" id="commList"></div>
+        </div>
+        <div class="field" style="flex:1.6 1 210px">
+          <label class="lbl">或 輸入地址（公寓／華廈）</label>
+          <input type="text" id="addrInput" placeholder="例：文化二路一段68號" autocomplete="off">
+        </div>
+        <div class="field small">
+          <label class="lbl">物件總價（萬）</label>
+          <input type="number" id="inPrice" placeholder="例：1500" min="0" step="10">
+        </div>
+        <div class="field small">
+          <label class="lbl">貸款成數</label>
+          <select id="inRatio">
+            <option value="0.7">7 成</option>
+            <option value="0.8" selected>8 成</option>
+            <option value="0.85">8.5 成</option>
+          </select>
+        </div>
+        <div class="field small">
+          <label class="lbl">年利率（%）</label>
+          <input type="number" id="inRate" value="2.7" min="0" max="20" step="0.01">
+        </div>
+        <div class="field small">
+          <label class="lbl">年限</label>
+          <select id="inYears">
+            <option value="20">20 年</option>
+            <option value="30" selected>30 年</option>
+            <option value="40">40 年</option>
+          </select>
+        </div>
+        <button class="btn" id="btnGo">產生報告</button>
+        <button class="btn ghost" id="btnPrint">🖨 列印</button>
+        <button class="btn ghost" id="btnLine" style="color:#06C755;border-color:#06C755">📲 LINE 傳給客戶</button>
+      </div>
+      <div class="hint">選社區（或輸地址，兩者擇一）後自動產生；改總價／利率會即時重算。列印前請等小地圖的圖載完再按 🖨。</div>
+    </div>
+
+    <div class="sheet-scroll">
+      <div class="sheet" id="sheet"></div>
+    </div>
+
+  </div><!-- /app -->
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script src="../linkou-data.js"></script>
+<script src="../mortgage-data.js"></script>
+<script src="../bus-data.js"></script>
+<script src="../report-logic.js"></script>
+<script src="qrcode.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+
+/* ================================================================
+   一、通關碼門
+   - 通過一次即記在本機（localStorage），此裝置之後直接進入。
+   - 也接受網址參數 ?key=通關碼（方便幫另一台裝置開通）。
+   - 要換通關碼：改下面 GATE_PASS 這一行即可，舊碼立即失效。
+   ================================================================ */
+const GATE_PASS = "2688168";                 // ← 通關碼（可自行修改）
+const GATE_KEY  = "lkToolboxInternal";       // 本機記憶用的鑰匙名（全站內部模式共用）
+function gateOk(){ return localStorage.getItem(GATE_KEY)==="1"; }
+function gateTry(v){
+  if((v||"").trim()===GATE_PASS){ localStorage.setItem(GATE_KEY,"1"); return true; }
+  return false;
+}
+
+/* ================================================================
+   三、畫面組裝（把 buildReport 的結果排成 A4）
+   ================================================================ */
+/* fmt、SITE_URL、schoolLine、riskMini 等共用邏輯已抽到 ../report-logic.js（share 頁共用） */
+
+function renderReport(d){
+  const today=new Date();
+  const dateTxt=`${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  const liTxt=d.li?`${d.li}${d.lin?` ${d.lin}鄰`:''}`:(d.cands?`跨里（${d.cands.join('、')}）`:'里別待確認');
+
+  /* ── 學區區塊 ── */
+  let schoolHtml='';
+  if(d.school){
+    const multiEs=d.school.es.length>1, multiJh=d.school.jh.length>1;
+    schoolHtml=d.school.es.map(rl=>schoolLine(rl,'es',multiEs)).join('')
+              +d.school.jh.map(rl=>schoolLine(rl,'jh',multiJh)).join('');
+    // 額滿小卡：基本學區＋自由學區中出現的額滿國小都提醒（去重）
+    const fulls=new Set();
+    d.school.es.forEach(rl=>{
+      if(rl.base&&FULL_ES.includes(rl.base))fulls.add(rl.base);
+      (rl.free||[]).forEach(s=>{if(FULL_ES.includes(s))fulls.add(s);});
+    });
+    fulls.forEach(s=>schoolHtml+=riskMini(s));
+    if(!fulls.size)schoolHtml+=`<div class="sch-note" style="margin-top:5px">✅ 對應國小近年未列額滿，設籍具居住事實後通常可順利分發（仍以當年度公告為準）。</div>`;
+  }else{
+    schoolHtml=`<div class="sch-note">此社區${d.cands?'跨里（'+d.cands.join('、')+'）':'的里別資料不足'}，請改用「學區快查」輸入完整門牌地址精準判定。</div>`;
+  }
+
+  /* ── 行情區塊 ── */
+  let mktHtml='';
+  if(d.zoneData){
+    const z=d.zoneData;
+    mktHtml=`<div style="font-size:10.5px;color:var(--ink-soft)">所在商圈：<b style="color:var(--ink)">${z.name}</b>（近一年 ${z.count} 筆成交）</div>
+      <div class="mkt-big"><span class="v">${z.medPrice}</span><span class="u">萬/坪（中位數，不含車位）</span></div>
+      <div class="mkt-meta">
+        <div class="mi"><div class="mv">${z.priceRange[0]}–${z.priceRange[1]}</div><div class="mk">主力區間(萬/坪)</div></div>
+        <div class="mi"><div class="mv">${z.ageMed} 年</div><div class="mk">屋齡中位</div></div>
+        <div class="mi"><div class="mv">${z.roomMed} 房</div><div class="mk">主流房數</div></div>
+        <div class="mi"><div class="mv">${Math.round(z.indoorPct*100)}%</div><div class="mk">室內佔比中位</div></div>
+      </div>`;
+  }else{
+    mktHtml=`<div class="sch-note">此位置不在六大商圈範圍內，以下列林口全區行情供參考。</div>`;
+  }
+  if(d.resale){
+    mktHtml+=`<div class="mkt-ref">參考：林口全區成屋中位 ${d.resale.unit} 萬/坪、總價中位 ${fmt(d.resale.totalMed)} 萬（近一年 ${d.resale.n} 筆）。
+      資料：新北市實價登錄，每月自動更新；商圈層級統計，社區逐筆行情建置中。</div>`;
+  }
+
+  /* ── 公車區塊（左清單＋右小地圖） ── */
+  let busHtml='';
+  if(d.stops.length){
+    const top=d.stops.slice(0,3);
+    const allRoutes=new Set(); d.stops.forEach(s=>s.r.forEach(k=>allRoutes.add(k)));
+    const tpe=[...allRoutes].filter(routeToTaipei)
+      .map(k=>ROUTES[k].n).sort((a,b)=>{const x=routeSortKey(a),y=routeSortKey(b);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+    let left=`<div class="bus-sum">步行 500 公尺內：<b>${d.stops.length}</b> 個站牌・<b>${allRoutes.size}</b> 條路線</div>`;
+    left+=top.map(s=>{
+      const rn=[...new Set(s.r.map(k=>ROUTES[k]&&ROUTES[k].n).filter(Boolean))]
+        .sort((a,b)=>{const x=routeSortKey(a),y=routeSortKey(b);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+      const shown=rn.slice(0,8).join('、')+(rn.length>8?` …等${rn.length}條`:'');
+      const dir=d.coord?dirTxt(d.coord.lat,d.coord.lon,s.la,s.lo):'';
+      return `<div class="bus-stop"><span class="d">${dir} ${Math.round(s.d)}m</span>
+        <span><span class="n">${s.n}</span><br><span class="r">${shown}</span></span></div>`;
+    }).join('');
+    if(tpe.length)left+=`<div class="bus-tpe"><b>🚇 可達雙北捷運／台北市區</b>：${tpe.slice(0,10).join('、')}${tpe.length>10?' …':''}</div>`;
+    busHtml=`<div class="bus-flex"><div class="bus-left">${left}</div><div class="bus-map"><div id="rmap"></div></div></div>`;
+  }else{
+    busHtml=`<div class="sch-note">${d.coord?'步行 500 公尺內查無公車站牌。':'此地址無法自動定位，公車資訊請改用「公車路線」頁查詢。'}</div>`;
+  }
+
+  /* ── 房貸區塊 ── */
+  let loanHtml='';
+  if(d.mortgage){
+    const m=d.mortgage;
+    loanHtml=`<div style="font-size:10.5px;color:var(--ink-soft)">總價 ${fmt(m.price)} 萬・貸 ${Math.round(m.ratio*10)==m.ratio*10?m.ratio*10:m.ratio*100/10} 成試算</div>
+      <div class="loan-big"><span class="v">${fmt(m.monthly)}</span><span class="u">元/月（本息平均攤還）</span></div>
+      <div class="loan-formula">
+        自備款 <b>${fmt(m.downWan)} 萬</b>　＋　貸款 <b>${fmt(m.loanWan)} 萬</b><br>
+        年利率 ${m.rate}%・${m.years} 年期 → 每 100 萬月付約 ${fmt(m.per100)} 元
+      </div>
+      <div class="loan-note">寬限期、其他成數與利率方案，可用「房貸試算」頁細算；實際核貸視個人條件與銀行政策而定。</div>`;
+  }else{
+    loanHtml=`<div class="sch-note">未輸入物件總價。於上方輸入開價即可試算每月房貸。</div>`;
+  }
+
+  /* ── 整頁組裝 ── */
+  $("#sheet").innerHTML=`
+    <div class="rp-head">
+      <div>
+        <div class="t1">社區置產一頁報告</div>
+        <h1 class="${d.name.length>10?'long':''}">${d.name}</h1>
+        <div class="addr">📍 ${d.addr||'—'}　｜　${liTxt}</div>
+      </div>
+      <div class="brand">
+        <div class="b1">太平洋房屋・林口捷運加盟店</div>
+        <div class="b2">製表日期 ${dateTxt}</div>
+      </div>
+    </div>
+    <div class="rp-grid">
+      <div class="rp-box full"><h3><span class="bar"></span>🏫 學區（114 學年度）</h3>${schoolHtml}</div>
+      <div class="rp-box"><h3><span class="bar" style="background:var(--gold)"></span>📈 成交行情</h3>${mktHtml}</div>
+      <div class="rp-box"><h3><span class="bar" style="background:var(--teal)"></span>🏦 房貸試算</h3>${loanHtml}</div>
+      <div class="rp-box full"><h3><span class="bar" style="background:var(--amber)"></span>🚌 附近公車</h3>${busHtml}</div>
+    </div>
+    <div class="rp-foot">
+      <div class="rp-agents">
+        <div class="rp-agent">
+          <div class="nm">李天夏</div>
+          <div class="ph">📞 0936-123-288</div>
+          <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員 (108)登字第352140號</div>
+        </div>
+        <div class="rp-agent">
+          <div class="nm">温美慈</div>
+          <div class="ph">📞 0976-109-326</div>
+          <div class="lic">營業員 (113)登字第471408號</div>
+        </div>
+      </div>
+      <div class="rp-co">
+        <div>
+          <div class="c1">🏠 太平洋房屋・林口捷運加盟店</div>
+          <div class="c2">學區・行情・公車・房貸 線上工具箱<br>${SITE_URL.replace(/^https?:\/\//,'')}</div>
+        </div>
+        <div class="qr"><div id="qrBox"></div><div class="qt">掃我用工具箱</div></div>
+      </div>
+    </div>
+    <div class="rp-disc">
+      ⚠️ 本報告由林口置產工具箱自動彙整，僅供帶看參考：學區資料具時效性，額滿與分發以當年度學校及區公所公告為準；
+      行情為近一年實價登錄之商圈層級統計（不含車位、排除透天與特殊交易），非個案估價；房貸試算不代表銀行核貸條件。重大決策請洽專業人士確認。
+    </div>`;
+  $("#sheet").classList.add('on');
+  drawMiniMap(d);
+  drawQr();
+  fitSheet();
+}
+
+/* 手機預覽：螢幕比 A4 窄時，整張紙等比縮小成螢幕寬（像看 PDF）；列印不受影響 */
+function fitSheet(){
+  const wrap=$(".sheet-scroll"), sheet=$("#sheet");
+  if(!sheet.classList.contains('on'))return;
+  const avail=wrap.clientWidth, w=sheet.offsetWidth;   // offsetWidth 不受縮放影響＝紙的原始寬
+  if(avail<w){
+    const k=avail/w;
+    sheet.style.transform=`scale(${k})`;
+    sheet.style.margin='0';
+    wrap.style.height=(sheet.offsetHeight*k)+'px';     // 收掉縮小後多出的空白
+    wrap.style.overflowX='hidden';
+  }else{
+    sheet.style.transform=''; sheet.style.margin='0 auto';
+    wrap.style.height=''; wrap.style.overflowX='auto';
+  }
+}
+window.addEventListener('resize',fitSheet);
+
+/* 公車小地圖：社區（📍）＋最近三站，虛線標步行方向；不可拖拉、純示意 */
+let miniMap=null;
+function drawMiniMap(d){
+  if(miniMap){miniMap.remove();miniMap=null;}
+  const el=document.getElementById('rmap');
+  if(!el||!d.coord||!d.stops.length)return;
+  if(typeof L==='undefined'){el.parentElement.innerHTML='<div class="sch-note" style="padding:8px">（離線中，地圖暫無法顯示；方向與距離見左側清單）</div>';return;}
+  const home=[d.coord.lat,d.coord.lon];
+  miniMap=L.map(el,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,
+    boxZoom:false,keyboard:false,touchZoom:false,attributionControl:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(miniMap);
+  L.marker(home,{icon:L.divIcon({className:'',html:'<div style="font-size:13px;font-weight:900;color:#9C4A2B;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff">📍 本案</div>',iconSize:[0,0]})}).addTo(miniMap);
+  const pts=[home];
+  d.stops.slice(0,3).forEach(s=>{
+    const p=[s.la,s.lo]; pts.push(p);
+    L.polyline([home,p],{color:'#3C7A62',weight:1.5,dashArray:'4 4',opacity:.8}).addTo(miniMap);
+    L.circleMarker(p,{radius:5,color:'#2E5F4C',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(miniMap);
+    L.marker(p,{icon:L.divIcon({className:'',html:`<div style="font-size:10px;font-weight:700;color:#2E5F4C;white-space:nowrap;transform:translate(8px,-6px);text-shadow:0 0 3px #fff,0 0 3px #fff">${s.n} ${Math.round(s.d)}m</div>`,iconSize:[0,0]})}).addTo(miniMap);
+  });
+  miniMap.fitBounds(pts,{padding:[26,26],maxZoom:17});
+}
+
+/* 名片區 QR：掃了進線上工具箱（qrcode.js 本地產生，不靠外部服務） */
+function drawQr(){
+  const box=document.getElementById('qrBox'); if(!box)return;
+  if(typeof qrcode==='undefined'){box.parentElement.style.display='none';return;}
+  const q=qrcode(0,'M'); q.addData(SITE_URL); q.make();
+  box.innerHTML=q.createSvgTag({cellSize:2,margin:0,scalable:true});
+}
+
+/* ================================================================
+   四、操作區：社區自動完成＋即時重算（沿用學區/公車頁的搜尋邏輯）
+   ================================================================ */
+let toastT;
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+
+const COMM_NAMES=Object.keys(COMMUNITY||{});
+function normalizeComm(s){return (s||'').replace(/管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人/g,'').toLowerCase().trim();}
+const COMM_NORM=Object.fromEntries(COMM_NAMES.map(n=>[n,normalizeComm(n)]));
+function searchComm(q){
+  if(!q)return [];
+  const aliasKey=Object.keys(ALIASES||{}).find(k=>k.includes(q)||q.includes(k));
+  if(aliasKey && COMMUNITY[ALIASES[aliasKey]]) return [ALIASES[aliasKey]];
+  const nq=normalizeComm(q); if(!nq)return [];
+  return COMM_NAMES.filter(n=>COMM_NORM[n].includes(nq)||n.toLowerCase().includes(q.toLowerCase())).slice(0,12);
+}
+function showAc(items){
+  const box=$("#commList");
+  if(!items.length){box.classList.remove('show');return;}
+  box.innerHTML=items.map(n=>{
+    const c=COMMUNITY[n];
+    const tag=c.li?`<span class="li-tag">${c.li}${c.lin?' '+c.lin+'鄰':''}</span>`:`<span class="li-tag">林口</span>`;
+    return `<div class="ac-item" data-name="${n.replace(/"/g,'&quot;')}">${n}${tag}</div>`;
+  }).join('');
+  box.classList.add('show');
+  box.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>pickComm(el.dataset.name)));
+}
+/* 目前查詢對象：社區名或地址（兩格擇一填） */
+let cur=null;   // {type:'comm'|'addr', value}
+function pickComm(name){
+  if(!COMMUNITY[name]){toast('查無此社區');return;}
+  cur={type:'comm',value:name};
+  $("#commInput").value=name;
+  $("#addrInput").value='';
+  $("#commList").classList.remove('show');
+  runReport();
+}
+function pickAddr(addr){
+  if(!houseLookup(addr)){toast('門牌表查無此地址，請確認路名與號（例：文化二路一段68號）');return;}
+  cur={type:'addr',value:addr};
+  $("#commInput").value='';
+  $("#commList").classList.remove('show');
+  runReport();
+}
+function loanParams(){
+  return {
+    price:parseFloat($("#inPrice").value)||0,
+    ratio:parseFloat($("#inRatio").value)||0.8,
+    rate:parseFloat($("#inRate").value)||2.7,
+    years:parseInt($("#inYears").value)||30
+  };
+}
+let lastData=null;   // 最後一次產生的報告資料（LINE 分享用）
+function runReport(){
+  if(!cur)return;
+  const d=cur.type==='addr'?buildFromAddress(cur.value,loanParams()):buildFromCommunity(cur.value,loanParams());
+  if(!d){toast('查無資料');return;}
+  lastData=d;
+  renderReport(d);
+}
+
+/* LINE 分享：組客戶版分享頁網址＋重點摘要文字，跳 LINE 選人傳送 */
+function shareUrl(){
+  const p=loanParams();
+  return SITE_URL+'share/?'+(cur.type==='addr'?'a=':'c=')+encodeURIComponent(cur.value)
+       +(p.price>0?'&p='+p.price:'');
+}
+function shareText(d){
+  let t=`【${d.name}】林口置產情報\n`;
+  if(d.school&&d.school.es.length){
+    const rl=d.school.es[0];
+    t+=`🏫 國小：${rl.base||('自由學區 '+(rl.free||[]).join('/'))}${rl.base&&FULL_ES.includes(rl.base)?'（額滿校，須提早設籍）':''}\n`;
+  }
+  if(d.zoneData)t+=`📈 ${d.zoneData.name}行情中位 ${d.zoneData.medPrice} 萬/坪（近一年）\n`;
+  if(d.mortgage)t+=`🏦 總價 ${fmt(d.mortgage.price)} 萬，${d.mortgage.ratio*100/10} 成 ${d.mortgage.years} 年月付約 ${fmt(d.mortgage.monthly)} 元\n`;
+  t+=`👉 學區/行情/公車地圖 完整看：\n${shareUrl()}\n`;
+  t+=`— 太平洋房屋・林口捷運加盟店 李天夏/温美慈`;
+  return t;
+}
+
+/* ================================================================
+   五、啟動：先過通關碼門，再看網址參數（?c=社區名、?key=通關碼）
+   ================================================================ */
+(function init(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('key'))gateTry(q.get('key'));   // 網址帶通關碼＝幫這台裝置開通
+
+  if(!gateOk()){
+    $("#gate").style.display='block';
+    const tryGo=()=>{
+      if(gateTry($("#gateInput").value)){ location.reload(); }
+      else $("#gateErr").textContent='通關碼不正確';
+    };
+    $("#gateBtn").addEventListener('click',tryGo);
+    $("#gateInput").addEventListener('keydown',e=>{if(e.key==='Enter')tryGo();});
+    return;
+  }
+
+  $("#app").style.display='block';
+
+  // 操作區事件
+  $("#commInput").addEventListener('input',e=>showAc(searchComm(e.target.value.trim())));
+  $("#commInput").addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      const items=searchComm(e.target.value.trim());
+      if(items.length)pickComm(items[0]);
+    }
+  });
+  document.addEventListener('click',e=>{if(!e.target.closest('.comm-wrap'))$("#commList").classList.remove('show');});
+  $("#addrInput").addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&e.target.value.trim())pickAddr(e.target.value.trim());
+  });
+  ['inPrice','inRate'].forEach(id=>$('#'+id).addEventListener('input',runReport));
+  ['inRatio','inYears'].forEach(id=>$('#'+id).addEventListener('change',runReport));
+  $("#btnGo").addEventListener('click',()=>{
+    const a=$("#addrInput").value.trim();
+    if(a){pickAddr(a);return;}                 // 地址格有填 → 走地址模式
+    const v=$("#commInput").value.trim();
+    if(COMMUNITY[v]){pickComm(v);return;}
+    const items=searchComm(v);
+    if(items.length)pickComm(items[0]); else toast('查無此社區，請確認名稱（公寓／華廈請改填地址格）');
+  });
+  $("#btnPrint").addEventListener('click',()=>window.print());
+  $("#btnLine").addEventListener('click',()=>{
+    if(!lastData||!cur){toast('請先產生報告再分享');return;}
+    location.href='https://line.me/R/share?text='+encodeURIComponent(shareText(lastData));
+  });
+
+  // 網址帶入（CRM 之後就用這個串接：?c=社區名 或 ?a=地址，加 &p=總價萬）
+  if(q.get('p'))$("#inPrice").value=q.get('p');
+  const cParam=q.get('c'), aParam=q.get('a');
+  if(aParam){
+    $("#addrInput").value=aParam; pickAddr(aParam);
+  }else if(cParam){
+    if(COMMUNITY[cParam])pickComm(cParam);
+    else{const items=searchComm(cParam);if(items.length)pickComm(items[0]);}
+  }
+})();
+</script>
+<script src="../internal-nav.js"></script>
+</body>
+</html>
