@@ -16,6 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
+<!-- LIFF SDK：讓本頁在 LINE 內開啟時能把試算結果做成 Flex 圖卡轉傳（一般瀏覽器開啟不受影響） -->
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 /* 防同業以 iframe 內嵌冒用本工具（與學區頁一致） */
 (function(){
@@ -139,6 +141,13 @@
   .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
   .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
   .lic{font-size:11px;color:#aa9b85;margin-top:11px;line-height:1.55}
+
+  /* LIFF 分享鈕：只在 LINE 內開啟時出現（JS 控制），固定在畫面底部（與 share/ 頁同款） */
+  #liffShare{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:999;display:none;
+    padding:12px 28px;border:none;border-radius:99px;cursor:pointer;white-space:nowrap;
+    font-family:var(--sans);font-size:15px;font-weight:900;color:#fff;background:#06C755;
+    box-shadow:0 6px 18px rgba(0,0,0,.28)}
+  #liffShare:active{transform:translateX(-50%) scale(.97)}
 </style>
 </head>
 <body>
@@ -460,6 +469,9 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 在 LINE 內開啟時才會出現（見下方 initLiff） -->
+<button id="liffShare">📤 LINE 分享試算結果</button>
+
 <script src="../mortgage-data.js"></script>
 <script>
   const $ = s => document.querySelector(s);
@@ -497,6 +509,13 @@
     $('#aResultMonthly').textContent = fmt(available); // 月繳 ≈ 可分配房貸額
     $('#aResult').classList.add('show');
     showProduct(priceWan, '#aProductSuggest');
+    lastCalc = { title: `月薪 ${fmt(salary)} 元 → 可購總價約 ${fmt(priceWan)} 萬`, rows: [
+      ['月薪', fmt(salary) + ' 元'],
+      existing ? ['現有每月貸款月繳', fmt(existing) + ' 元'] : null,
+      ['可借金額上限', fmt(loanWan) + ' 萬'],
+      ['可購買總價（8 成貸）', fmt(priceWan) + ' 萬', '#9C4A2B'],
+      ['每月房貸約', fmt(available) + ' 元']
+    ].filter(Boolean), note: '以 30 年期、年利率 2.7% 估算；實際核貸依銀行而定' };
   }
 
   /* ── 模組 B：月繳反推 ─────────────────────────── */
@@ -511,6 +530,11 @@
     $('#bResultPrice').textContent = fmt(priceWan);
     $('#bResult').classList.add('show');
     showProduct(priceWan, '#bProductSuggest');
+    lastCalc = { title: `月繳 ${fmt(monthly)} 元 → 可購總價約 ${fmt(priceWan)} 萬`, rows: [
+      ['每月願繳房貸', fmt(monthly) + ' 元'],
+      ['可借金額上限', fmt(loanWan) + ' 萬'],
+      ['可購買總價（8 成貸）', fmt(priceWan) + ' 萬', '#9C4A2B']
+    ], note: '以 30 年期、年利率 2.7% 估算；實際核貸依銀行而定' };
   }
 
   /* ── 模組 C：自訂貸款試算 ─────────────────────── */
@@ -558,6 +582,13 @@
     }
 
     $('#cResult').classList.add('show');
+    lastCalc = { title: `貸 ${fmt(loanWan)} 萬・${years} 年 → 月繳約 ${fmt(normalMonthly)} 元`, rows: [
+      ['借款金額', fmt(loanWan) + ' 萬'],
+      ['條件', years + ' 年・利率 ' + rate + '%' + (hasGrace ? '・寬限 ' + graceYrs + ' 年' : '')],
+      hasGrace ? ['寬限期間月繳（只繳息）', fmt(graceMonthly) + ' 元'] : null,
+      [hasGrace ? '寬限後月繳（本息）' : '每月月繳（本息）', fmt(normalMonthly) + ' 元', '#9C4A2B'],
+      ['貸款期間總利息約', fmt(totalInterest / 10000) + ' 萬']
+    ].filter(Boolean), note: '本息平均攤還（PMT）試算；實際核貸依銀行而定' };
   }
 
   /* ── 模組 D：頭期款反推 ───────────────────────── */
@@ -576,6 +607,13 @@
     $('#dResultMonthly').textContent = fmt(monthly);
     $('#dResult').classList.add('show');
     showProduct(priceWan, '#dProductSuggest');
+    lastCalc = { title: `頭期款 ${fmt(downWan)} 萬 → 可購總價約 ${fmt(priceWan)} 萬`, rows: [
+      ['頭期款', fmt(downWan) + ' 萬'],
+      ['貸款成數', (ratio * 10) + ' 成'],
+      ['可購買總價', fmt(priceWan) + ' 萬', '#9C4A2B'],
+      ['需要貸款金額', fmt(loanWan) + ' 萬'],
+      ['每月房貸約', fmt(monthly) + ' 元']
+    ], note: '月繳以 30 年期、年利率 2.7% 估算；實際核貸依銀行而定' };
   }
 
   /* ── 林口房產類型對應 ──────── */
@@ -694,6 +732,10 @@
       </div>`;
     }).join('');
     $('#zResult').classList.add('show');
+    lastCalc = { title: `預算 ${fmt(budget)} 萬，林口各地段可購坪數`, rows: LINKOU_ZONES.map(z => {
+      const ping = houseBudget / z.medPrice;
+      return [z.name, Math.round(ping) + ' 坪（室內約 ' + (ping * z.indoorPct).toFixed(1) + ' 坪）'];
+    }), note: '以各地段近一年實價登錄中位數估算，坪數含公設、不含車位' + (zoneIncPark ? '；已先從預算保留 1 車位約 ' + PARKING_WAN + ' 萬' : '') };
   }
 
   /* ── 事件綁定 ─────────────────────────────────── */
@@ -723,6 +765,56 @@
     const el = $(id); if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') calcC(); });
   });
   $('#dDownPayment').addEventListener('keydown', e => { if (e.key === 'Enter') calcD(); });
+
+  /* ── LINE Flex 圖卡分享（LIFF）：在 LINE 內開啟本頁，試算完可把結果傳給客戶 ──
+     模式與 share/ 頁相同：一般瀏覽器訪客看不到分享鈕；lastCalc 由各試算函式更新。 */
+  const LIFF_ID = '2010606487-5X8LRXDR';   // 房貸頁專屬 LIFF app（endpoint＝本頁）
+  let lastCalc = null;                      // 最後一次試算結果（分享用）
+
+  // 從 liff.line.me 轉址進來會帶 liff.state：記住「從 LIFF 入口來的」，沒跳進 LINE 時也給分享鈕
+  try { if (new URLSearchParams(location.search).get('liff.state') != null) sessionStorage.setItem('lkViaLiff', '1'); } catch (e) {}
+
+  function initLiff() {
+    if (typeof liff === 'undefined') return;          // SDK 沒載到 → 當一般網頁
+    liff.init({ liffId: LIFF_ID }).then(() => {
+      let via = false; try { via = sessionStorage.getItem('lkViaLiff') === '1'; } catch (e) {}
+      if (liff.isInClient() || liff.isLoggedIn() || via) {
+        const b = $('#liffShare');
+        b.style.display = 'block';
+        document.querySelector('.wrap').style.paddingBottom = '64px';  // 避免浮動鈕蓋住頁尾
+        b.addEventListener('click', doShare);
+      }
+    }).catch(() => {});                                // init 失敗（如本機測試）不影響網頁本身
+  }
+  async function doShare() {
+    if (!lastCalc) { toast('請先做一次試算，再分享結果'); return; }
+    try {
+      // 在外部瀏覽器且還沒登入 → 先走 LINE 登入（只有第一次要；登入回來需重新試算一次）
+      if (!liff.isInClient() && !liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+      if (!liff.isApiAvailable('shareTargetPicker')) { toast('這個環境不支援選人分享，請在 LINE 內開啟本頁'); return; }
+      const res = await liff.shareTargetPicker([buildFlexM()]);
+      if (res) toast('✅ 圖卡已送出');
+    } catch (e) { toast('分享未完成：' + (e && e.message ? e.message : e)); }
+  }
+  /* 把最後一次試算組成 Flex 圖卡（配色沿用全站設計系統：深棕頭＋陶土橘按鈕） */
+  function buildFlexM() {
+    const rows = lastCalc.rows.map(r => ({ type: 'box', layout: 'baseline', spacing: 'sm', contents: [
+      { type: 'text', text: r[0], size: 'sm', color: '#8A7D6C', flex: 5, wrap: true },
+      { type: 'text', text: r[1], size: 'sm', color: r[2] || '#26221C', weight: 'bold', flex: 5, align: 'end', wrap: true }] }));
+    rows.push({ type: 'text', text: '※ ' + lastCalc.note, size: 'xxs', color: '#8A7D6C', wrap: true, margin: 'md' });
+    return { type: 'flex', altText: '【房貸試算】' + lastCalc.title,
+      contents: { type: 'bubble',
+        header: { type: 'box', layout: 'vertical', backgroundColor: '#2C2620', paddingAll: '16px', contents: [
+          { type: 'text', text: '林口置產工具箱｜房貸試算', size: 'xs', color: '#C9A24A', weight: 'bold' },
+          { type: 'text', text: lastCalc.title, size: 'lg', color: '#F7EEDF', weight: 'bold', wrap: true }] },
+        body: { type: 'box', layout: 'vertical', spacing: 'md', contents: rows },
+        footer: { type: 'box', layout: 'vertical', spacing: 'sm', contents: [
+          { type: 'button', style: 'primary', color: '#BD5E39', height: 'sm',
+            action: { type: 'uri', label: '我也要試算 →', uri: 'https://liff.line.me/' + LIFF_ID } },
+          { type: 'text', text: '太平洋房屋・林口捷運加盟店', size: 'xxs', color: '#8A7D6C', align: 'center', margin: 'sm' }] }
+      } };
+  }
+  initLiff();
 </script>
 <script src="../internal-nav.js"></script>
 </body>
