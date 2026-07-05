@@ -18,6 +18,8 @@
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- LIFF SDK：讓本頁在 LINE 內開啟時能把情報做成 Flex 圖卡轉傳（一般瀏覽器開啟不受影響） -->
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script>
 /* 防同業以 iframe 內嵌冒用本工具（與全站一致） */
 (function(){
@@ -101,6 +103,13 @@
   .sh-empty{text-align:center;padding:46px 20px}
   .sh-empty h2{font-family:var(--serif);font-weight:900;font-size:20px;margin-bottom:8px}
   .sh-empty p{font-size:13.5px;color:var(--ink-soft);margin-bottom:16px}
+
+  /* LIFF 分享鈕：只在 LINE 內開啟時出現（JS 控制），固定在畫面底部 */
+  #liffShare{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:999;display:none;
+    padding:12px 28px;border:none;border-radius:99px;cursor:pointer;white-space:nowrap;
+    font-family:var(--sans);font-size:15px;font-weight:900;color:#fff;background:#06C755;
+    box-shadow:0 6px 18px rgba(0,0,0,.28)}
+  #liffShare:active{transform:translateX(-50%) scale(.97)}
 </style>
 </head>
 <body>
@@ -121,6 +130,9 @@
 <div class="wrap">
   <div id="content"></div>
 </div>
+
+<!-- 在 LINE 內開啟時才會出現（見下方 initLiff） -->
+<button id="liffShare">📤 LINE 分享這份情報</button>
 
 <script src="../linkou-data.js"></script>
 <script src="../mortgage-data.js"></script>
@@ -302,9 +314,85 @@ function renderEmpty(){
     </div>`;
 }
 
+/* ============ LIFF：在 LINE 內開啟時，可把本頁做成 Flex 圖卡直接轉傳 ============ */
+const LIFF_ID='2010606487-Km5pYNnK';   // LINE Developers 後台的 LIFF app（endpoint＝本頁）
+let curD=null;                          // 目前顯示中的報告資料（分享時取用）
+
+function initLiff(){
+  if(typeof liff==='undefined')return;              // SDK 沒載到 → 當一般網頁，功能不受影響
+  liff.init({liffId:LIFF_ID}).then(()=>{
+    if(!curD)return;                                 // 沒有報告內容就不需要分享鈕
+    // 只在「LINE 內開啟」或「已登入 LINE」時顯示分享鈕，一般瀏覽器訪客看不到
+    if((liff.isInClient()||liff.isLoggedIn())&&liff.isApiAvailable('shareTargetPicker')){
+      const b=$("#liffShare");
+      b.style.display='block';
+      document.querySelector('.wrap').style.paddingBottom='64px';  // 避免浮動鈕蓋住頁尾
+      b.addEventListener('click',doShare);
+    }
+  }).catch(()=>{});                                  // init 失敗（如本機測試）不影響網頁本身
+}
+async function doShare(){
+  const b=$("#liffShare");
+  try{
+    const res=await liff.shareTargetPicker([buildFlex(curD)]);
+    if(res){ b.textContent='✅ 已送出'; setTimeout(()=>{b.textContent='📤 LINE 分享這份情報';},2500); }
+  }catch(e){
+    alert('分享未完成，請改用複製網址的方式傳送。\n('+(e&&e.message?e.message:e)+')');
+  }
+}
+/* 把報告重點組成一張 Flex 圖卡；配色沿用全站設計系統（深棕頭＋陶土橘按鈕） */
+function buildFlex(d){
+  // 圖卡上的按鈕連到 LIFF 網址：客戶在 LINE 內點開＝全螢幕情報頁，也能再轉傳
+  const q=new URLSearchParams(location.search), parts=[];
+  ['c','a','p'].forEach(k=>{const v=q.get(k);if(v)parts.push(k+'='+encodeURIComponent(v));});
+  const link='https://liff.line.me/'+LIFF_ID+(parts.length?'?'+parts.join('&'):'');
+
+  const rows=[];
+  const row=(k,v,vColor)=>rows.push({type:'box',layout:'baseline',spacing:'sm',contents:[
+    {type:'text',text:k,size:'sm',color:'#8A7D6C',flex:3},
+    {type:'text',text:v,size:'sm',color:vColor||'#26221C',weight:'bold',flex:7,wrap:true}]});
+  if(d.school){
+    const es=[...new Set(d.school.es.map(r=>r.base||'自由學區'))];
+    const hot=d.school.es.some(r=>r.base&&FULL_ES.includes(r.base));
+    row('🏫 國小',es.join('／')+(hot?'（🔥額滿校）':''),hot?'#B23F2A':null);
+    const jh=[...new Set(d.school.jh.map(r=>r.base||'自由學區'))];
+    if(jh.length)row('🏫 國中',jh.join('／'));
+  }
+  if(d.zoneData)row('📈 行情',d.zoneData.medPrice+' 萬/坪・'+d.zoneData.name);
+  else if(d.resale)row('📈 行情','全區中位 '+d.resale.unit+' 萬/坪');
+  if(d.mortgage)row('🏦 月付','約 '+fmt(d.mortgage.monthly)+' 元（貸'+(d.mortgage.ratio*10)+'成/'+d.mortgage.years+'年）');
+  if(d.stops&&d.stops.length){
+    const rt=new Set(); d.stops.forEach(s=>s.r.forEach(k=>rt.add(k)));
+    row('🚌 公車','500m 內 '+d.stops.length+' 站牌・'+rt.size+' 條路線');
+  }
+
+  const head=[
+    {type:'text',text:'社區置產情報',size:'xs',color:'#C9A24A',weight:'bold'},
+    {type:'text',text:d.name,size:'xl',color:'#F7EEDF',weight:'bold',wrap:true}
+  ];
+  if(d.addr)head.push({type:'text',text:'📍 '+d.addr,size:'xxs',color:'#C9B89B',wrap:true,margin:'sm'});
+
+  return {type:'flex',altText:'【'+d.name+'】林口置產情報：學區/行情/公車/房貸一頁看懂',
+    contents:{type:'bubble',
+      header:{type:'box',layout:'vertical',backgroundColor:'#2C2620',paddingAll:'16px',contents:head},
+      body:{type:'box',layout:'vertical',spacing:'md',contents:rows},
+      footer:{type:'box',layout:'vertical',spacing:'sm',contents:[
+        {type:'button',style:'primary',color:'#BD5E39',height:'sm',
+          action:{type:'uri',label:'查看完整情報 →',uri:link}},
+        {type:'text',text:'太平洋房屋・林口捷運加盟店',size:'xxs',color:'#8A7D6C',align:'center',margin:'sm'}
+      ]}
+    }};
+}
+
 /* ============ 啟動：由網址參數決定內容 ============ */
 (function init(){
   const q=new URLSearchParams(location.search);
+  /* 從 liff.line.me 進來的第一步會帶 liff.state 轉址參數：
+     先顯示讀取中，讓 liff.init 把網址換回真正的 ?c=/?a= 再重新進到這裡 */
+  if(q.get('liff.state')!=null){
+    $("#content").innerHTML='<div class="panel sh-empty" style="margin-top:14px"><p>資料讀取中…</p></div>';
+    initLiff(); return;
+  }
   const price=parseFloat(q.get('p'))||0;
   const loan={price,ratio:0.8,rate:2.7,years:30};   // 分享頁用預設條件（8 成、2.7%、30 年）
   let d=null;
@@ -317,7 +405,8 @@ function renderEmpty(){
       if(k&&COMMUNITY[ALIASES[k]])d=buildFromCommunity(ALIASES[k],loan);
     }
   }
-  if(d)render(d); else renderEmpty();
+  if(d){curD=d;render(d);} else renderEmpty();
+  initLiff();
 })();
 </script>
 <script src="../internal-nav.js"></script>

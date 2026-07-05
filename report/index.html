@@ -207,9 +207,10 @@
         </div>
         <button class="btn" id="btnGo">產生報告</button>
         <button class="btn ghost" id="btnPrint">🖨 列印</button>
-        <button class="btn ghost" id="btnLine" style="color:#06C755;border-color:#06C755">📲 LINE 傳給客戶</button>
+        <button class="btn ghost" id="btnLine" style="color:#06C755;border-color:#06C755">📲 LINE 傳文字</button>
+        <button class="btn ghost" id="btnFlex" style="color:#06C755;border-color:#06C755">🖼 LINE 傳圖卡</button>
       </div>
-      <div class="hint">選社區（或輸地址，兩者擇一）後自動產生；改總價／利率會即時重算。列印前請等小地圖的圖載完再按 🖨。</div>
+      <div class="hint">選社區（或輸地址，兩者擇一）後自動產生；改總價／利率會即時重算。列印前請等小地圖的圖載完再按 🖨。「傳圖卡」請在手機上按：會跳進 LINE 開啟分享頁，再按底部綠色鈕挑客戶送出。</div>
     </div>
 
     <div class="sheet-scroll">
@@ -553,6 +554,16 @@ function shareText(d){
   $("#btnLine").addEventListener('click',()=>{
     if(!lastData||!cur){toast('請先產生報告再分享');return;}
     location.href='https://line.me/R/share?text='+encodeURIComponent(shareText(lastData));
+  });
+  /* 傳 Flex 圖卡：跳進 LINE 開啟 LIFF 版分享頁（share/），在那頁按分享鈕挑客戶。
+     LIFF ID 須與 share/index.html 的 LIFF_ID 一致。 */
+  $("#btnFlex").addEventListener('click',()=>{
+    if(!lastData||!cur){toast('請先產生報告再分享');return;}
+    const p=loanParams();
+    const u='https://liff.line.me/2010606487-Km5pYNnK?'
+          +(cur.type==='addr'?'a=':'c=')+encodeURIComponent(cur.value)
+          +(p.price>0?'&p='+p.price:'');
+    window.open(u,'_blank','noopener');
   });
 
   // 網址帶入（CRM 之後就用這個串接：?c=社區名 或 ?a=地址，加 &p=總價萬）
