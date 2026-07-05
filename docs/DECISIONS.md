@@ -5,6 +5,7 @@
 
 | 日期 | 決定 | 原因／備註 |
 |---|---|---|
+| 2026-07-05 | **正式官方帳號（他＋太太共用）上線**：Worker 密鑰已換綁新帳號、webhook 已接、回應設定＝聊天開/自動回應關/Webhook開；bot 學區回覆同日升級 **Flex 圖卡**（school-logic 加 buildCardData、index.js 加 buildFlexCard，配色沿用網站設計系統） | 完成 06-23「等正式帳號」的待辦；舊測試帳號功成身退 |
 | 2026-07-05 | 社區情報 Flex 圖卡**改走 LIFF shareTargetPicker**（LINE Login channel＋LIFF，ID 2010606487-Km5pYNnK，endpoint＝toolbox /share/），以個人名義發送、免費、不吃官方帳號推播額度 | 取代 06-23「等正式帳號」的等待；bot 端 Flex 仍等正式帳號 |
 | 2026-07-05 | 社區一頁報告住網站 repo（/report/）、**不掛公開導覽**；防護用「通關碼＋裝置記住」輕量內部模式（internal-nav.js），CRM 用連結＋網址參數串接、不搬家 | 資料不多養複本；repo 本來就公開，真門禁擋不了讀原始碼，擋君子即可 |
 | 2026-07-05 | 一頁報告行情**第一版用商圈層級**（LINKOU_ZONES＋內嵌商圈多邊形），社區逐筆 price-list 管線做好後再升級，版面不重做 | 先有可帶看的成品 |
