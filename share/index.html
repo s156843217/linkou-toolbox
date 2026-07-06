@@ -16,6 +16,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
+<!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
+<link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<meta name="theme-color" content="#BD5E39">
+<!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
+<script>
+if(location.protocol==='https:'){
+  var _gc=document.createElement('script');
+  _gc.async=true; _gc.src='https://gc.zgo.at/count.js';
+  _gc.setAttribute('data-goatcounter','https://linkou-toolbox.goatcounter.com/count');
+  document.head.appendChild(_gc);
+}
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <!-- LIFF SDK：讓本頁在 LINE 內開啟時能把情報做成 Flex 圖卡轉傳（一般瀏覽器開啟不受影響） -->
