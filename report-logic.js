@@ -202,7 +202,7 @@ const fmt=n=>Math.round(n).toLocaleString('zh-TW');
    只有本機 file:// 測試時才用寫死的備用網址。 */
 const SITE_URL=/^http/.test(location.protocol)
   ? location.href.replace(/(report|share)\/.*$/,'')
-  : 'https://s156843217.github.io/linkou-toolbox/';
+  : 'https://swcasa.com/';
 
 /* 學區單行（rl＝一條學區規則） */
 function schoolLine(rl,kind,multi){
