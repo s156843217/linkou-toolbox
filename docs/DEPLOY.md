@@ -12,7 +12,7 @@
 
 | repo | 線上網址 | 上線方式 |
 |---|---|---|
-| linkou-toolbox | https://s156843217.github.io/linkou-toolbox/ | push `main` → Pages 約 1 分鐘 |
+| linkou-toolbox | https://swcasa.com/ （2026-07-06 起自訂網域；舊 github.io 網址永久轉址過來） | push `main` → Pages 約 1 分鐘 |
 | linkou-school-zone（=my-project 的 master） | https://s156843217.github.io/linkou-school-zone/ | push `master`（退役中，別再更新內容） |
 | linkou-mortgage | https://s156843217.github.io/linkou-mortgage/ | push `main`（退役中） |
 | rent-tool | https://s156843217.github.io/rent-tool/ | push `main`（退役中） |
