@@ -10,6 +10,7 @@ description: 上線同步：把 my-project dev 的改動照 SOP 同步到 linkou
 
 # 上線同步（my-project dev → linkou-toolbox）
 
+> 本檔不在 git 內，備份副本在 `C:\repo\linkou-toolbox\docs\SKILL-DEPLOY-BACKUP.md`，兩份要一起改。
 > 權威文件是 `C:\repo\linkou-toolbox\docs\DEPLOY.md`，本 skill 與它衝突時以 DEPLOY.md 為準。
 > 照順序做，不要即興發揮；任何一步出現解釋不了的狀況 → 停下來問使用者。
 
