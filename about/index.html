@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>關於我們 — 林口置產工具箱</title>
+<!-- 搜尋引擎描述 + LINE/FB 分享預覽卡（Open Graph） -->
+<meta name="description" content="太平洋房屋・林口捷運加盟店 李天夏、温美慈——認識我們夫妻檔，以及我們能幫您的買屋、賣屋、租賃服務。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="林口置產工具箱">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="關於我們 — 林口置產工具箱">
+<meta property="og:description" content="太平洋房屋・林口捷運加盟店 李天夏、温美慈——認識我們夫妻檔，以及我們能幫您的買屋、賣屋、租賃服務。">
+<meta property="og:url" content="https://swcasa.com/about/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
+<link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<meta name="theme-color" content="#BD5E39">
+<!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
+<script>
+if(location.protocol==='https:'){
+  var _gc=document.createElement('script');
+  _gc.async=true; _gc.src='https://gc.zgo.at/count.js';
+  _gc.setAttribute('data-goatcounter','https://linkou-toolbox.goatcounter.com/count');
+  document.head.appendChild(_gc);
+}
+</script>
+<script>
+/* 防同業以 iframe 內嵌冒用本工具（與學區頁一致） */
+(function(){
+  if(window.top===window.self)return;
+  try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
+  catch(e){ window.top.location.href=location.href; }
+})();
+</script>
+<style>
+  /* ── 人物卡：照片＋介紹＋聯絡按鈕（樣式沿用各工具頁聯絡卡，放大成主角） ── */
+  .profiles{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px}
+  .profile{padding:24px;border-top:4px solid var(--clay)}
+  .profile.p-wen{border-top-color:var(--teal)}
+  .profile .top{display:flex;gap:18px;align-items:flex-start}
+  .profile .photo{width:150px;height:200px;flex:0 0 auto;border-radius:12px;object-fit:cover;object-position:50% 12%;
+    border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow)}
+  .profile .info{flex:1 1 auto;min-width:0}
+  .profile .nm{font-family:var(--serif);font-weight:900;font-size:28px}
+  .profile .role{display:inline-block;font-size:12px;font-weight:700;color:var(--clay-d);
+    background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:3px 12px;margin-top:4px}
+  .profile.p-wen .role{color:var(--teal-d)}
+  .profile .intro{font-size:14px;line-height:1.95;color:var(--ink);margin:14px 0 16px}
+  .profile .acts{display:flex;gap:9px;flex-wrap:wrap}
+  .profile .acts a{flex:1 1 auto;text-align:center;text-decoration:none;font-size:15px;padding:13px 18px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
+  .profile .ph{font-size:17px;color:var(--ink-soft);margin:8px 0 12px}
+  .profile .lic{font-size:11px;color:#aa9b85;margin-top:12px;line-height:1.55}
+  @media(max-width:680px){
+    .profiles{grid-template-columns:1fr}
+    .profile .top{flex-direction:column;align-items:stretch}
+    .profile .photo{width:210px;height:280px;align-self:center;margin-bottom:4px}
+    .profile .info{text-align:center;max-width:320px;margin:0 auto}
+    .profile .intro{text-align:left}
+    .profile .lic{text-align:center}
+  }
+
+  /* ── 服務卡：沿用首頁工具卡的版型 ── */
+  .svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:6px}
+  .svc{display:flex;flex-direction:column;padding:26px 24px;border-top:4px solid var(--clay)}
+  .svc.s-sell{border-top-color:var(--gold)}
+  .svc.s-rent{border-top-color:var(--amber)}
+  .svc .sv-icon{font-size:34px;line-height:1;margin-bottom:12px}
+  .svc h3{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--ink);margin-bottom:8px}
+  .svc .sv-desc{font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px}
+  .svc ul{list-style:none;margin:0;display:flex;flex-direction:column;gap:8px}
+  .svc li{font-size:13.5px;color:var(--ink);padding-left:20px;position:relative;line-height:1.6}
+  .svc li::before{content:"✓";position:absolute;left:0;top:0;color:var(--teal);font-weight:900}
+  .svc .sv-tools{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--ink-soft);line-height:1.9}
+  .svc .sv-tools a{color:var(--clay-d);font-weight:700;text-decoration:none;white-space:nowrap}
+  .svc .sv-tools a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
+      <a href="./" class="active">🤝 關於我們</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge">太平洋房屋 · 林口捷運加盟店</span>
+      <h1>關於<span class="mk">我們</span></h1>
+      <p>我們是深耕林口的房仲夫妻檔。買屋、賣屋、租賃，一組電話全部搞定；這個網站上的工具，都是我們為客戶親手做的。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <div class="sec-title"><span class="bar"></span>我們是誰</div>
+
+  <div class="profiles">
+
+    <!-- 李天夏 -->
+    <section class="panel profile">
+      <div class="top">
+        <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+        <div class="info">
+          <div class="nm">李天夏</div>
+          <span class="role">不動產經紀人 · 營業員</span>
+          <div class="ph">📞 0936-123-288</div>
+          <div class="acts">
+            <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+            <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+          </div>
+        </div>
+      </div>
+      <div class="intro">
+        重視數字與依據的林口在地房仲：行情怎麼看、貸款怎麼算、契約哪裡要注意，都攤開來講清楚。
+        這個網站上的學區、公車、房貸、租約工具，都是他為了讓客戶少走冤枉路而親手打造，全部免費開放使用。
+      </div>
+      <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+    </section>
+
+    <!-- 温美慈 -->
+    <section class="panel profile p-wen">
+      <div class="top">
+        <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+        <div class="info">
+          <div class="nm">温美慈</div>
+          <span class="role">營業員</span>
+          <div class="ph">📞 0976-109-326</div>
+          <div class="acts">
+            <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+            <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+          </div>
+        </div>
+      </div>
+      <div class="intro">
+        與天夏搭檔服務的太太，擅長傾聽與陪伴。從第一次看屋、議價到交屋入住，把每個環節照顧得妥妥貼貼，
+        讓買屋賣屋的過程多一份安心。
+      </div>
+      <div class="lic">營業員字號 (113)登字第471408號</div>
+    </section>
+
+  </div>
+
+  <div class="sec-title"><span class="bar"></span>我們可以幫您什麼</div>
+
+  <div class="svc-grid">
+
+    <!-- 買屋協助 -->
+    <section class="panel svc">
+      <div class="sv-icon">🏡</div>
+      <h3>買屋協助</h3>
+      <div class="sv-desc">從需求釐清到交屋入住，一條龍陪您完成，每個決定都有數字當依據。</div>
+      <ul>
+        <li>需求釐清與物件篩選、帶看</li>
+        <li>學區、交通、生活機能分析</li>
+        <li>實價登錄行情與議價依據</li>
+        <li>房貸規劃與簽約流程把關</li>
+      </ul>
+      <div class="sv-tools">搭配工具：<a href="../school/">學區快查</a>　<a href="../bus/">公車路線</a>　<a href="../mortgage/">房貸試算</a></div>
+    </section>
+
+    <!-- 賣屋委託 -->
+    <section class="panel svc s-sell">
+      <div class="sv-icon">🔑</div>
+      <h3>賣屋委託</h3>
+      <div class="sv-desc">把您的房子當自己的房子賣，價格有憑有據、進度隨時回報。</div>
+      <ul>
+        <li>免費估價與周邊行情分析</li>
+        <li>太平洋房屋通路與網路曝光</li>
+        <li>帶看安排與屋況說明</li>
+        <li>斡旋議價到交屋的流程把關</li>
+      </ul>
+      <div class="sv-tools">搭配工具：<a href="../mortgage/">房貸試算</a>（幫買方算得清楚，成交更快）</div>
+    </section>
+
+    <!-- 租賃服務 -->
+    <section class="panel svc s-rent">
+      <div class="sv-icon">📄</div>
+      <h3>租賃服務</h3>
+      <div class="sv-desc">出租、承租都能找我們，契約比照內政部範本，權益不漏接。</div>
+      <ul>
+        <li>出租招租與租客媒合</li>
+        <li>住宅租賃契約簽訂（內政部範本）</li>
+        <li>屋況點交與現況確認書</li>
+      </ul>
+      <div class="sv-tools">搭配工具：<a href="../rent/">租約產生器</a></div>
+    </section>
+
+  </div>
+
+  <div class="disc" style="margin-top:24px">
+    💬 <b>找我們聊聊</b>：不論是剛開始看房、想了解自家房子的行情，還是租約上有疑問，都歡迎加 LINE 或來電，問問題不用錢。
+  </div>
+
+  <footer>
+    太平洋房屋・林口捷運加盟店 ｜ 李天夏 · 温美慈<br>
+    本網站工具結果僅供參考，不構成任何財務或法律建議
+  </footer>
+
+</div><!-- /wrap -->
+
+<script src="../internal-nav.js"></script>
+</body>
+</html>

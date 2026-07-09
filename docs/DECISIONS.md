@@ -5,6 +5,7 @@
 
 | 日期 | 決定 | 原因／備註 |
 |---|---|---|
+| 2026-07-09 | 學區 115 切換**改為先用戶政對照表切、官方門牌檔出來再重建 HOUSE**（取代 06-07「等官方檔」）：對照表已門牌級驗證（891 頁頁首＋37,395 筆序號零缺漏），COMMUNITY／HOUSE／LI／LK_GEO 一次全套切，不留新舊混用空窗 | 同行已用新里鄰圖比照，我們優勢在地址+社區完整建檔要先守住；官方檔時程不明，出來後再重建門牌庫補新門牌 |
 | 2026-07-06 | **整合站掛自訂網域 swcasa.com**（Cloudflare 註冊＋DNS only 灰雲＋Pages CNAME 綁定＋強制 HTTPS）；舊 github.io 網址含深層連結全部 301 永久轉址，發出去的舊連結不會死；og:url、bot 連結、report-logic 備用網址同步改新網域 | 品牌門面＋好記；同日一併上線 favicon 與 GoatCounter 流量統計（儀表板 linkou-toolbox.goatcounter.com） |
 | 2026-07-05 | **正式官方帳號（他＋太太共用）上線**：Worker 密鑰已換綁新帳號、webhook 已接、回應設定＝聊天開/自動回應關/Webhook開；bot 學區回覆同日升級 **Flex 圖卡**（school-logic 加 buildCardData、index.js 加 buildFlexCard，配色沿用網站設計系統） | 完成 06-23「等正式帳號」的待辦；舊測試帳號功成身退 |
 | 2026-07-05 | 社區情報 Flex 圖卡**改走 LIFF shareTargetPicker**（LINE Login channel＋LIFF，ID 2010606487-Km5pYNnK，endpoint＝toolbox /share/），以個人名義發送、免費、不吃官方帳號推播額度 | 取代 06-23「等正式帳號」的等待；bot 端 Flex 仍等正式帳號 |

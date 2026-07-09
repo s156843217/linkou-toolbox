@@ -66,6 +66,22 @@ if(location.protocol==='https:'){
     display:inline-flex;align-items:center;gap:6px}
   .tool-card .tc-go .arr{transition:transform .18s}
   .tool-card:hover .tc-go .arr{transform:translateX(4px)}
+
+  /* 認識我們卡：兩張大頭照＋一句話，整張可點連到 about/ */
+  .about-card{display:flex;align-items:center;gap:18px;padding:22px 24px;text-decoration:none;color:inherit;
+    border-top:4px solid var(--teal);transition:transform .18s, box-shadow .18s}
+  .about-card:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(60,44,28,.16)}
+  .about-card .faces{display:flex;flex-shrink:0}
+  .about-card .faces img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 12%;
+    border:2.5px solid #fff;box-shadow:var(--shadow);background:var(--bg)}
+  .about-card .faces img+img{margin-left:-14px}
+  .about-card .ac-txt{flex:1 1 auto;min-width:0}
+  .about-card .ac-txt h3{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--ink);margin-bottom:3px}
+  .about-card .ac-txt p{font-size:13.5px;color:var(--ink-soft);line-height:1.6}
+  .about-card .ac-go{flex-shrink:0;font-weight:700;font-size:14.5px;color:var(--clay-d);display:inline-flex;align-items:center;gap:6px}
+  .about-card .ac-go .arr{transition:transform .18s}
+  .about-card:hover .ac-go .arr{transform:translateX(4px)}
+  @media(max-width:560px){.about-card{flex-wrap:wrap}.about-card .ac-go{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -79,6 +95,7 @@ if(location.protocol==='https:'){
       <a href="bus/">🚌 公車路線</a>
       <a href="mortgage/">🏦 房貸試算</a>
       <a href="rent/">📄 租約產生器</a>
+      <a href="about/">🤝 關於我們</a>
     </div>
   </div>
 </nav>
@@ -153,6 +170,21 @@ if(location.protocol==='https:'){
     </a>
 
   </div>
+
+  <div class="sec-title"><span class="bar"></span>認識我們</div>
+
+  <!-- 認識我們：連到 about/ 簡介頁 -->
+  <a class="panel about-card" href="about/">
+    <span class="faces">
+      <img src="img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+      <img src="img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+    </span>
+    <span class="ac-txt">
+      <h3>李天夏 · 温美慈</h3>
+      <p>深耕林口的房仲夫妻檔——買屋、賣屋、租賃都能幫上忙，認識一下我們吧。</p>
+    </span>
+    <span class="ac-go">關於我們 <span class="arr">→</span></span>
+  </a>
 
   <div class="disc" style="margin-top:24px">
     ⚠️ <b>使用說明</b>：本工具箱所有試算與查詢結果均為估算，僅供參考。學區資料具時效性、房貸核貸視個人條件而定、租約文字請於正式簽署前核對。重大決策建議洽專業人士確認。

@@ -122,6 +122,10 @@ if(location.protocol==='https:'){
     background:#fff;cursor:pointer;color:var(--ink-soft);transition:.15s;font-family:var(--sans)}
   .zt:hover{border-color:var(--clay)}
   .zt.on{background:var(--clay);color:#fff;border-color:var(--clay)}
+  /* 圖層色對照：國小=陶土橘、國中=墨綠、里界=琥珀。膠囊前的小色點＋選中時膠囊變同色 */
+  .zt .zdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .zt.on[data-zone="jh"]{background:var(--teal);border-color:var(--teal)}
+  .zt.on[data-zone="li"]{background:var(--amber);border-color:var(--amber)}
   /* 地圖工具列：選學校看學區範圍的下拉（沿用膠囊外觀） */
   .zt-pick{font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1.5px solid var(--line);
     background:#fff;cursor:pointer;color:var(--ink);font-family:var(--sans)}
@@ -278,6 +282,7 @@ if(location.protocol==='https:'){
       <a href="../bus/">🚌 公車路線</a>
       <a href="../mortgage/">🏦 房貸試算</a>
       <a href="../rent/">📄 租約產生器</a>
+      <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
 </nav>
@@ -286,7 +291,7 @@ if(location.protocol==='https:'){
 
   <header class="hero">
     <div>
-      <span class="badge">114 學年度官方學區</span>
+      <span class="badge">115 學年度官方學區</span>
       <h1>林口<span class="mk">學區</span>快查</h1>
       <p>輸入地址或選里鄰，立刻查出國小、國中學區、額滿風險與設籍提醒，並在地圖上確認位置與里界範圍。</p>
     </div>
@@ -357,9 +362,9 @@ if(location.protocol==='https:'){
     <div>
       <div class="map-toggle">
         <span class="mt-label">地圖範圍</span>
-        <button class="zt on" data-zone="es">國小學區</button>
-        <button class="zt" data-zone="jh">國中學區</button>
-        <button class="zt" data-zone="li">里界</button>
+        <button class="zt on" data-zone="es"><span class="zdot" style="background:var(--clay)"></span>國小學區</button>
+        <button class="zt" data-zone="jh"><span class="zdot" style="background:var(--teal)"></span>國中學區</button>
+        <button class="zt" data-zone="li"><span class="zdot" style="background:var(--amber)"></span>里界</button>
         <select class="zt-pick" id="schoolPick" title="先選上方「國小學區／國中學區」，再從這裡挑學校看範圍">
           <option value="">🏫 選學校看範圍…</option>
         </select>
@@ -404,7 +409,7 @@ if(location.protocol==='https:'){
   </section>
 
   <div class="disc">
-    ⚠️ <b>重要提醒</b>：本工具依「114 學年度新北市國小／國中學區一覽表」整理。新北市林口區里鄰已自 <b>2026/7/1（民國 115 年）起重新編組並新增 4 個里</b>，民眾戶籍里鄰隨之異動；<b>本系統里鄰與學區資料仍為 114 學年度版本、更新中</b>，實際里鄰與 115 學年度學區請以戶政事務所及教育局「當年度最新公告」為準。額滿學校的最後設籍日亦每年變動，請一併向學校與區公所確認。
+    ⚠️ <b>重要提醒</b>：本工具依「115 學年度新北市國小／國中學區一覽表」整理，<b>已更新為 2026/7/1（民國 115 年）重新編組後的新里鄰</b>（含新增的新林里、力行里、頭湖里、文湖里）。門牌里鄰係依林口戶政事務所「新舊里鄰門牌對照表」轉換，待政府門牌開放資料完成更新後將再全面校正；實際里鄰與學區請以戶政事務所及教育局「當年度最新公告」為準。額滿學校的最後設籍日亦每年變動，請一併向學校與區公所確認。
   </div>
 
   <!-- 聯絡卡（置底） -->
@@ -445,7 +450,7 @@ if(location.protocol==='https:'){
   </section>
 
   <footer>
-    林口學區快查　|　資料來源：新北市政府教育局 114 學年度學區公告、新北市幼兒教育資源網、新北市林口區門牌座標資料<br>
+    林口學區快查　|　資料來源：新北市政府教育局 115 學年度學區公告、新北市幼兒教育資源網、新北市林口區門牌座標資料（115/7/1 里鄰調整已依戶政對照表轉換）<br>
     地圖：© OpenStreetMap 貢獻者　|　里界範圍依官方門牌座標重建　|　本工具僅供參考，正式入學資格請以學校公告為準
   </footer>
 </div>
@@ -487,7 +492,7 @@ let lastResult=null;
 function pointInRing(x,y,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside;}return inside;}
 function pointInFeature(lon,lat,geom){const polys=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates;for(const poly of polys){if(pointInRing(lon,lat,poly[0])){let hole=false;for(let h=1;h<poly.length;h++){if(pointInRing(lon,lat,poly[h])){hole=true;break;}}if(!hole)return true;}}return false;}
 function liAtPoint(lat,lon){for(const f of LK_GEO.features){if(pointInFeature(lon,lat,f.geometry))return f.properties.li;}return null;}
-function drawLi(name){if(liLayer){map.removeLayer(liLayer);liLayer=null;}const f=LK_GEO.features.find(x=>x.properties.li===name);if(!f)return;liLayer=L.geoJSON(f,{style:{color:'#BD5E39',weight:2,fillColor:'#BD5E39',fillOpacity:.10}}).addTo(map);}
+function drawLi(name){if(liLayer){map.removeLayer(liLayer);liLayer=null;}const f=LK_GEO.features.find(x=>x.properties.li===name);if(!f)return;liLayer=L.geoJSON(f,{style:{color:'#C2902B',weight:2,fillColor:'#C2902B',fillOpacity:.10}}).addTo(map);}   /* 里界一律琥珀色，與國小(橘)/國中(綠)區隔 */
 /* 把地圖移到目前框圖層範圍 */
 function fitToLayer(){if(liLayer){try{map.fitBounds(liLayer.getBounds(),{padding:[40,40],maxZoom:16});}catch(e){}}}
 function focusLi(name){const f=LK_GEO.features.find(x=>x.properties.li===name);if(!f)return;try{const lyr=L.geoJSON(f);map.fitBounds(lyr.getBounds(),{padding:[40,40],maxZoom:16});}catch(e){}}
@@ -503,9 +508,9 @@ function drawZone(fit){
     const {group}=buildSchoolZoneLayer(school,mapZone);
     if(group.getLayers().length){ group.addTo(map); liLayer=group; if(fit)fitToLayer(); return; }
   }
-  // 里界，或（自由學區／未指定鄰，無單一基本學校時）退回顯示所在里
+  // 里界，或（自由學區／未指定鄰，無單一基本學校時）退回顯示所在里——畫的是里界就用琥珀色
   if(zoneCtx.li){
-    const color=mapZone==='jh'?'#3C7A62':'#BD5E39';
+    const color='#C2902B';
     const g=LK_GEO.features.find(x=>x.properties.li===zoneCtx.li);
     if(g){ liLayer=L.geoJSON(g,{style:{color,weight:2.5,fillColor:color,fillOpacity:.10}}).addTo(map);
            liLayer.bindTooltip(zoneCtx.li,{permanent:false,direction:'center',className:'zone-tip'}); if(fit)fitToLayer(); }
