@@ -33,6 +33,7 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add $FILES
             git commit -m "自動更新：林口實價登錄（$(date +%F)）"
+            git pull --rebase origin main   # 防與人工 push 撞車（跑到一半有人 push 會被拒）
             git push
             echo "已 push 更新"
           else
