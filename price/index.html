@@ -563,11 +563,12 @@ document.querySelectorAll('#typePills .pill').forEach(b=>b.addEventListener('cli
   if(lastQuery)renderQuery(); else renderLatest(true);
 }));
 
-/* 深連結：?c=社區名（LINE 圖卡、報告頁都用這個）；相容 #q= */
+/* 深連結：?c=社區名或地址（LINE 圖卡、報告頁都用這個）；相容 #q= */
 function handleDeepLink(){
   const c=new URLSearchParams(location.search).get('c')
         ||(location.hash.startsWith('#q=')?decodeURIComponent(location.hash.slice(3)):null);
   if(!c)return false;
+  if(/\d.*號|巷|弄/.test(toHalf(c))){$("#qInput").value=c;runAddress(c);return true;}   // 像地址就走地址查
   const items=searchComm(c);
   if(items.length>=1){runCommunity(items[0]);return true;}
   $("#qInput").value=c;
