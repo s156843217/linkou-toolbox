@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>林口置產工具箱 — 一站式置產服務</title>
 <!-- 搜尋引擎描述 + LINE/FB 分享預覽卡（Open Graph） -->
-<meta name="description" content="學區快查、公車路線、房貸試算、租約產生器，一個網站搞定林口購屋與租賃的大小事。太平洋房屋・林口捷運加盟店。">
+<meta name="description" content="學區快查、社區行情、公車路線、房貸試算、租約產生器，一個網站搞定林口購屋與租賃的大小事。太平洋房屋・林口捷運加盟店。">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="林口置產工具箱">
 <meta property="og:locale" content="zh_TW">
 <meta property="og:title" content="林口置產工具箱 — 一站式置產服務">
-<meta property="og:description" content="學區快查、公車路線、房貸試算、租約產生器，一個網站搞定林口購屋與租賃的大小事。">
+<meta property="og:description" content="學區快查、社區行情、公車路線、房貸試算、租約產生器，一個網站搞定林口購屋與租賃的大小事。">
 <meta property="og:url" content="https://swcasa.com/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,6 +50,7 @@ if(location.protocol==='https:'){
 
   /* 三個工具各自的頂條色，呼應全站色系 */
   .tool-card.t-school{border-top-color:var(--clay)}
+  .tool-card.t-price{border-top-color:var(--red)}
   .tool-card.t-bus{border-top-color:var(--gold)}
   .tool-card.t-loan{border-top-color:var(--teal)}
   .tool-card.t-rent{border-top-color:var(--amber)}
@@ -92,6 +93,7 @@ if(location.protocol==='https:'){
     <a href="./" class="nav-logo">林口置產工具箱</a>
     <div class="nav-links">
       <a href="school/">🏫 學區快查</a>
+      <a href="price/">📈 社區行情</a>
       <a href="bus/">🚌 公車路線</a>
       <a href="mortgage/">🏦 房貸試算</a>
       <a href="rent/">📄 租約產生器</a>
@@ -106,7 +108,7 @@ if(location.protocol==='https:'){
     <div>
       <span class="badge">林口一站式置產服務</span>
       <h1>林口<span class="mk">置產</span>工具箱</h1>
-      <p>從學區、房貸到租約，一個網站搞定購屋與租賃的大小事。選一個工具開始：</p>
+      <p>從學區、行情、房貸到租約，一個網站搞定購屋與租賃的大小事。選一個工具開始：</p>
     </div>
     <div class="yr">
       <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
@@ -128,6 +130,19 @@ if(location.protocol==='https:'){
         <li>附幼兒園名額、額滿學校設籍日</li>
       </ul>
       <span class="tc-go">查詢學區 <span class="arr">→</span></span>
+    </a>
+
+    <!-- 社區行情 -->
+    <a class="panel tool-card t-price" href="price/">
+      <div class="tc-icon">📈</div>
+      <h3>林口社區行情</h3>
+      <div class="tc-desc">輸入社區名或門牌地址，逐筆列出近三年實價登錄成交明細，含成屋與預售，每月自動更新。</div>
+      <ul>
+        <li>成屋＋預售逐筆成交明細</li>
+        <li>樓層、單價、車位、公設比一目了然</li>
+        <li>附 150 公尺鄰近成交參考</li>
+      </ul>
+      <span class="tc-go">查行情 <span class="arr">→</span></span>
     </a>
 
     <!-- 公車路線 -->

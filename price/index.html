@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社區行情查詢 — 林口置產工具箱</title>
+<!-- 搜尋引擎描述 + LINE/FB 分享預覽卡（Open Graph） -->
+<meta name="description" content="輸入社區名或門牌地址，查林口近三年實價登錄逐筆成交明細（成屋＋預售），含樓層、單價、車位與公設比，並附 150 公尺內鄰近成交參考。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="林口置產工具箱">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:title" content="社區行情查詢 — 林口置產工具箱">
+<meta property="og:description" content="輸入社區名或門牌地址，查林口近三年實價登錄逐筆成交明細（成屋＋預售），含樓層、單價、車位與公設比，並附 150 公尺內鄰近成交參考。">
+<meta property="og:url" content="https://swcasa.com/price/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
+<link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
+<link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
+<meta name="theme-color" content="#BD5E39">
+<!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
+<script>
+if(location.protocol==='https:'){
+  var _gc=document.createElement('script');
+  _gc.async=true; _gc.src='https://gc.zgo.at/count.js';
+  _gc.setAttribute('data-goatcounter','https://linkou-toolbox.goatcounter.com/count');
+  document.head.appendChild(_gc);
+}
+</script>
+<script>
+/* 防同業以 iframe 內嵌冒用本工具：偵測到被「他站」內嵌就把整頁導回本站。 */
+(function(){
+  if(window.top===window.self)return;
+  try{
+    if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; }
+  }catch(e){ window.top.location.href=location.href; }
+})();
+</script>
+<style>
+  /* ── 查詢區 ── */
+  .search{margin-top:18px;padding:20px}
+  .search .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .autocomplete{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;z-index:1000;display:none}
+  .autocomplete.show{display:block}
+  .ac-item{padding:11px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--bg2);transition:.15s}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:hover,.ac-item.active{background:var(--bg2)}
+  .ac-item .li-tag{font-size:11px;color:var(--clay-d);background:var(--bg2);padding:2px 7px;border-radius:6px;margin-left:8px;font-weight:700}
+  .ac-empty{padding:12px 14px;font-size:13px;color:var(--ink-soft);font-style:italic}
+
+  /* 型態切換膠囊 */
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .pill{border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);font-family:var(--sans);font-weight:700;
+    font-size:13px;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.15s}
+  .pill:hover{border-color:var(--clay)}
+  .pill.on{background:var(--clay);border-color:var(--clay);color:#fff}
+
+  /* ── 統計摘要 ── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px}
+  .stat{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+  .stat .k{font-size:12px;color:var(--ink-soft);font-weight:700}
+  .stat .v{font-family:var(--serif);font-weight:900;font-size:22px;color:var(--clay-d);margin-top:2px}
+  .stat .v small{font-size:12px;font-weight:700;color:var(--ink-soft)}
+
+  /* 放寬提示（樣本不足自動放寬時的表頭說明） */
+  .widen-note{background:#FBF3E0;border:1px solid #EBD8AE;border-radius:10px;padding:8px 14px;
+    font-size:13px;color:#7a6a3e;margin-top:12px;font-weight:700}
+
+  /* ── 明細表（電腦版） ── */
+  .tbl-wrap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+  table.pt{width:100%;border-collapse:collapse;font-size:13.5px;min-width:860px}
+  .pt th{position:sticky;top:0;background:var(--bg2);color:var(--ink-soft);font-size:12px;letter-spacing:.4px;
+    text-align:right;padding:10px 10px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+  .pt th:nth-child(-n+4){text-align:left}
+  .pt td{padding:9px 10px;border-bottom:1px solid var(--bg2);text-align:right;white-space:nowrap}
+  .pt td:nth-child(-n+4){text-align:left}
+  .pt tr:last-child td{border-bottom:none}
+  .pt tr:hover td{background:#FDF9F1}
+  .pt .addr{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+  .pt .addr .sub-a{display:block;font-size:11.5px;color:var(--ink-soft)}
+  .pt .t-price{font-weight:900;color:var(--clay-d)}
+  .pt .t-unit{font-weight:900;color:var(--teal-d)}
+  tr.hl td{background:#F3EEE2}
+  tr.hl:hover td{background:#EFE8D8}
+
+  /* 型態小標 */
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;
+    background:var(--bg2);color:var(--ink-soft);white-space:nowrap}
+  .tag.pre{background:#E7F0EB;color:var(--teal-d)}
+  .tag.house{background:#FBF3E0;color:#7a6a3e}
+  .dist-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;
+    background:#EDF2F7;color:#4a5f74;margin-left:6px;white-space:nowrap}
+
+  /* ── 明細卡（手機版） ── */
+  .cards{display:none;margin-top:14px}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .pcard.hl{background:#F7F2E6;border-color:#E0D2B4}
+  .pcard .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .pcard .date{font-size:12.5px;color:var(--ink-soft);font-weight:700}
+  .pcard .nm{font-weight:900;font-size:15.5px;margin-top:4px;line-height:1.4}
+  .pcard .nm .sub-a{display:block;font-size:12px;color:var(--ink-soft);font-weight:400}
+  .pcard .figs{display:flex;gap:16px;margin-top:8px;align-items:baseline}
+  .pcard .figs .tp{font-family:var(--serif);font-weight:900;font-size:21px;color:var(--clay-d)}
+  .pcard .figs .up{font-family:var(--serif);font-weight:900;font-size:17px;color:var(--teal-d)}
+  .pcard .figs small{font-size:11px;color:var(--ink-soft);font-weight:700}
+  .pcard .meta{display:flex;gap:10px 16px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-soft)}
+  .pcard .meta b{color:var(--ink)}
+  @media(max-width:760px){ .tbl-wrap{display:none} .cards{display:block} }
+
+  .more-wrap{text-align:center;margin-top:14px}
+  .empty-box{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px;text-align:center;
+    color:var(--ink-soft);font-size:14px;margin-top:14px}
+
+  /* ── 聯絡卡（與他頁同款） ── */
+  .contact{margin-top:18px;padding:22px}
+  .contact .co{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--clay-d);display:flex;align-items:center;gap:8px}
+  .contact .sub{font-size:13px;color:var(--ink-soft);margin:4px 0 16px}
+  .agents{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.agents{grid-template-columns:1fr} .agent .top{flex-direction:column;align-items:stretch} .agent .photo{width:210px;height:280px;align-self:center;margin-bottom:4px} .agent .info{text-align:center;max-width:300px;margin:0 auto} .agent .lic{text-align:center} .agent .nm{font-size:25px} .agent .ph{font-size:16px}}
+  .agent{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg2)}
+  .agent .top{display:flex;gap:14px;align-items:center}
+  .agent .photo{width:160px;height:210px;flex:0 0 auto;border-radius:12px;object-fit:cover;object-position:50% 12%;border:1px solid var(--line);background:var(--bg);box-shadow:var(--shadow)}
+  .agent .info{flex:1 1 auto;min-width:0}
+  .agent .nm{font-family:var(--serif);font-weight:900;font-size:30px}
+  .agent .ph{font-size:19px;color:var(--ink-soft);margin:4px 0 16px}
+  .agent .acts{display:flex;gap:9px;flex-wrap:wrap}
+  .agent .acts a{flex:1 1 auto;text-align:center;text-decoration:none;font-size:16px;padding:14px 20px}
+  .btn-line{background:#06C755;color:#fff} .btn-line:hover{background:#05b34d}
+  .btn-call{background:#2C2620;color:#fff} .btn-call:hover{background:#000}
+  .lic{font-size:11px;color:#aa9b85;margin-top:11px;line-height:1.55}
+
+  /* 右下角固定品牌浮水印（與他頁同款） */
+  .brand-badge{position:fixed;right:14px;bottom:14px;z-index:1200;text-align:right;text-decoration:none;
+    font-family:var(--sans);font-size:12px;line-height:1.45;color:#F3E6CE;
+    background:rgba(44,38,32,.92);padding:8px 12px;border-radius:12px;
+    border:1px solid rgba(243,230,206,.28);box-shadow:var(--shadow);
+    opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .25s,transform .2s,background .15s}
+  .brand-badge.show{opacity:1;pointer-events:auto;transform:none}
+  .brand-badge b{display:block;font-family:var(--serif);font-size:13px;color:#fff;letter-spacing:.3px}
+  .brand-badge.show:hover{background:rgba(44,38,32,1);transform:translateY(-2px)}
+  @media(max-width:600px){.brand-badge{font-size:11px;padding:6px 9px;right:8px;bottom:8px}.brand-badge b{font-size:12px}}
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列 -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../price/" class="active">📈 社區行情</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
+      <a href="../about/">🤝 關於我們</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <span class="badge" id="heroBadge">內政部實價登錄 · 每月自動更新</span>
+      <h1>林口<span class="mk">社區行情</span>查詢</h1>
+      <p>輸入社區名或門牌地址，逐筆列出近三年實價登錄成交明細（成屋＋預售），含樓層、單價、車位與公設比，並附 150 公尺內鄰近成交參考。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <!-- 查詢區 -->
+  <section class="panel search">
+    <div class="row">
+      <div class="field" style="position:relative">
+        <label class="lbl">🏘️ 輸入社區名或門牌地址</label>
+        <input type="text" id="qInput" placeholder="例：世紀長虹、文化三路一段100號…" autocomplete="off">
+        <div id="qList" class="autocomplete"></div>
+      </div>
+      <button class="btn" id="qBtn">📈 查行情</button>
+    </div>
+    <div class="hint">內建 <b>962 筆</b>社區資料庫（支援模糊搜尋與俗稱）；預售建案直接用官方登錄的<b>建案名稱</b>比對。查無社區時可改輸入完整門牌地址。樣本太少會自動放寬期間並附上鄰近成交參考。</div>
+    <div class="pills" id="typePills">
+      <button class="pill on" data-t="all">全部型態</button>
+      <button class="pill" data-t="r">成屋</button>
+      <button class="pill" data-t="p">預售</button>
+      <button class="pill" data-t="h">透天／別墅</button>
+    </div>
+  </section>
+
+  <!-- 統計摘要（樣本 ≥5 才顯示） -->
+  <div id="statsBox" style="display:none"></div>
+
+  <!-- 查詢結果：本社區成交 -->
+  <div id="mainSec" style="display:none">
+    <h2 class="sec-title"><span class="bar"></span><span id="mainTitle"></span></h2>
+    <div id="mainNote"></div>
+    <div id="mainList"></div>
+  </div>
+
+  <!-- 查詢結果：鄰近參考 -->
+  <div id="nearSec" style="display:none">
+    <h2 class="sec-title"><span class="bar"></span><span id="nearTitle"></span></h2>
+    <div class="hint" style="margin:0 4px 10px">以社區位置為中心、方圓約 150 公尺內的其他成交（依官方門牌座標計算），供比價參考；屋齡與條件可能與本社區不同。</div>
+    <div id="nearList"></div>
+  </div>
+
+  <!-- 未查詢時：全區最新成交 -->
+  <div id="allSec">
+    <h2 class="sec-title"><span class="bar"></span>林口最新成交</h2>
+    <div id="allList"></div>
+    <div class="more-wrap"><button class="btn ghost" id="moreBtn">載入更多</button></div>
+  </div>
+
+  <div class="disc" id="discBox">
+    ⚠️ <b>重要提醒</b>：本表整理自「內政部不動產實價登錄」開放資料（每月自動更新），單價口徑＝（總價 − 車位總價）÷ 不含車位坪數；已排除備註特殊交易（親友交易、債務抵償等）與預售解約件，透天／別墅因含土地價值以「型態」標示、單價不宜與大樓直接相比。逐筆資料忠實呈現官方登錄內容（含少數登錄缺漏），正式資訊請以<b>內政部實價登錄網站</b>為準。
+  </div>
+
+  <!-- 聯絡卡（置底） -->
+  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact">
+    <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
+    <div class="sub">想知道自家社區值多少、或想進一步了解某社區，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
+    <div class="agents">
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-lee.png" alt="李天夏" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">李天夏</div>
+            <div class="ph">📞 0936-123-288</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/oCqi-eVJvI" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0936123288">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">不動產經紀人 (114)新北經字第004786號<br>營業員字號 (108)登字第352140號</div>
+      </div>
+      <div class="agent">
+        <div class="top">
+          <img class="photo" src="../img/agent-wen.png" alt="温美慈" loading="lazy" onerror="this.style.display='none'">
+          <div class="info">
+            <div class="nm">温美慈</div>
+            <div class="ph">📞 0976-109-326</div>
+            <div class="acts">
+              <a class="btn btn-line" href="https://line.me/ti/p/KLYEW95HzP" target="_blank" rel="noopener">＋ 加 LINE</a>
+              <a class="btn btn-call" href="tel:0976109326">撥打電話</a>
+            </div>
+          </div>
+        </div>
+        <div class="lic">營業員字號 (113)登字第471408號</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    林口社區行情查詢　|　資料來源：內政部不動產實價登錄開放資料（每月自動更新）、新北市林口區門牌座標資料<br>
+    本工具僅供參考，不構成任何價格保證或投資建議，正式資訊請以內政部實價登錄網站為準
+  </footer>
+</div>
+
+<!-- 右下角固定品牌浮水印：往下捲離頂部後才淡入，點擊捲到聯絡區 -->
+<a class="brand-badge" href="#contact"><b>太平洋房屋 · 林口捷運加盟店</b>李天夏 · 温美慈　☎ 點我聯絡</a>
+<script>
+(function(){
+  var b=document.querySelector('.brand-badge'); if(!b)return;
+  var f=function(){ b.classList.toggle('show', window.scrollY>220); };
+  window.addEventListener('scroll',f,{passive:true}); f();
+})();
+</script>
+
+<div class="toast" id="toast"></div>
+
+<!-- 資料與共用純函式：linkou-data(社區/門牌) → report-logic(parseHouse/houseCoord/distM) → price-list-data(逐筆行情) -->
+<script src="../linkou-data.js"></script>
+<script src="../report-logic.js"></script>
+<script src="../price-list-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let toastTimer=null;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ── 資料展開：緊湊陣列 → 物件（欄位意義見 price-list-data.js 檔頭） ── */
+const RECS = PRICE_ROWS.map(row=>{
+  const o={}; PRICE_COLS.forEach((c,i)=>o[c]=row[i]); return o;
+});
+
+/* 座標與門牌解析快取：只在第一次查詢時算（9 千筆約零點幾秒，開頁不卡） */
+let COORDS=null, PARSED=null;
+function ensureCoords(){
+  if(COORDS)return;
+  COORDS=new Array(RECS.length); PARSED=new Array(RECS.length);
+  RECS.forEach((r,i)=>{
+    PARSED[i]=parseHouse(r.a);
+    const c=houseCoord(r.a);            // 預售工地地址常查不到座標，查不到就不進鄰近參考
+    COORDS[i]=c?[c.lat,c.lon]:null;
+  });
+}
+
+/* ── 顯示小工具 ── */
+function dTxt(d){const s=String(d);return s.slice(0,3)+'/'+s.slice(3,5)+'/'+s.slice(5);}
+function ageTxt(r){
+  if(r.k==='p')return'預售';
+  if(!r.by)return'—';
+  const a=Math.floor(r.d/10000)-r.by;
+  return a<=0?'新成屋':a+'年';
+}
+function floorTxt(r){
+  if(r.f==='全')return'整棟';
+  if(r.f)return r.f+(r.tf?'/'+r.tf:'')+'F';
+  return r.tf?('—/'+r.tf+'F'):'—';
+}
+function parkTxt(r){
+  if(!r.ps&&!r.pp)return'—';
+  return (PRICE_PT[r.pt]||'有車位')+(r.pp?' '+fmt(r.pp)+'萬':'');
+}
+function unitTxt(r){return r.u?r.u.toFixed(1):'—';}
+function gsTxt(r){return r.gs<0?'—':r.gs+'%';}
+function btTag(r){
+  const n=PRICE_BT[r.bt]||'';
+  const cls=(r.bt===3||r.bt===4)?'tag house':(r.k==='p'?'tag pre':'tag');
+  return `<span class="${cls}">${r.k==='p'?'預售 · ':''}${esc(n)}</span>`;
+}
+function nameCell(r){
+  if(r.k==='p'&&r.cm)return `<b>${esc(r.cm)}</b><span class="sub-a">${esc(r.a)}</span>`;
+  return esc(r.a);
+}
+
+/* ── 明細呈現：電腦橫表＋手機卡片（CSS 依寬度只顯示其一） ── */
+function tableHTML(rows,withDist){
+  let h=`<div class="tbl-wrap"><table class="pt"><thead><tr>
+    <th>成交日</th><th>社區／門牌</th><th>型態</th><th>樓層</th><th>屋齡</th>
+    <th>總坪</th><th>房</th><th>總價</th><th>單價<small>萬/坪</small></th><th>車位</th><th>公設比</th></tr></thead><tbody>`;
+  for(const r of rows){
+    h+=`<tr${r._hl?' class="hl"':''}>
+      <td>${dTxt(r.d)}</td>
+      <td class="addr">${nameCell(r)}${withDist&&r._dist!=null?`<span class="dist-tag">${r._dist}m</span>`:''}</td>
+      <td>${btTag(r)}</td>
+      <td>${floorTxt(r)}</td><td>${ageTxt(r)}</td>
+      <td>${r.s?r.s.toFixed(1):'—'}</td><td>${r.r||'—'}</td>
+      <td class="t-price">${fmt(r.t)}萬</td>
+      <td class="t-unit">${unitTxt(r)}</td>
+      <td>${parkTxt(r)}</td><td>${gsTxt(r)}</td></tr>`;
+  }
+  return h+`</tbody></table></div>`;
+}
+function cardsHTML(rows,withDist){
+  let h=`<div class="cards">`;
+  for(const r of rows){
+    h+=`<div class="pcard${r._hl?' hl':''}">
+      <div class="top"><span class="date">${dTxt(r.d)}</span>
+        <span>${btTag(r)}${withDist&&r._dist!=null?`<span class="dist-tag">${r._dist}m</span>`:''}</span></div>
+      <div class="nm">${nameCell(r)}</div>
+      <div class="figs">
+        <span class="tp">${fmt(r.t)}<small>萬</small></span>
+        <span class="up">${unitTxt(r)}<small>萬/坪</small></span>
+      </div>
+      <div class="meta">
+        <span>樓層 <b>${floorTxt(r)}</b></span><span>屋齡 <b>${ageTxt(r)}</b></span>
+        <span>總坪 <b>${r.s?r.s.toFixed(1):'—'}</b></span><span>房 <b>${r.r||'—'}</b></span>
+        <span>車位 <b>${parkTxt(r)}</b></span><span>公設比 <b>${gsTxt(r)}</b></span>
+      </div></div>`;
+  }
+  return h+`</div>`;
+}
+function listHTML(rows,withDist){return tableHTML(rows,withDist)+cardsHTML(rows,withDist);}
+
+/* ── 型態篩選膠囊 ── */
+let curType='all';
+function applyType(rows){
+  if(curType==='r')return rows.filter(r=>r.k==='r'&&r.bt!==3&&r.bt!==4);
+  if(curType==='p')return rows.filter(r=>r.k==='p');
+  if(curType==='h')return rows.filter(r=>r.bt===3||r.bt===4);
+  return rows;
+}
+
+/* ── 樣本不足自動放寬：近 1 年 → 2 年 → 3 年（滿 5 筆就停） ── */
+function widen(rows){
+  const md=PRICE_META.maxDate;
+  for(const yrs of [1,2,3]){
+    const w=rows.filter(r=>r.d>=md-yrs*10000);
+    if(w.length>=5||yrs===3)return {rows:w,yrs};
+  }
+}
+
+/* ── 統計摘要（樣本 ≥5 才顯示；透天含土地價值，不列入單價統計） ── */
+function median(arr){
+  if(!arr.length)return null;
+  const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2);
+  return a.length%2?a[m]:(a[m-1]+a[m])/2;
+}
+function renderStats(rows,yrs){
+  const box=$("#statsBox");
+  const stat=rows.filter(r=>r.bt!==3&&r.bt!==4&&r.u>0);
+  if(stat.length<5){box.style.display='none';box.innerHTML='';return;}
+  const u=median(stat.map(r=>r.u)), t=median(stat.map(r=>r.t)), s=median(stat.map(r=>r.s));
+  box.innerHTML=`<div class="stats">
+    <div class="stat"><div class="k">單價中位數（近 ${yrs} 年）</div><div class="v">${u.toFixed(1)}<small> 萬/坪</small></div></div>
+    <div class="stat"><div class="k">總價中位數</div><div class="v">${fmt(t)}<small> 萬</small></div></div>
+    <div class="stat"><div class="k">坪數中位數（含車位）</div><div class="v">${s.toFixed(1)}<small> 坪</small></div></div>
+    <div class="stat"><div class="k">樣本數</div><div class="v">${stat.length}<small> 筆${stat.length!==rows.length?'（不含透天）':''}</small></div></div>
+  </div>`;
+  box.style.display='block';
+}
+
+/* ── 查詢主流程 ──
+   社區模式：預售用「建案名稱」模糊比對；成屋用社區建檔地址的「路＋巷弄＋號」精準比對；
+             再以社區座標抓方圓 150m 鄰近成交當參考（樂居沒有的差異化）。
+   地址模式：同上，但中心點＝輸入的門牌。 */
+let lastQuery=null;   // {label, exact:[], near:[]}（切換型態膠囊時重畫用）
+
+function normalizeComm(s){return (s||'').replace(/管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人/g,'').toLowerCase().trim();}
+
+function collectRows(label,p,center,nq){
+  ensureCoords();
+  RECS.forEach(r=>{delete r._hl;delete r._dist;});   // 清掉上一次查詢的高亮/距離標記
+  const exact=[],near=[];
+  const base=p?p.num.split('-')[0]:null;
+  RECS.forEach((r,i)=>{
+    if(nq&&r.k==='p'&&r.cm){
+      const nc=normalizeComm(r.cm);
+      if(nc&&nc.length>=2&&(nc===nq||nc.includes(nq)||nq.includes(nc))){exact.push(r);return;}
+    }
+    if(p&&PARSED[i]&&PARSED[i].road===p.road&&PARSED[i].lk===p.lk&&PARSED[i].num.split('-')[0]===base){exact.push(r);return;}
+    if(center&&COORDS[i]){
+      const dm=distM(center.lat,center.lon,COORDS[i][0],COORDS[i][1]);
+      if(dm<=150){r._dist=Math.round(dm);near.push(r);}
+    }
+  });
+  exact.forEach(r=>r._hl=true);
+  lastQuery={label,exact,near,hasCenter:!!center};
+  renderQuery();
+}
+
+function renderQuery(){
+  const q=lastQuery; if(!q)return;
+  const exactT=applyType(q.exact);
+  const w=widen(exactT);
+  $("#allSec").style.display='none';
+
+  // 本社區成交
+  $("#mainSec").style.display='block';
+  $("#mainTitle").textContent=`「${q.label}」成交明細`;
+  let note='';
+  if(w.rows.length&&w.yrs>1)note=`<div class="widen-note">近 1 年成交較少，已自動放寬顯示<b>近 ${w.yrs} 年</b>共 ${w.rows.length} 筆。</div>`;
+  else if(w.rows.length)note=`<div class="widen-note" style="background:#EAF3EE;border-color:#CBE2D4;color:var(--teal-d)">近 1 年共 ${w.rows.length} 筆成交。</div>`;
+  $("#mainNote").innerHTML=note;
+  $("#mainList").innerHTML=w.rows.length
+    ? listHTML(w.rows,false)
+    : `<div class="empty-box">近三年查無「${esc(q.label)}」的直接成交紀錄${q.hasCenter?'，可參考下方鄰近成交':''}。<br>
+       <span style="font-size:12.5px">提示：成屋依社區建檔門牌比對，同社區不同棟門牌可能落在「鄰近參考」；也可改輸入完整門牌地址查。</span></div>`;
+  renderStats(w.rows,w.yrs);
+
+  // 鄰近參考（有座標才有）
+  const nearT=applyType(q.near).filter(r=>r.d>=PRICE_META.maxDate-w.yrs*10000)
+    .sort((a,b)=>b.d-a.d).slice(0,40);
+  if(q.hasCenter&&nearT.length){
+    $("#nearSec").style.display='block';
+    $("#nearTitle").textContent=`鄰近 150 公尺成交參考（近 ${w.yrs} 年）`;
+    $("#nearList").innerHTML=listHTML(nearT,true);
+  }else{
+    $("#nearSec").style.display='none';
+  }
+  $("#mainSec").scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function runCommunity(name){
+  const c=COMMUNITY[name];
+  if(!c){toast('查無此社區');return;}
+  $("#qInput").value=name;
+  $("#qList").classList.remove('show');
+  const p=c.addr?parseHouse(c.addr):null;
+  const center=c.addr?houseCoord(c.addr):null;
+  collectRows(name,p,center,normalizeComm(name));
+  history.replaceState(null,'','?c='+encodeURIComponent(name));
+}
+function runAddress(addr){
+  const p=parseHouse(addr);
+  if(!p){toast('看不懂這個地址，請輸入含路名與號的完整門牌');return;}
+  $("#qList").classList.remove('show');
+  const center=houseCoord(addr);
+  const disp=toHalf(addr).replace(/^(新北市)?林口區/,'').trim();
+  collectRows(disp,p,center,null);
+  history.replaceState(null,'',location.pathname);
+}
+
+/* ── 全區最新成交（未查詢時的預設畫面） ── */
+let shown=0;
+const PAGE=60;
+function renderLatest(reset){
+  if(reset)shown=0;
+  const rows=applyType(RECS);
+  shown=Math.min(shown+PAGE,rows.length);
+  $("#allList").innerHTML=listHTML(rows.slice(0,shown),false);
+  $("#moreBtn").style.display=shown<rows.length?'':'none';
+}
+$("#moreBtn").addEventListener('click',()=>renderLatest(false));
+
+/* ── 社區搜尋（autocomplete；與學區頁同款邏輯，離線比對） ── */
+const COMM_NAMES=Object.keys(COMMUNITY);
+const COMM_NORM=Object.fromEntries(COMM_NAMES.map(n=>[n,normalizeComm(n)]));
+let acIdx=-1;
+function searchComm(q){
+  if(!q)return [];
+  const aliasKey=Object.keys(ALIASES).find(k=>k.includes(q)||q.includes(k));
+  if(aliasKey&&COMMUNITY[ALIASES[aliasKey]])return [ALIASES[aliasKey]];
+  const nq=normalizeComm(q);
+  if(!nq)return [];
+  return COMM_NAMES.filter(n=>COMM_NORM[n].includes(nq)||n.toLowerCase().includes(q.toLowerCase())).slice(0,12);
+}
+function showAc(items,q){
+  const box=$("#qList");
+  if(!items.length){
+    if(q&&q.length>=2&&!/\d/.test(q)){
+      box.innerHTML=`<div class="ac-empty">社區資料庫查無「${esc(q)}」——若是預售新案可直接按「查行情」用建案名稱比對，或改輸入完整門牌地址。</div>`;
+      box.classList.add('show');
+    }else box.classList.remove('show');
+    return;
+  }
+  box.innerHTML=items.map((n,i)=>{
+    const c=COMMUNITY[n];
+    const tag=c.li?`<span class="li-tag">${c.li}</span>`:'';
+    return `<div class="ac-item${i===acIdx?' active':''}" data-name="${esc(n)}">${esc(n)}${tag}</div>`;
+  }).join('');
+  box.classList.add('show');
+  box.querySelectorAll('.ac-item').forEach(el=>el.addEventListener('click',()=>runCommunity(el.dataset.name)));
+}
+$("#qInput").addEventListener('input',()=>{acIdx=-1;showAc(searchComm($("#qInput").value.trim()),$("#qInput").value.trim());});
+$("#qInput").addEventListener('keydown',e=>{
+  const items=searchComm($("#qInput").value.trim());
+  if(e.key==='ArrowDown'){e.preventDefault();acIdx=Math.min(items.length-1,acIdx+1);showAc(items,$("#qInput").value);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acIdx=Math.max(0,acIdx-1);showAc(items,$("#qInput").value);}
+  else if(e.key==='Enter'){e.preventDefault();if(acIdx>=0&&items[acIdx])runCommunity(items[acIdx]);else $("#qBtn").click();}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#qInput')&&!e.target.closest('#qList'))$("#qList").classList.remove('show');});
+
+/* 查行情按鈕：像地址就走地址；否則先社區庫、再退預售建案名比對 */
+$("#qBtn").addEventListener('click',()=>{
+  const q=$("#qInput").value.trim();
+  if(!q){toast('請輸入社區名或地址');return;}
+  if(/\d.*號|巷|弄/.test(toHalf(q))){runAddress(q);return;}
+  const items=searchComm(q);
+  if(items.length>=1){runCommunity(items[0]);return;}
+  // 社區庫沒有 → 可能是還沒建檔的預售新案，直接用建案名稱比對
+  ensureCoords();
+  collectRows(q,null,null,normalizeComm(q));
+  if(!lastQuery.exact.length)toast(`查無「${q}」，請確認名稱或改輸入完整門牌地址`);
+});
+
+/* 型態膠囊 */
+document.querySelectorAll('#typePills .pill').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#typePills .pill').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); curType=b.dataset.t;
+  if(lastQuery)renderQuery(); else renderLatest(true);
+}));
+
+/* 深連結：?c=社區名（LINE 圖卡、報告頁都用這個）；相容 #q= */
+function handleDeepLink(){
+  const c=new URLSearchParams(location.search).get('c')
+        ||(location.hash.startsWith('#q=')?decodeURIComponent(location.hash.slice(3)):null);
+  if(!c)return false;
+  const items=searchComm(c);
+  if(items.length>=1){runCommunity(items[0]);return true;}
+  $("#qInput").value=c;
+  ensureCoords();
+  collectRows(c,null,null,normalizeComm(c));
+  return true;
+}
+
+/* ── 啟動 ── */
+$("#heroBadge").textContent=`內政部實價登錄 · 資料截至 ${String(PRICE_META.maxDate).slice(0,3)}/${String(PRICE_META.maxDate).slice(3,5)}`;
+$("#discBox").innerHTML+=`　<span style="white-space:nowrap">（更新日：${PRICE_META.updated}，共 ${fmt(PRICE_META.n)} 筆）</span>`;
+renderLatest(true);
+handleDeepLink();
+</script>
+<script src="../internal-nav.js"></script>
+</body>
+</html>
