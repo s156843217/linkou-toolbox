@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 網站地圖：給搜尋引擎的頁面清單（report/ 內部頁刻意不列） -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://swcasa.com/</loc><lastmod>2026-07-11</lastmod></url>
+  <url><loc>https://swcasa.com/school/</loc><lastmod>2026-07-11</lastmod></url>
+  <url><loc>https://swcasa.com/mortgage/</loc><lastmod>2026-07-11</lastmod></url>
+  <url><loc>https://swcasa.com/rent/</loc><lastmod>2026-07-11</lastmod></url>
+  <url><loc>https://swcasa.com/bus/</loc><lastmod>2026-07-11</lastmod></url>
+  <url><loc>https://swcasa.com/about/</loc><lastmod>2026-07-11</lastmod></url>
+</urlset>
