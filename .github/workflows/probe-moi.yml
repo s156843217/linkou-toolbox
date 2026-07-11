@@ -1,0 +1,15 @@
+name: 探針：測內政部季檔可否從雲端下載
+
+# 一次性探針（驗證 GitHub runner 抓不抓得到 plvr.land.moi.gov.tw），驗完即刪。
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下載新北 114S1 成屋季檔並回報大小
+        run: |
+          curl -sS -A "Mozilla/5.0" -o /tmp/f.csv -w "HTTP %{http_code}  %{size_download} bytes\n" \
+            "https://plvr.land.moi.gov.tw/DownloadSeason?season=114S1&fileName=f_lvr_land_a.csv"
+          head -c 300 /tmp/f.csv; echo
