@@ -201,20 +201,46 @@ def load_zones():
     return zones
 
 
-def load_house():
-    """從學區 repo 線上抓 linkou-data.js，解析出 HOUSE 物件。失敗回 {}。"""
-    try:
-        req = Request(HOUSE_URL, headers={"User-Agent": "linkou-mortgage-bot/1.0"})
-        with urlopen(req, timeout=60) as r:
-            txt = r.read().decode("utf-8")
-        for line in txt.splitlines():
-            if line.startswith("const HOUSE = "):
-                body = line[len("const HOUSE = "):].rstrip().rstrip(";")
-                return json.loads(body)
-        print("⚠ 線上 linkou-data.js 找不到 HOUSE 行，降級為純路名對照")
-    except Exception as e:                              # noqa: BLE001
-        print(f"⚠ 抓 HOUSE 失敗（{e}），降級為純路名對照")
+_LINKOU_TXT = None
+
+
+def _linkou_txt():
+    """抓 linkou-data.js 原文（只抓一次快取）。失敗回空字串。"""
+    global _LINKOU_TXT
+    if _LINKOU_TXT is None:
+        try:
+            req = Request(HOUSE_URL, headers={"User-Agent": "linkou-mortgage-bot/1.0"})
+            with urlopen(req, timeout=60) as r:
+                _LINKOU_TXT = r.read().decode("utf-8")
+        except Exception as e:                          # noqa: BLE001
+            print(f"⚠ 抓 linkou-data.js 失敗（{e}）")
+            _LINKOU_TXT = ""
+    return _LINKOU_TXT
+
+
+def _linkou_const(name):
+    """從 linkou-data.js 取某個 const 的 JSON 內容（單行宣告）。失敗回 {}。"""
+    prefix = f"const {name} = "
+    for line in _linkou_txt().splitlines():
+        if line.startswith(prefix):
+            try:
+                return json.loads(line[len(prefix):].rstrip().rstrip(";"))
+            except ValueError as e:
+                print(f"⚠ 解析 {name} 失敗（{e}）")
+                return {}
+    if _linkou_txt():
+        print(f"⚠ 線上 linkou-data.js 找不到 {name} 行")
     return {}
+
+
+def load_house():
+    """HOUSE 門牌座標表。失敗回 {}（呼叫端降級為純路名對照）。"""
+    return _linkou_const("HOUSE")
+
+
+def load_community():
+    """COMMUNITY 社區→建檔地址對照（行情摘要用）。失敗回 {}。"""
+    return _linkou_const("COMMUNITY")
 
 
 # ── 抓 API ────────────────────────────────────────────────
@@ -584,6 +610,7 @@ MOI_URL = ("https://plvr.land.moi.gov.tw/DownloadSeason"
            "?season={season}&fileName=f_lvr_land_{f}.csv")
 HISTORY_JSON = Path("price-history.json")     # 累積主檔（被排除筆也留著、只加旗標，改政策不用重回填）
 PRICE_JS = Path("price-list-data.js")         # 瀏覽器用（近三年、已過濾）
+SUMMARY_JSON = Path("price-summary.json")     # LINE bot 行情摘要卡用的小檔（每社區筆數/中位價）
 BACKFILL_SEASONS = 14   # 首次回填抓 14 季（約 3.5 年，含登記時差餘裕）
 REFRESH_SEASONS = 5     # 每月重抓最近 5 季（涵蓋登記時差與預售解約異動）
 
@@ -773,6 +800,84 @@ def write_price_js(records):
           f"{len(txt.encode('utf-8')) // 1024} KB）")
 
 
+# 與網頁/school-logic 的 normalizeComm 同一套：去掉通用字再比對，提升建案名命中率
+_COMM_STRIP = re.compile("管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人")
+
+
+def norm_comm(s):
+    return _COMM_STRIP.sub("", s or "").lower().strip()
+
+
+def build_price_summary(records):
+    """主檔＋COMMUNITY 對照 → price-summary.json（LINE bot 查行情按鈕的摘要來源）。
+       口徑與 price/ 網頁完全一致：成屋比對社區建檔門牌（路＋巷弄＋基底號）、
+       預售比對建案名稱（正規化互含）；近 1 年不足 5 筆放寬至 2、3 年；
+       單價/總價中位數不含透天別墅。失敗保留舊檔。"""
+    comm = load_community()
+    if not comm:
+        print("⚠ 抓不到 COMMUNITY，略過 price-summary.json（保留舊檔）")
+        return
+    recs = [r for r in records.values()
+            if not r.get("sp") and not r.get("x") and not r.get("o")]
+    if not recs:
+        return
+    max_d = max(r["d"] for r in recs)
+    recs = [r for r in recs if r["d"] >= max_d - 30000]
+
+    by_addr = {}    # 成屋：(路,巷弄,基底號) → rows
+    by_proj = {}    # 預售：建案名稱 → rows
+    for r in recs:
+        if r["k"] == "r":
+            p = parse_house(r["a"])
+            if p:
+                by_addr.setdefault((p["road"], p["lk"], p["num"].split("-")[0]), []).append(r)
+        elif r.get("cm"):
+            by_proj.setdefault(r["cm"], []).append(r)
+
+    def stat(rows):
+        w = []
+        yrs = 3
+        for yrs in (1, 2, 3):
+            w = [x for x in rows if x["d"] >= max_d - yrs * 10000]
+            if len(w) >= 5 or yrs == 3:
+                break
+        if not w:
+            return None
+        core = [x for x in w if x["bt"] not in (3, 4) and x["u"]]
+        ent = {"n": len(w), "yrs": yrs, "last": max(x["d"] for x in w)}
+        if core:
+            ent["u"] = round(statistics.median([x["u"] for x in core]), 1)
+            ent["t"] = round(statistics.median([x["t"] for x in core]))
+        return ent
+
+    out_c = {}
+    for name, c in comm.items():
+        rows = []
+        addr = (c.get("addr") or "").strip()
+        if addr:
+            p = parse_house(addr)
+            if p:
+                rows += by_addr.get((p["road"], p["lk"], p["num"].split("-")[0]), [])
+        nn = norm_comm(name)
+        if len(nn) >= 2:
+            for cm_name, prows in by_proj.items():
+                nc = norm_comm(cm_name)
+                if nc and (nc == nn or nn in nc or nc in nn):
+                    rows += prows
+        ent = stat(rows)
+        if ent:
+            out_c[name] = ent
+
+    out_p = {cm_name: ent for cm_name, prows in by_proj.items()
+             if (ent := stat(prows))}
+
+    SUMMARY_JSON.write_text(json.dumps(
+        {"updated": date.today().isoformat(), "maxDate": max_d,
+         "comm": out_c, "pre": out_p},
+        ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"✅ 已更新 {SUMMARY_JSON}（有成交的社區 {len(out_c)}、預售建案 {len(out_p)}）")
+
+
 def moi_presale_metrics(records):
     """從主檔取預售筆，轉成與 row_metrics 同構的 dict 餵給 type_stat（LINKOU_TYPES 用）。"""
     apt, house = [], []
@@ -819,6 +924,7 @@ def build_price_list():
                    ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8")
     write_price_js(records)
+    build_price_summary(records)
     return moi_presale_metrics(records)
 
 

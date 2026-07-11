@@ -27,7 +27,7 @@ jobs:
 
       - name: 有變動就 commit 並 push
         run: |
-          FILES="mortgage-data.js price-history.json price-list-data.js"
+          FILES="mortgage-data.js price-history.json price-list-data.js price-summary.json"
           if [ -n "$(git status --porcelain $FILES)" ]; then
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
