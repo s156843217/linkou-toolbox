@@ -501,6 +501,7 @@ function runReport(){
   if(!d){toast('查無資料');return;}
   lastData=d;
   renderReport(d);
+  document.title=`${d.name} 社區一頁報告`;   // 列印另存 PDF 的預設檔名跟著網頁標題，改成社區名方便歸檔
   $("#btnFlex").href=liffShareUrl();   // 傳圖卡連結跟著目前報告即時更新
 }
 
