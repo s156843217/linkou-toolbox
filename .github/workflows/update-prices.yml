@@ -1,4 +1,4 @@
-name: 更新林口實價登錄單價
+name: 更新林口實價登錄（地段單價＋行情逐筆表）
 
 # 手動觸發保留（可隨時在雲端 dry-run）；schedule 已啟用，每月自動更新。
 on:
@@ -21,17 +21,18 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 跑更新腳本（抓 API → 覆寫 mortgage-data.js）
+      - name: 跑更新腳本（覆寫 mortgage-data.js＋price-history.json＋price-list-data.js）
         run: python update_prices.py
         # 只用標準庫，不需 pip install
 
       - name: 有變動就 commit 並 push
         run: |
-          if [ -n "$(git status --porcelain mortgage-data.js)" ]; then
+          FILES="mortgage-data.js price-history.json price-list-data.js"
+          if [ -n "$(git status --porcelain $FILES)" ]; then
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add mortgage-data.js
-            git commit -m "自動更新：林口實價登錄單價（$(date +%F)）"
+            git add $FILES
+            git commit -m "自動更新：林口實價登錄（$(date +%F)）"
             git push
             echo "已 push 更新"
           else
