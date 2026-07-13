@@ -217,8 +217,11 @@ if(location.protocol==='https:'){
   .contract-doc .attach-title{text-align:center;font-size:18px;font-weight:900;letter-spacing:2px;margin:6px 0 12px}
   /* 附件二 現場照片：雙欄 */
   .contract-doc table.photo-out{width:100%;border-collapse:collapse;table-layout:fixed}
+  /* 照片列不跨頁切斷：整列一起移到下一頁，照片才不會印到一半被截斷 */
+  .contract-doc table.photo-out tr{page-break-inside:avoid;break-inside:avoid}
   .contract-doc table.photo-out td{width:50%;padding:6px;vertical-align:top;border:none;overflow:hidden}
-  .contract-doc table.photo-out img{width:100%;height:auto;display:block;border:1px solid #ccc}
+  /* 限制單張最大高度：直式照片等比縮小置中，避免一列高度超過一頁 */
+  .contract-doc table.photo-out img{width:auto;max-width:100%;max-height:10.5cm;height:auto;display:block;margin:0 auto;border:1px solid #ccc}
   .contract-doc .photo-cap{font-size:12px;text-align:center;margin-top:4px;color:#333}
 
   /* ====== 手機版合約預覽優化（僅縮放螢幕預覽，不影響列印 / 桌機） ====== */
@@ -2137,17 +2140,34 @@ function exportWord(){
     table.eq-inner td{border:none;padding:2pt 5pt;font-size:10.5pt;width:50%}
     table.photo-out{width:100%;border-collapse:collapse;table-layout:fixed}
     table.photo-out td{width:50%;padding:6pt;vertical-align:top;overflow:hidden}
-    table.photo-out img{width:100%;max-width:6.8cm;height:auto;border:1px solid #ccc}
+    table.photo-out img{border:1px solid #ccc}
     .photo-cap{font-size:10pt;text-align:center}
     .pgbreak{page-break-before:always}.eq-out{font-size:11pt}.sig-block{line-height:2}`;
   // Word 不認空 div 的 page-break-before；改用 MS Office 專用換頁符，分頁才會生效
   const wordBreak = "<br clear=all style='mso-special-character:line-break;page-break-before:always'>";
-  const inner = $('#contractDoc').innerHTML.replace(/<div class="pgbreak"><\/div>/g, wordBreak);
+  // Word 也不認 CSS 的 max-width，base64 照片會以原始尺寸（最長邊 1000px≈26cm）呈現而爆出頁面；
+  // 改成逐張把 width/height 屬性寫死在 img 標籤上（Word 認得屬性），等比縮到寬≤8.5cm、高≤10cm（96dpi 換算）
+  const orig = $('#contractDoc');
+  const clone = orig.cloneNode(true);
+  const oImgs = orig.querySelectorAll('table.photo-out img');
+  const cImgs = clone.querySelectorAll('table.photo-out img');
+  oImgs.forEach((im, i)=>{
+    const nw = im.naturalWidth  || 1000;
+    const nh = im.naturalHeight || 750;
+    const s = Math.min(318/nw, 378/nh, 1);   // 318px≈8.4cm（半欄8.9cm扣表格內距再留安全邊）、378px≈10cm
+    cImgs[i].setAttribute('width',  Math.round(nw*s));
+    cImgs[i].setAttribute('height', Math.round(nh*s));
+    cImgs[i].removeAttribute('style');
+  });
+  const inner = clone.innerHTML.replace(/<div class="pgbreak"><\/div>/g, wordBreak);
+  // Word 會忽略「無名的」@page 邊界（之前寫 2.54/3.17cm 看似有效，其實只是剛好等於 Word 預設值）；
+  // 要用 Word 自家的「具名分節」寫法：@page WordSection1 ＋ 內容包進掛 page 屬性的 div，邊界才會真的生效
   const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head><meta charset='utf-8'><title>住宅租賃契約書</title>
     <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-    <style>@page{size:A4;margin:2.54cm 3.17cm}${css}</style></head>
-    <body>${inner}</body></html>`;
+    <style>@page WordSection1{size:595.35pt 841.95pt;margin:1.8cm 1.6cm;mso-page-orientation:portrait}
+    div.WordSection1{page:WordSection1}${css}</style></head>
+    <body><div class="WordSection1">${inner}</div></body></html>`;
   const blob = new Blob(['﻿'+html], {type:'application/msword'});
   const name = (val('lesseeName')||'租約') + '_住宅租賃契約書.doc';
   const a = document.createElement('a');
