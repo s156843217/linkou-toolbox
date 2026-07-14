@@ -14,6 +14,9 @@
   var logo=document.querySelector('.site-nav .nav-logo');
   var prefix=(logo&&logo.getAttribute('href'))||'./';
 
+  // 目前所在頁（避免在該工具自己的頁面重複加它自己的按鈕）
+  var here=location.pathname;
+
   // report 頁自己的導覽列已有「社區報告」，不重複加
   var hasReport=Array.prototype.some.call(links.querySelectorAll('a'),function(a){
     return a.textContent.indexOf('社區報告')>=0;
@@ -25,6 +28,16 @@
     r.style.color='var(--gold)';
     links.appendChild(r);
   }
+
+  // 競品比較（591 在售盤點）——同為內部工具，登入後每頁可直接點進
+  if(here.indexOf('/listing/')<0){
+    var l=document.createElement('a');
+    l.href=prefix+'listing/';
+    l.textContent='📊 競品比較';
+    l.style.color='var(--gold)';
+    links.appendChild(l);
+  }
+
   var c=document.createElement('a');
   c.href='https://s156843217.github.io/linkou-crm/';
   c.target='_blank'; c.rel='noopener';
