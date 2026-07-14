@@ -1,0 +1,640 @@
+﻿<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>競品比較（內部） — 林口置產工具箱</title>
+<!-- 內部工作工具：不進導覽、不進 sitemap，也請搜尋引擎不要收錄 -->
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
+<meta name="theme-color" content="#BD5E39">
+<style>
+  /* ── 查詢區（沿用行情頁同款版型） ── */
+  .search{margin-top:18px;padding:20px}
+  .search .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .lbl{font-size:13px;font-weight:700;color:var(--ink-soft)}
+  .field input{padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff}
+  .field input:focus{outline:none;border-color:var(--clay)}
+  .field.small input{width:110px}
+  .autocomplete{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--line);
+    border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;z-index:1000;display:none}
+  .autocomplete.show{display:block}
+  .ac-item{padding:11px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--bg2)}
+  .ac-item:last-child{border-bottom:none}
+  .ac-item:hover{background:var(--bg2)}
+  .ac-item .li-tag{float:right;font-size:12px;color:var(--ink-soft)}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:10px;line-height:1.7}
+
+  /* ── 快抓書籤安裝區 ── */
+  .bmk-box{margin:0 0 12px;border:1px dashed var(--line);border-radius:12px;background:#fff;padding:0 14px}
+  .bmk-box summary{cursor:pointer;padding:12px 0;font-weight:700;font-size:14px;color:var(--teal)}
+  .bmk-body{padding:0 0 14px;font-size:13.5px;line-height:1.8;color:var(--ink-soft)}
+  .bmk-body p{margin:6px 0}
+  .bmk-btn{display:inline-block;padding:8px 16px;background:var(--clay);color:#fff;border-radius:10px;
+    font-weight:700;text-decoration:none;cursor:grab;box-shadow:var(--shadow)}
+  .bmk-note{font-size:12.5px;color:var(--ink-soft)}
+
+  /* ── 蒐集區：591 連結與貼上框 ── */
+  .src-links{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0 4px}
+  .near-list{margin-top:10px}
+  .near-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:8px 10px;border-bottom:1px solid var(--bg2);font-size:14px}
+  .near-row:last-child{border-bottom:none}
+  .near-row .nm{font-weight:700;min-width:9em}
+  .near-row .meta{color:var(--ink-soft);font-size:12.5px}
+  .pills{display:flex;gap:8px;margin-top:10px}
+  .pill{padding:6px 14px;border:1.5px solid var(--line);border-radius:999px;background:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+  .pill.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  #zone{margin:14px 0 6px;padding:34px 16px;border:2.5px dashed var(--clay);border-radius:14px;text-align:center;
+    color:var(--clay);font-size:19px;font-weight:700;background:#FFF9F2;cursor:pointer;outline:none;transition:box-shadow .2s,background .2s}
+  #zone:focus,#zone:hover{background:#FFF3E5}
+  #zone .zone-sub{display:block;margin-top:8px;font-size:12.5px;font-weight:400;color:var(--ink-soft)}
+  #zone.got{border-color:var(--teal);color:var(--teal);background:#F0F7F3}
+  #zone.flash{animation:zoneFlash 1.2s ease}
+  @keyframes zoneFlash{0%,100%{box-shadow:0 0 0 0 rgba(189,94,57,0)}30%{box-shadow:0 0 0 6px rgba(189,94,57,.28)}}
+  .near-box{margin:10px 0;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 14px}
+  .near-box summary{cursor:pointer;padding:11px 0;font-weight:700;font-size:13.5px;color:var(--teal)}
+  #pasteStat{font-size:13.5px;font-weight:700;margin:6px 2px;color:var(--ink-soft)}
+  .mini{font-size:12.5px;color:var(--ink-soft);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:inherit;padding:0}
+
+  /* ── 結果表 ── */
+  .sumline{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+  .sum{flex:1 1 160px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:15px 20px;box-shadow:var(--shadow)}
+  .sum .k{font-size:12.5px;color:var(--ink-soft);margin-bottom:4px}
+  .sum .v{font-size:26px;font-weight:900;color:var(--clay);line-height:1.15}
+  .sum .v small{font-size:12px;font-weight:400;color:var(--ink-soft)}
+  .tbl-wrap{overflow-x:auto;background:#fff;border-radius:12px;box-shadow:var(--shadow);margin-bottom:8px}
+  table.ct{width:100%;border-collapse:collapse;min-width:640px}
+  .ct th,.ct td{padding:9px 10px;border-bottom:1px solid var(--bg2);text-align:left;font-size:13.5px;vertical-align:top;white-space:nowrap}
+  .ct th{background:var(--bg2);color:var(--ink-soft);font-size:12.5px}
+  .ct td.num{text-align:right}
+  .ct tr.me{background:#FBF3E4;font-weight:700}
+  .ct tr.me td{border-bottom:2px solid var(--gold,#C89B3C)}
+  .ct .miss{color:#b6a898}
+  .badge-n{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--teal);color:#fff;font-size:11px;font-weight:700}
+  .badge-adj{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:var(--gold,#C89B3C);color:#fff;font-size:11px;font-weight:700}
+  .badge-warn{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;border:1.5px solid var(--clay);color:var(--clay);font-size:11px;font-weight:700;cursor:help}
+  .deal-qr{float:right;margin:0 0 4px 14px;text-align:center;font-size:10.5px;color:var(--ink-soft);line-height:1.4}
+  .deal-qr svg{display:block;width:76px;height:76px;margin:0 auto 2px;background:#fff}
+  .col-park{white-space:nowrap;color:var(--ink-soft)}
+  .col-park input{width:52px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit;text-align:right}
+  .col-park input:focus{outline:none;border-color:var(--clay)}
+  .me-tag{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--clay);color:#fff;font-size:11.5px;font-weight:700}
+  .table-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:8px 0}
+  .del-tools{display:flex;align-items:center;gap:10px}
+  .btn.sm{padding:5px 12px;font-size:13px}
+  .col-check,.col-del{width:34px;text-align:center;padding-left:6px;padding-right:6px}
+  .col-check input{width:16px;height:16px;cursor:pointer}
+  .btn-del{border:none;background:none;color:#b6a898;font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;font-family:inherit}
+  .btn-del:hover{color:var(--red)}
+  .ct tr.dimmed{opacity:.4}
+  .unk-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;padding:8px 10px;border-bottom:1px solid var(--bg2);font-size:13.5px;background:#fff}
+  .deal{background:#EAF3EE;border:1px solid #CBE2D4;border-radius:12px;padding:12px 16px;font-size:14px;line-height:1.8;margin:12px 0;overflow:hidden}
+
+  /* ── 列印＝屋主版一頁報告：只留摘要與兩張表 ── */
+  #printHead{display:none}
+  @media print{
+    /* .hint 都在 .no-print 區塊裡，唯獨 #discNote（免責說明）要印出來給屋主看 */
+    .site-nav,.no-print,#zone,#pasteStat,.pills,footer{display:none !important}
+    #printHead{display:block;margin-bottom:10px;border-bottom:2px solid #333;padding-bottom:8px}
+    #printHead h2{font-family:var(--serif);margin:0 0 4px}
+    #printHead .ph-sub{font-size:12.5px;color:#555}
+    body{background:#fff}
+    .wrap{max-width:none;padding:0}
+    .tbl-wrap{box-shadow:none;border:1px solid #ccc}
+    /* 刊登連結欄是超連結，紙本點不了，列印時整欄隱藏；車位輸入欄同理（拆算結果已反映在單價欄） */
+    .col-link,.col-park{display:none !important}
+    /* 摘要卡印出來也要醒目：加大數字、明顯外框 */
+    .sumline{gap:8px}
+    .sum{box-shadow:none;border:1.5px solid #999;padding:12px 18px}
+    .sum .v{font-size:23px}
+    /* 紙本連結點不了 → 換成 QR code 給屋主掃 */
+    .deal-qr svg{width:88px;height:88px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 全站導覽列（本頁為內部工具，各頁導覽不列入本頁） -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="../" class="nav-logo">林口置產工具箱</a>
+    <div class="nav-links">
+      <a href="../school/">🏫 學區快查</a>
+      <a href="../price/">📈 社區行情</a>
+      <a href="../bus/">🚌 公車路線</a>
+      <a href="../mortgage/">🏦 房貸試算</a>
+      <a href="../rent/">📄 租約產生器</a>
+      <a href="../about/">🤝 關於我們</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero no-print">
+    <div>
+      <span class="badge">內部工具 · 591 在售盤點</span>
+      <h1>社區<span class="mk">競品比較</span></h1>
+      <p>選社區、貼上 591 清單頁，自動整理「同社區在售」與「鄰近競品」，歸戶重複刊登並對照實價成交，可直接列印給屋主。</p>
+    </div>
+    <div class="yr">
+      <span class="yr-biz">太平洋房屋 · 林口捷運加盟店</span><span class="yr-nm">李天夏 · 温美慈</span>
+    </div>
+  </header>
+
+  <!-- 列印時才出現的報告表頭 -->
+  <div id="printHead">
+    <h2 id="phTitle"></h2>
+    <div class="ph-sub" id="phSub"></div>
+  </div>
+
+  <!-- 第 1 步：選社區＋本案資料 -->
+  <section class="panel search no-print">
+    <div class="row">
+      <div class="field" style="position:relative;flex:1;min-width:220px">
+        <label class="lbl">🏘️ 社區（本案所在）</label>
+        <input type="text" id="commInput" placeholder="例：遠雄未來市" autocomplete="off">
+        <div id="acList" class="autocomplete"></div>
+      </div>
+      <div class="field small"><label class="lbl">本案樓層</label><input type="number" id="myFloor" placeholder="例：18"></div>
+      <div class="field small"><label class="lbl">本案權狀坪</label><input type="number" step="0.01" id="mySize" placeholder="例：29.91"></div>
+      <div class="field small"><label class="lbl">本案開價(萬)</label><input type="number" id="myPrice" placeholder="未定可空白"></div>
+      <div class="field small"><label class="lbl">車位價(萬)</label><input type="number" id="myParkP" placeholder="無車位空白"></div>
+      <div class="field small"><label class="lbl">車位坪</label><input type="number" step="0.01" id="myParkS" placeholder="例：10.08"></div>
+      <button class="btn" id="goBtn">🔍 開始盤點</button>
+    </div>
+    <div class="hint">本案各欄都可以先空白（之後再填會即時重算）。填了車位價／車位坪，本案單價會自動<b>拆算</b>＝(開價−車位價)÷(權狀坪−車位坪)；開價與權狀請填「含車位」的數字。社區支援模糊搜尋與俗稱，共 962 筆。</div>
+  </section>
+
+  <!-- 第 2 步：開 591 複製、貼回來 -->
+  <section class="panel search no-print" id="srcSec" style="display:none">
+    <!-- 第一次使用才要做：把快抓書籤拖到書籤列（一次性） -->
+    <details class="bmk-box">
+      <summary>📌 第一次使用：安裝「591 快抓」書籤（只做一次）</summary>
+      <div class="bmk-body">
+        <p>把下面這顆按鈕<b>拖曳</b>到瀏覽器的<b>書籤列</b>（我的最愛列）。裝好後，在 591 清單頁點一下它，就會自動把整頁物件複製好，回本頁貼上即可，不必再 Ctrl+A。</p>
+        <p><a class="bmk-btn" id="bmkLink" href="#" onclick="return false">📌 591 快抓</a> ← 拖我到書籤列</p>
+        <p class="bmk-note">看不到書籤列？在瀏覽器按 <b>Ctrl+Shift+B</b> 打開。太太的電腦也是拖這一次就好；之後工具更新，書籤不用重拖。</p>
+      </div>
+    </details>
+    <div class="src-links">
+      <a class="btn" id="openMine" href="#" target="_blank" rel="noopener">開 591</a>
+      <span class="hint" style="margin:0">→ 在 591 清單頁點<b>「📌 591 快抓」書籤</b>（或 <b>Ctrl+A</b> 全選複製），再回這裡貼上 👇</span>
+    </div>
+    <div id="zone" tabindex="0">👉 回到這裡，直接按 <b>Ctrl</b>＋<b>V</b> 貼上<span class="zone-sub">從 591 複製好之後就貼在這個框；多頁就翻頁再點書籤、再貼一次，會自動累加去重。</span></div>
+    <div id="pasteStat"></div>
+    <details class="near-box" id="nearDetails">
+      <summary id="nearSummary">🔍 在售太少？加查鄰近社區</summary>
+      <div class="pills" id="radiusPills">
+        <span class="hint" style="margin:0;align-self:center">鄰近範圍：</span>
+        <button class="pill on" data-r="300">300 公尺</button>
+        <button class="pill" data-r="500">500 公尺</button>
+      </div>
+      <div class="near-list" id="nearBox"></div>
+    </details>
+    <div>
+      <button class="mini" id="dlRaw" style="display:none">下載原始樣本（解析有誤時交給開發端）</button>
+      <button class="mini" id="resetBtn" style="display:none;margin-left:14px">清空重來</button>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <div id="resSec" style="display:none">
+    <div class="sumline" id="sumBox"></div>
+
+    <h2 class="sec-title"><span class="bar"></span><span id="mineTitle"></span></h2>
+    <div class="table-tools no-print">
+      <div class="pills" id="sortPills">
+        <span class="hint" style="margin:0;align-self:center">排序：</span>
+        <button class="pill on" data-s="unit">單價</button>
+        <button class="pill" data-s="price">總價</button>
+        <button class="pill" data-s="floor">樓層</button>
+      </div>
+      <div class="del-tools">
+        <button class="btn ghost sm" id="delChecked">🗑 刪除勾選</button>
+        <span id="exNote" class="hint" style="margin:0"></span>
+      </div>
+    </div>
+    <div id="mineList"></div>
+
+    <div id="nearSec2" style="display:none">
+      <h2 class="sec-title"><span class="bar"></span><span id="nearTitle"></span></h2>
+      <div id="nearList2"></div>
+    </div>
+
+    <div class="deal" id="dealBox" style="display:none"></div>
+
+    <div id="unkSec" class="no-print" style="display:none">
+      <h2 class="sec-title"><span class="bar"></span>無法歸類（請人工判斷）</h2>
+      <div class="hint" style="margin:0 2px 8px">這些刊登認不出社區、或距離超出範圍（多半是 591 混入的廣告物件）。確定是競品就按「併入」，會進上面的鄰近競品表。</div>
+      <div id="unkList"></div>
+    </div>
+
+    <div class="hint" id="discNote">
+      說明：在售資料為 591 刊登之<b>開價</b>（非成交價），內容以刊登方為準、隨時可能異動；
+      成交對照來自內政部實價登錄。單價標「<b>拆</b>」者為拆算單價＝(開價−車位價)÷(權狀坪−車位坪)，
+      車位價／坪依刊登資訊或本店人工輸入；未標者為刊登單價（可能含車位）。
+      本表僅供屋主／買方參考，不構成價格保證。資料整理日：<span id="todayTxt"></span>。
+    </div>
+
+    <div class="no-print" style="margin:14px 0">
+      <button class="btn" id="printBtn">🖨 列印／另存 PDF（屋主版）</button>
+    </div>
+  </div>
+
+  <footer class="no-print">
+    競品比較（內部工具）　|　在售資料：591 刊登（人工複製，非爬蟲）｜成交資料：內政部實價登錄
+  </footer>
+</div>
+
+<!-- 資料與共用純函式：linkou-data(社區/門牌) → report-logic(parseHouse/houseCoord/distM) → price-list-data(行情) → listing-logic(解析+比較)；qrcode.js=列印用 QR 產生器 -->
+<script src="../qrcode.js"></script>
+<script src="../linkou-data.js"></script>
+<script src="../report-logic.js"></script>
+<script src="../price-list-data.js"></script>
+<script src="../listing-logic.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ── 狀態 ── */
+let SEL = null;               // 選定的社區名
+let MY = { floor:null, size:null, price:null, pp:null, ps:null };   // pp=車位價(萬)、ps=車位坪
+let RADIUS = 300;
+let NEAR = [];                // 鄰近社區建議 [{name,dist,stats}]
+const ALL = new Map();        // 物件編號 → 解析結果（跨多次貼上累積）
+const INCLUDED = new Set();   // 「無法歸類」中被手動併入比較的物件編號
+const EXCLUDED = new Set();   // 使用者手動剔除的物件編號（疑似已成交沒撤廣告等）
+const PARK = new Map();       // 各戶手動填的車位 { p:車位價(萬), s:車位坪 }，key=該戶最小物件編號
+const rawPastes = [];
+let pasteCount = 0;
+
+/* ── 社區搜尋（與行情頁同款：模糊＋俗稱） ── */
+const COMM_NAMES = Object.keys(COMMUNITY);
+const COMM_NORM = Object.fromEntries(COMM_NAMES.map(n => [n, normComm591(n)]));
+function searchComm(q){
+  if (!q) return [];
+  const aliasKey = Object.keys(ALIASES).find(k => k.includes(q) || q.includes(k));
+  if (aliasKey && COMMUNITY[ALIASES[aliasKey]]) return [ALIASES[aliasKey]];
+  const nq = normComm591(q);
+  if (!nq) return [];
+  return COMM_NAMES.filter(n => COMM_NORM[n].includes(nq) || n.toLowerCase().includes(q.toLowerCase())).slice(0, 12);
+}
+function showAc(items){
+  const box = $('#acList');
+  if (!items.length){ box.classList.remove('show'); return; }
+  box.innerHTML = items.map(n => {
+    const c = COMMUNITY[n];
+    return `<div class="ac-item" data-name="${esc(n)}">${esc(n)}${c.li ? `<span class="li-tag">${esc(c.li)}</span>` : ''}</div>`;
+  }).join('');
+  box.classList.add('show');
+  box.querySelectorAll('.ac-item').forEach(el => el.addEventListener('mousedown', () => {
+    $('#commInput').value = el.dataset.name;
+    box.classList.remove('show');
+  }));
+}
+$('#commInput').addEventListener('input', () => showAc(searchComm($('#commInput').value.trim())));
+$('#commInput').addEventListener('blur', () => setTimeout(() => $('#acList').classList.remove('show'), 150));
+$('#commInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); $('#acList').classList.remove('show'); startWork(); }
+});
+
+/* ── 第 1 步：開始盤點 ── */
+function readMy(){
+  MY.floor = parseInt($('#myFloor').value, 10) || null;
+  MY.size  = parseFloat($('#mySize').value) || null;
+  MY.price = parseFloat($('#myPrice').value) || null;
+  MY.pp    = parseFloat($('#myParkP').value) || null;
+  MY.ps    = parseFloat($('#myParkS').value) || null;
+}
+function startWork(){
+  let name = $('#commInput').value.trim();
+  if (!COMMUNITY[name]){
+    const hit = searchComm(name);
+    if (!hit.length){ alert('查無此社區，請從下拉選單挑選'); return; }
+    name = hit[0]; $('#commInput').value = name;
+  }
+  readMy();
+  SEL = name;
+  document.title = `競品比較｜${name} — 林口置產工具箱`;   // 另存 PDF 檔名跟著社區名
+  history.replaceState(null, '', '?c=' + encodeURIComponent(name));
+  buildSources();
+  $('#srcSec').style.display = 'block';
+  render();
+  $('#srcSec').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+$('#goBtn').addEventListener('click', startWork);
+['myFloor','mySize','myPrice','myParkP','myParkS'].forEach(id => $('#' + id).addEventListener('change', () => { if (SEL){ readMy(); render(); } }));
+
+/* ── 第 2 步：591 連結與鄰近社區建議 ── */
+function s591(name){ return 'https://sale.591.com.tw/?keywords=' + encodeURIComponent(name); }
+function statTxt(st){
+  if (!st) return '近 3 年查無成交';
+  return `近3年成交中位 <b>${st.u.toFixed(1)}</b> 萬/坪` + (st.age !== null ? `｜屋齡約 ${st.age} 年` : '') + `｜${st.n} 筆`;
+}
+function buildSources(){
+  $('#openMine').href = s591(SEL);
+  $('#openMine').textContent = `🔗 開 591 搜「${SEL}」`;
+  NEAR = nearby591(SEL, RADIUS).slice(0, 10).map(o => ({ ...o, stats: commStats591(o.name) }));
+  $('#nearSummary').textContent = `🔍 在售太少？加查鄰近社區（${RADIUS} 公尺內 ${NEAR.length} 個）`;
+  $('#nearBox').innerHTML = NEAR.length
+    ? `<div class="hint" style="margin:4px 2px">在售太少時，可加查 ${RADIUS} 公尺內這些社區（點連結→複製→回來貼，會自動標成「鄰近競品」）：</div>`
+      + NEAR.map(o => `<div class="near-row"><span class="nm">${esc(o.name)}</span><span class="meta">${o.dist}m｜${statTxt(o.stats)}</span><a href="${s591(o.name)}" target="_blank" rel="noopener">開 591 ↗</a></div>`).join('')
+    : `<div class="hint">（${RADIUS} 公尺內沒有其他建檔社區，可切換 500 公尺）</div>`;
+}
+document.querySelectorAll('#radiusPills .pill').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#radiusPills .pill').forEach(x => x.classList.toggle('on', x === b));
+  RADIUS = +b.dataset.r;
+  if (SEL){ buildSources(); render(); }
+}));
+
+/* 排序切換：單價／總價／樓層 */
+document.querySelectorAll('#sortPills .pill').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#sortPills .pill').forEach(x => x.classList.toggle('on', x === b));
+  sortMode = b.dataset.s;
+  if (SEL) render();
+}));
+
+/* 剔除疑似已成交（沒撤廣告）的物件：勾選批次刪、單筆✕刪、可全部復原 */
+$('#delChecked').addEventListener('click', () => {
+  const chks = document.querySelectorAll('.rowchk:checked');
+  if (!chks.length){ alert('請先勾選要剔除的列（左側的方框）'); return; }
+  chks.forEach(c => c.dataset.ids.split(',').forEach(id => EXCLUDED.add(id)));
+  render();
+});
+/* 各戶車位價/坪輸入 → 存 PARK 後重算（change 在離開欄位時觸發，重畫不會打斷輸入） */
+document.addEventListener('change', e => {
+  const el = e.target.closest('.park-in');
+  if (!el) return;
+  const cur = PARK.get(el.dataset.k) || { p: null, s: null };
+  const v = parseFloat(el.value);
+  cur[el.classList.contains('pp') ? 'p' : 's'] = isNaN(v) ? null : v;
+  PARK.set(el.dataset.k, cur);
+  render();
+});
+document.addEventListener('click', e => {
+  const d = e.target.closest('.btn-del');
+  if (d){ e.preventDefault(); d.dataset.del.split(',').forEach(id => EXCLUDED.add(id)); render(); return; }
+  const r = e.target.closest('.restore-ex');
+  if (r){ e.preventDefault(); EXCLUDED.clear(); render(); }
+});
+
+/* ── 貼上（同測試頁機制：累加＋去重） ── */
+document.addEventListener('paste', e => {
+  if (!SEL) return;
+  e.preventDefault();
+  /* 兩種來源都吃：
+     ① 手動 Ctrl+A/C：帶 text/html。
+     ② 快抓書籤：把整頁 HTML 以純文字放剪貼簿、開頭加 LK591HTML 記號。 */
+  let html = e.clipboardData.getData('text/html');
+  const plain = e.clipboardData.getData('text/plain') || '';
+  if (!html && plain.startsWith('LK591HTML')) html = plain.slice(plain.indexOf('\n') + 1);
+  if (!html){
+    $('#pasteStat').textContent = '⚠ 這次貼上沒有抓到內容。請在 591 清單頁按「快抓書籤」，或改用 Ctrl+A、Ctrl+C 再回來貼。';
+    return;
+  }
+  pasteCount++; rawPastes.push(html);
+  const r = parse591(html);
+  for (const it of r.items){
+    const old = ALL.get(it.id);
+    if (!old || fieldCount591(it) > fieldCount591(old)) ALL.set(it.id, it);
+  }
+  $('#zone').classList.add('got');
+  $('#zone').textContent = '已收到，可以繼續貼下一頁或別的社區';
+  $('#dlRaw').style.display = $('#resetBtn').style.display = 'inline';
+  render();
+});
+$('#dlRaw').addEventListener('click', () => {
+  const blob = new Blob([rawPastes.join('\n<!-- ===== 下一次貼上 ===== -->\n')], { type:'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = '591貼上樣本.html'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+$('#resetBtn').addEventListener('click', () => {
+  ALL.clear(); INCLUDED.clear(); EXCLUDED.clear(); PARK.clear(); rawPastes.length = 0; pasteCount = 0;
+  $('#zone').classList.remove('got');
+  $('#zone').textContent = '點一下這裡，然後 Ctrl+V 貼上 591 頁面';
+  render();
+});
+
+/* ── 分組＋畫面 ── */
+const fmtW = n => Math.round(n).toLocaleString('zh-TW');
+/* 排序：單價 / 總價 / 樓層，皆由低到高，抓不到值的殿後 */
+let sortMode = 'unit';
+function sortKey(g){
+  if (sortMode === 'price') return g.minPrice;
+  if (sortMode === 'floor') return g.floor ? parseInt(g.floor, 10) : null;
+  return g._e ? g._e.u : g.unit;   // 單價排序用拆算後的值
+}
+const cmpSort = (a, b) => { const va = sortKey(a), vb = sortKey(b); return (va === null) - (vb === null) || va - vb; };
+
+function classify(){
+  const mine = [], near = [], unk = [];
+  for (const it of ALL.values()){
+    if (EXCLUDED.has(it.id)) continue;   // 使用者手動剔除的不進任何表、也不計入統計
+    if (isMine591(it, SEL)){ mine.push(it); continue; }
+    it._comm = resolveComm591(it.community);
+    it._dist = it._comm ? commDist591(SEL, it._comm) : null;
+    if (INCLUDED.has(it.id) || (it._dist !== null && it._dist <= RADIUS)) near.push(it);
+    else unk.push(it);
+  }
+  return { mine, near, unk };
+}
+
+/* ── 車位拆算 ──
+   每戶可手動填車位價／車位坪（存 PARK，key 用該戶最小物件編號，跨重貼穩定）。
+   填了任一格就啟用拆算：車位坪沒填時退用 591 卡片解析到的車位坪。 */
+const parkKey = g => g.listings.map(l => l.id).sort()[0];
+function annotatePark(g){
+  const pk = PARK.get(parkKey(g)) || {};
+  const hasP = pk.p !== null && pk.p !== undefined;
+  const hasS = pk.s !== null && pk.s !== undefined;
+  const warn = looksUnsplit591(g.minPrice, g.size, g.unit, g.sizePark);   // 591 疑似沒拆車位
+  if (!hasP && !hasS){ g._e = { u: g.unit, adj: false, warn }; return g; }
+  const u = adjUnit591(g.minPrice, g.size, hasP ? pk.p : 0, hasS ? pk.s : g.sizePark);
+  g._e = u !== null ? { u, adj: true, warn: false } : { u: g.unit, adj: false, warn };
+  return g;
+}
+const unitCell = e => e.u !== null
+  ? e.u.toFixed(1)
+    + (e.adj ? '<span class="badge-adj">拆</span>' : '')
+    + (e.warn ? '<span class="badge-warn no-print" title="這筆的 591 單價 ≈ 總價÷權狀坪，但卡片上有車位坪，疑似刊登者沒填車位價、591 沒幫忙拆算（單價偏低）。可在車位欄填車位價/坪修正。">含車？</span>' : '')
+  : '<span class="miss">—</span>';
+
+function rowsHTML(groups, withComm){
+  return groups.map(g => {
+    const links = g.listings.map((l, i) => `<a href="${l.url}" target="_blank" rel="noopener" title="${esc(l.title || '')}">${i + 1}</a>`).join('　');
+    const ids = g.listings.map(l => l.id).join(',');
+    const key = parkKey(g), pk = PARK.get(key) || {};
+    return `<tr>
+      <td class="col-check no-print"><input type="checkbox" class="rowchk" data-ids="${ids}"></td>
+      ${withComm ? `<td>${esc(g.listings[0]._comm || g.community || '—')}</td><td class="num">${g.listings[0]._dist !== null && g.listings[0]._dist !== undefined ? g.listings[0]._dist + 'm' : '—'}</td>` : ''}
+      <td class="num">${g.floor ? g.floor + (g.floorTotal ? '/' + g.floorTotal : '') : '<span class="miss">—</span>'}</td>
+      <td class="num">${g.size !== null ? g.size + '坪' : '<span class="miss">—</span>'}</td>
+      <td class="num">${g.sizeMain !== null ? g.sizeMain + '坪' : '<span class="miss">—</span>'}</td>
+      <td>${g.layout ? esc(g.layout) : '<span class="miss">—</span>'}</td>
+      <td class="num">${g.minPrice !== null ? fmtW(g.minPrice) + (g.count > 1 ? '<span class="badge-n">' + g.count + ' 家刊登</span>' : '') : '<span class="miss">—</span>'}</td>
+      <td class="col-park"><input class="park-in pp" data-k="${key}" type="number" placeholder="價" title="車位價(萬)" value="${pk.p !== null && pk.p !== undefined ? pk.p : ''}">/<input class="park-in ps" data-k="${key}" type="number" step="0.01" placeholder="${g.sizePark !== null ? g.sizePark : '坪'}" title="車位坪" value="${pk.s !== null && pk.s !== undefined ? pk.s : ''}"></td>
+      <td class="num">${unitCell(g._e)}</td>
+      <td class="col-link">${links}</td>
+      <td class="col-del no-print"><button class="btn-del" data-del="${ids}" title="剔除這一戶">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+function meRowHTML(myUnit, myAdj){
+  const parkTxt = (MY.pp !== null || MY.ps !== null)
+    ? (MY.pp !== null ? fmtW(MY.pp) + '萬' : '') + (MY.ps !== null ? '/' + MY.ps + '坪' : '')
+    : '—';
+  return `<tr class="me">
+    <td class="col-check no-print"></td>
+    <td class="num"><span class="me-tag">本案</span> ${MY.floor ? MY.floor + 'F' : '—'}</td>
+    <td class="num">${MY.size !== null ? MY.size + '坪' : '—'}</td>
+    <td class="num">—</td><td>—</td>
+    <td class="num">${MY.price !== null ? fmtW(MY.price) : '—'}</td>
+    <td class="col-park">${parkTxt}</td>
+    <td class="num">${myUnit !== null ? myUnit.toFixed(1) + (myAdj ? '<span class="badge-adj">拆</span>' : '') : '—'}</td>
+    <td class="col-link"></td>
+    <td class="col-del no-print"></td>
+  </tr>`;
+}
+const TH_MINE = '<tr><th class="col-check no-print"></th><th>樓層</th><th>權狀</th><th>主建</th><th>格局</th><th>最低開價(萬)</th><th class="col-park">車位價/坪</th><th>單價(萬/坪)</th><th class="col-link">刊登連結</th><th class="col-del no-print"></th></tr>';
+const TH_NEAR = '<tr><th class="col-check no-print"></th><th>社區</th><th>距離</th><th>樓層</th><th>權狀</th><th>主建</th><th>格局</th><th>最低開價(萬)</th><th class="col-park">車位價/坪</th><th>單價(萬/坪)</th><th class="col-link">刊登連結</th><th class="col-del no-print"></th></tr>';
+
+function render(){
+  if (!SEL || !ALL.size){ $('#resSec').style.display = 'none'; $('#pasteStat').textContent = ''; return; }
+  const { mine, near, unk } = classify();
+  const gm = groupUnits591(mine).map(annotatePark).sort(cmpSort);
+  const gn = groupUnits591(near).map(annotatePark).sort(cmpSort);
+  $('#pasteStat').textContent = `已貼 ${pasteCount} 次｜累計 ${ALL.size} 筆刊登 → 本社區 ${mine.length} 筆（歸戶後 ${gm.length} 戶）｜鄰近 ${near.length} 筆｜無法歸類 ${unk.length} 筆`;
+  $('#exNote').innerHTML = EXCLUDED.size ? `已剔除 ${EXCLUDED.size} 筆　<a href="#" class="restore-ex">全部復原</a>` : '';
+  $('#resSec').style.display = 'block';
+
+  /* 摘要（單價一律用拆算後的值） */
+  const myAdj  = MY.pp !== null || MY.ps !== null;
+  const myUnit = (MY.price !== null && MY.size !== null)
+    ? (myAdj ? adjUnit591(MY.price, MY.size, MY.pp, MY.ps) : MY.price / MY.size)
+    : null;
+  const prices = gm.map(g => g.minPrice).filter(v => v !== null);
+  const units  = gm.map(g => g._e.u).filter(v => v !== null);
+  let rankTxt = '—';
+  if (myUnit !== null && units.length){
+    const lower = units.filter(u => u < myUnit).length;
+    rankTxt = `${units.length + 1} 戶中第 ${lower + 1} 低`;
+  }
+  $('#sumBox').innerHTML = `
+    <div class="sum"><div class="k">同社區在售（歸戶後）</div><div class="v">${gm.length}<small> 戶／${mine.length} 筆刊登</small></div></div>
+    <div class="sum"><div class="k">開價區間</div><div class="v">${prices.length ? fmtW(Math.min(...prices)) + '～' + fmtW(Math.max(...prices)) : '—'}<small> 萬</small></div></div>
+    <div class="sum"><div class="k">開價單價區間</div><div class="v">${units.length ? Math.min(...units).toFixed(1) + '～' + Math.max(...units).toFixed(1) : '—'}<small> 萬/坪</small></div></div>
+    <div class="sum"><div class="k">本案單價位置</div><div class="v">${rankTxt === '—' ? '—' : rankTxt}<small>${myUnit !== null ? '（' + myUnit.toFixed(1) + ' 萬/坪' + (myAdj ? '，已拆車位' : '') + '）' : '（填本案坪數與開價後顯示）'}</small></div></div>`;
+
+  /* 本社區表：有填本案才插「本案」列；有單價就照排序位置插，沒單價就置頂 */
+  $('#mineTitle').textContent = `「${SEL}」同社區在售`;
+  const hasMy = MY.floor !== null || MY.size !== null || MY.price !== null;
+  const myVal = sortMode === 'price' ? MY.price : sortMode === 'floor' ? MY.floor : myUnit;
+  let mineRows = '', inserted = !hasMy;
+  for (const g of gm){
+    const gv = sortKey(g);
+    if (!inserted && (myVal === null || gv === null || gv >= myVal)){ mineRows += meRowHTML(myUnit, myAdj); inserted = true; }
+    mineRows += rowsHTML([g], false);
+  }
+  if (!inserted) mineRows += meRowHTML(myUnit, myAdj);
+  $('#mineList').innerHTML = (gm.length || hasMy)
+    ? `<div class="tbl-wrap"><table class="ct"><thead>${TH_MINE}</thead><tbody>${mineRows}</tbody></table></div>`
+    : `<div class="hint">目前貼上的內容裡沒有「${esc(SEL)}」的刊登。</div>`;
+
+  /* 鄰近競品表 */
+  if (gn.length){
+    $('#nearSec2').style.display = 'block';
+    $('#nearTitle').textContent = `鄰近競品（${RADIUS} 公尺內）`;
+    $('#nearList2').innerHTML = `<div class="tbl-wrap"><table class="ct"><thead>${TH_NEAR}</thead><tbody>${rowsHTML(gn, true)}</tbody></table></div>`;
+  } else $('#nearSec2').style.display = 'none';
+
+  /* 成交對照（紙本上超連結點不了，加 QR code 給屋主用手機掃） */
+  const st = commStats591(SEL);
+  if (st){
+    let cmp = '';
+    if (units.length){
+      const mid = median591(units);
+      const diff = (mid - st.u) / st.u * 100;
+      cmp = `目前在售開價中位 <b>${mid.toFixed(1)}</b> 萬/坪，較成交中位<b>${diff >= 0 ? '高' : '低'} ${Math.abs(diff).toFixed(0)}%</b>。`;
+    }
+    $('#dealBox').style.display = 'block';
+    $('#dealBox').innerHTML = `${qrSvg591('https://swcasa.com/price/?c=' + encodeURIComponent(SEL))}📊 <b>實價成交對照</b>：「${esc(SEL)}」近 3 年成交中位 <b>${st.u.toFixed(1)}</b> 萬/坪（${st.n} 筆${st.age !== null ? '、中位屋齡 ' + st.age + ' 年' : ''}）。${cmp}
+      <a class="no-print" href="../price/?c=${encodeURIComponent(SEL)}" target="_blank" rel="noopener">看逐筆成交明細 ↗</a>`;
+  } else $('#dealBox').style.display = 'none';
+
+  /* 無法歸類 */
+  if (unk.length){
+    $('#unkSec').style.display = 'block';
+    $('#unkList').innerHTML = unk.map(it => `<div class="unk-row">
+      <span><b>${esc(it.community || '（無社區標籤）')}</b>${it._dist !== null ? `（${it._dist}m，超出範圍）` : ''}</span>
+      <span>${esc(it.title || '')}</span>
+      <span>${it.price !== null ? fmtW(it.price) + '萬' : ''}${it.unitPrice !== null ? '｜' + it.unitPrice.toFixed(1) + '萬/坪' : ''}</span>
+      <a href="${it.url}" target="_blank" rel="noopener">開啟 ↗</a>
+      <button class="mini" data-id="${it.id}">✔ 併入比較</button>
+    </div>`).join('');
+    $('#unkList').querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => { INCLUDED.add(b.dataset.id); render(); }));
+  } else $('#unkSec').style.display = 'none';
+
+  /* 列印表頭與日期 */
+  const today = new Date();
+  const dstr = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+  $('#todayTxt').textContent = dstr;
+  $('#phTitle').textContent = `「${SEL}」在售競品盤點`;
+  $('#phSub').innerHTML = `資料整理日：${dstr}｜太平洋房屋 · 林口捷運加盟店　李天夏 · 温美慈` +
+    (MY.floor || MY.price !== null ? `<br>本案：${MY.floor ? MY.floor + 'F' : ''}${MY.size !== null ? '｜' + MY.size + '坪' : ''}${MY.price !== null ? '｜開價 ' + fmtW(MY.price) + ' 萬' : ''}${MY.pp !== null ? '｜含車位 ' + fmtW(MY.pp) + ' 萬' + (MY.ps !== null ? '(' + MY.ps + '坪)' : '') : ''}` : '');
+}
+
+/* 產生 QR code（SVG 字串）＋說明文字；qrcode.js 沒載到或內容有問題就整塊省略，不擋其他功能 */
+function qrSvg591(url){
+  if (typeof qrcode !== 'function') return '';
+  try{
+    const q = qrcode(0, 'M');
+    q.addData(url);
+    q.make();
+    return `<span class="deal-qr">${q.createSvgTag(2, 0)}掃描看逐筆成交</span>`;
+  }catch(e){ return ''; }
+}
+
+$('#printBtn').addEventListener('click', () => window.print());
+
+/* 從 591 分頁切回本頁時，自動把貼上框捲到眼前並閃一下，省得使用者找。 */
+function flashZone(){
+  const z = $('#zone'); if (!z || !SEL) return;
+  const r = z.getBoundingClientRect();
+  if (r.top < 60 || r.bottom > innerHeight) z.scrollIntoView({ behavior:'smooth', block:'center' });
+  z.classList.remove('flash'); void z.offsetWidth; z.classList.add('flash');
+}
+window.addEventListener('focus', flashZone);
+
+/* ── 快抓書籤：這個函式的原始碼會被轉成 bookmarklet 掛到安裝按鈕上 ──
+   在 591 清單頁執行：讀整頁 HTML → 加 LK591HTML 記號放進剪貼簿 → 提示回本頁貼上。
+   真正的解析在工具頁 parse591，所以 591 改版多半只改工具頁，書籤不必重拖。 */
+function lk591grab(){
+  try{
+    var html=document.body.innerHTML;
+    var m=html.match(/house\/detail\/\d+\/(\d+)/g)||[];
+    var ids={};m.forEach(function(s){ids[s.split('/').pop()]=1;});
+    var n=Object.keys(ids).length;
+    if(!n){alert('這一頁沒有偵測到 591 物件，請確認在「出售物件清單頁」再點一次。');return;}
+    var p='LK591HTML\n'+html;
+    var ok=function(){alert('✅ 已複製本頁 '+n+' 個物件，回「競品比較」頁按 Ctrl+V 貼上。');};
+    var ex=function(){var t=document.createElement('textarea');t.value=p;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();var r=false;try{r=document.execCommand('copy');}catch(e){}document.body.removeChild(t);r?ok():alert('自動複製失敗，請改用 Ctrl+A 全選、Ctrl+C 複製。');};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(p).then(ok,ex);}else{ex();}
+  }catch(e){alert('發生錯誤：'+e);}
+}
+$('#bmkLink').setAttribute('href','javascript:('+lk591grab.toString().replace(/\n\s*/g,'')+')();void(0)');
+
+/* 深連結：?c=社區名（例如從行情頁或 LINE 帶過來） */
+(function(){
+  const c = new URLSearchParams(location.search).get('c');
+  if (c && COMMUNITY[c]){ $('#commInput').value = c; startWork(); }
+})();
+</script>
+</body>
+</html>
