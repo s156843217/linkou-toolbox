@@ -14,34 +14,21 @@
   var logo=document.querySelector('.site-nav .nav-logo');
   var prefix=(logo&&logo.getAttribute('href'))||'./';
 
-  // 目前所在頁（避免在該工具自己的頁面重複加它自己的按鈕）
-  var here=location.pathname;
-
-  // report 頁自己的導覽列已有「社區報告」，不重複加
-  var hasReport=Array.prototype.some.call(links.querySelectorAll('a'),function(a){
-    return a.textContent.indexOf('社區報告')>=0;
-  });
-  if(!hasReport){
-    var r=document.createElement('a');
-    r.href=prefix+'report/';
-    r.textContent='📋 社區報告';
-    r.style.color='var(--gold)';
-    links.appendChild(r);
+  // 導覽列已有某文字的連結就不重複加（含各頁自己靜態就放的那顆，例如 report 頁的「社區報告」）
+  function has(txt){
+    return Array.prototype.some.call(links.querySelectorAll('a'),function(a){
+      return a.textContent.indexOf(txt)>=0;
+    });
+  }
+  function addGold(text,href,external){
+    var a=document.createElement('a');
+    a.href=href; a.textContent=text; a.style.color='var(--gold)';
+    if(external){ a.target='_blank'; a.rel='noopener'; }
+    links.appendChild(a);
   }
 
-  // 競品比較（591 在售盤點）——同為內部工具，登入後每頁可直接點進
-  if(here.indexOf('/listing/')<0){
-    var l=document.createElement('a');
-    l.href=prefix+'listing/';
-    l.textContent='📊 競品比較';
-    l.style.color='var(--gold)';
-    links.appendChild(l);
-  }
-
-  var c=document.createElement('a');
-  c.href='https://s156843217.github.io/linkou-crm/';
-  c.target='_blank'; c.rel='noopener';
-  c.textContent='👥 CRM';
-  c.style.color='var(--gold)';
-  links.appendChild(c);
+  // 社區報告、競品比較都是內部工具：登入後每頁都留著按鈕（停在該頁時也不消失，只是不重複加）
+  if(!has('社區報告')) addGold('📋 社區報告',prefix+'report/');
+  if(!has('競品比較')) addGold('📊 競品比較',prefix+'listing/');
+  if(!has('CRM'))     addGold('👥 CRM','https://s156843217.github.io/linkou-crm/',true);
 })();
