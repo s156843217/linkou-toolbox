@@ -79,6 +79,21 @@ function houseCoord(addr){
   const h=houseLookup(addr);
   return (h&&h.lat!=null)?{lat:h.lat,lon:h.lon}:null;
 }
+/* 社區 → 門牌基底集合（"路|巷-弄|號基底"，口徑同 parseHouse）。
+   優先用 community-doors.js 的對照庫（實價登錄社區簡稱歸戶，一社區一串門牌），
+   並聯集建檔地址門牌（對照庫漏收時至少跟以前一樣）；都查不到回 null。
+   行情頁與競品比較頁的「本社區成交」都靠這個，兩頁口徑一致。 */
+function commDoorSet(name){
+  const set=new Set();
+  if(typeof COMM_DOORS!=='undefined'&&COMM_DOORS[name])
+    for(const k of COMM_DOORS[name])set.add(k);
+  const c=(typeof COMMUNITY!=='undefined')&&COMMUNITY[name];
+  if(c&&c.addr){
+    const p=parseHouse(c.addr);
+    if(p)set.add(p.road+'|'+p.lk+'|'+p.num.split('-')[0]);
+  }
+  return set.size?set:null;
+}
 function distM(la1,lo1,la2,lo2){
   const R=6371000,rad=Math.PI/180;
   const dLa=(la2-la1)*rad,dLo=(lo2-lo1)*rad;

@@ -276,8 +276,9 @@ if(location.protocol==='https:'){
 
 <div class="toast" id="toast"></div>
 
-<!-- 資料與共用純函式：linkou-data(社區/門牌) → report-logic(parseHouse/houseCoord/distM) → price-list-data(逐筆行情) -->
+<!-- 資料與共用純函式：linkou-data(社區/門牌) → community-doors(社區↔門牌對照庫) → report-logic(parseHouse/houseCoord/distM/commDoorSet) → price-list-data(逐筆行情) -->
 <script src="../linkou-data.js"></script>
+<script src="../community-doors.js"></script>
 <script src="../report-logic.js"></script>
 <script src="../price-list-data.js"></script>
 <script>
@@ -413,24 +414,24 @@ function renderStats(rows,yrs){
 }
 
 /* ── 查詢主流程 ──
-   社區模式：預售用「建案名稱」模糊比對；成屋用社區建檔地址的「路＋巷弄＋號」精準比對；
+   社區模式：預售用「建案名稱」模糊比對；成屋用 commDoorSet 的整串門牌基底精準比對
+             （community-doors.js 對照庫＋建檔地址聯集，跨棟跨街的社區也抓得全）；
              再以社區座標抓方圓 150m 鄰近成交當參考（樂居沒有的差異化）。
-   地址模式：同上，但中心點＝輸入的門牌。 */
+   地址模式：同上，但門牌集合只有輸入的那一個基底，中心點＝輸入的門牌。 */
 let lastQuery=null;   // {label, exact:[], near:[]}（切換型態膠囊時重畫用）
 
 function normalizeComm(s){return (s||'').replace(/管理委員會|管委會|社區|大廈|大樓|公寓|住戶|集合住宅|管理負責人/g,'').toLowerCase().trim();}
 
-function collectRows(label,p,center,nq){
+function collectRows(label,keys,center,nq){
   ensureCoords();
   RECS.forEach(r=>{delete r._hl;delete r._dist;});   // 清掉上一次查詢的高亮/距離標記
   const exact=[],near=[];
-  const base=p?p.num.split('-')[0]:null;
   RECS.forEach((r,i)=>{
     if(nq&&r.k==='p'&&r.cm){
       const nc=normalizeComm(r.cm);
       if(nc&&nc.length>=2&&(nc===nq||nc.includes(nq)||nq.includes(nc))){exact.push(r);return;}
     }
-    if(p&&PARSED[i]&&PARSED[i].road===p.road&&PARSED[i].lk===p.lk&&PARSED[i].num.split('-')[0]===base){exact.push(r);return;}
+    if(keys&&PARSED[i]&&keys.has(PARSED[i].road+'|'+PARSED[i].lk+'|'+PARSED[i].num.split('-')[0])){exact.push(r);return;}
     if(center&&COORDS[i]){
       const dm=distM(center.lat,center.lon,COORDS[i][0],COORDS[i][1]);
       if(dm<=150){r._dist=Math.round(dm);near.push(r);}
@@ -457,7 +458,7 @@ function renderQuery(){
   $("#mainList").innerHTML=w.rows.length
     ? listHTML(w.rows,false)
     : `<div class="empty-box">近三年查無「${esc(q.label)}」的直接成交紀錄${q.hasCenter?'，可參考下方鄰近成交':''}。<br>
-       <span style="font-size:12.5px">提示：成屋依社區建檔門牌比對，同社區不同棟門牌可能落在「鄰近參考」；也可改輸入完整門牌地址查。</span></div>`;
+       <span style="font-size:12.5px">提示：成屋依社區門牌對照庫（實價登錄歸戶）比對；也可改輸入完整門牌地址查。</span></div>`;
   renderStats(w.rows,w.yrs);
 
   // 鄰近參考（有座標才有）
@@ -478,9 +479,9 @@ function runCommunity(name){
   if(!c){toast('查無此社區');return;}
   $("#qInput").value=name;
   $("#qList").classList.remove('show');
-  const p=c.addr?parseHouse(c.addr):null;
+  const keys=commDoorSet(name);   // 對照庫整串門牌＋建檔門牌
   const center=c.addr?houseCoord(c.addr):null;
-  collectRows(name,p,center,normalizeComm(name));
+  collectRows(name,keys,center,normalizeComm(name));
   history.replaceState(null,'','?c='+encodeURIComponent(name));
 }
 function runAddress(addr){
@@ -489,7 +490,7 @@ function runAddress(addr){
   $("#qList").classList.remove('show');
   const center=houseCoord(addr);
   const disp=toHalf(addr).replace(/^(新北市)?林口區/,'').trim();
-  collectRows(disp,p,center,null);
+  collectRows(disp,new Set([p.road+'|'+p.lk+'|'+p.num.split('-')[0]]),center,null);
   history.replaceState(null,'',location.pathname);
 }
 

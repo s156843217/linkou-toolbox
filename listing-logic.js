@@ -259,20 +259,18 @@ function median591(arr){
 }
 
 /* 社區成交行情摘要（近 3 年成屋、排除透天，比對法與行情頁相同：
-   社區建檔地址的「路＋巷弄＋號」精準比對）→ {u 中位單價, age 中位屋齡, n 筆數} */
+   commDoorSet 的整串門牌基底精準比對）→ {u 中位單價, age 中位屋齡, n 筆數} */
 function commStats591(name){
-  const c = COMMUNITY[name];
-  if (!c || !c.addr) return null;
-  const p = parseHouse(c.addr);
-  if (!p) return null;
+  const keys = commDoorSet(name);
+  if (!keys) return null;
   ensurePriceCache591();
-  const md = PRICE_META.maxDate, base = p.num.split('-')[0];
+  const md = PRICE_META.maxDate;
   const rows = [];
   _L_RECS.forEach((r, i) => {
     if (r.k !== 'r' || r.bt === 3 || r.bt === 4 || !r.u) return;
     if (r.d < md - 3 * 10000) return;
     const q = _L_PARSED[i];
-    if (q && q.road === p.road && q.lk === p.lk && q.num.split('-')[0] === base) rows.push(r);
+    if (q && keys.has(q.road + '|' + q.lk + '|' + q.num.split('-')[0])) rows.push(r);
   });
   if (!rows.length) return null;
   const ages = rows.filter(r => r.by > 0).map(r => Math.floor(r.d / 10000) - r.by);
