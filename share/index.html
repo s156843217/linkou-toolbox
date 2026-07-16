@@ -346,6 +346,9 @@ function initLiff(){
       b.style.display='block';
       document.querySelector('.wrap').style.paddingBottom='84px';  // 避免浮動鈕蓋住頁尾
       b.addEventListener('click',doShare);
+      /* 從 bot 卡片「📤 分享給朋友」鈕來的（&share=1）：LINE 內直接跳出選好友視窗，
+         省一步；取消或分享完仍留在本頁，可再按浮動鈕重分享 */
+      if(new URLSearchParams(location.search).get('share')==='1'&&liff.isInClient())doShare();
     }
   }).catch(()=>{});                                  // init 失敗（如本機測試）不影響網頁本身
 }
@@ -397,6 +400,7 @@ function buildFlex(d){
 
   return {type:'flex',altText:'【'+d.name+'】林口置產情報：學區/行情/公車/房貸一頁看懂',
     contents:{type:'bubble',
+      size:'giga',   /* 吃滿聊天室寬度（預設 mega 偏窄） */
       header:{type:'box',layout:'vertical',backgroundColor:'#2C2620',paddingAll:'16px',contents:head},
       body:{type:'box',layout:'vertical',spacing:'md',contents:rows},
       footer:{type:'box',layout:'vertical',spacing:'sm',contents:[
