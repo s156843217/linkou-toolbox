@@ -399,8 +399,7 @@ function buildFlex(d){
   if(d.addr)head.push({type:'text',text:'📍 '+d.addr,size:'xxs',color:'#C9B89B',wrap:true,margin:'sm'});
 
   return {type:'flex',altText:'【'+d.name+'】林口置產情報：學區/行情/公車/房貸一頁看懂',
-    contents:{type:'bubble',
-      size:'giga',   /* 吃滿聊天室寬度（預設 mega 偏窄） */
+    contents:{type:'bubble',   /* 寬度用預設 mega：giga 太寬（2026-07-16 拍板） */
       header:{type:'box',layout:'vertical',backgroundColor:'#2C2620',paddingAll:'16px',contents:head},
       body:{type:'box',layout:'vertical',spacing:'md',contents:rows},
       footer:{type:'box',layout:'vertical',spacing:'sm',contents:[
