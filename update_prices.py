@@ -611,6 +611,7 @@ MOI_URL = ("https://plvr.land.moi.gov.tw/DownloadSeason"
 HISTORY_JSON = Path("price-history.json")     # 累積主檔（被排除筆也留著、只加旗標，改政策不用重回填）
 PRICE_JS = Path("price-list-data.js")         # 瀏覽器用（近三年、已過濾）
 SUMMARY_JSON = Path("price-summary.json")     # LINE bot 行情摘要卡用的小檔（每社區筆數/中位價）
+DOORS_JS = Path("community-doors.js")         # 社區↔門牌對照庫（repo 內同步複本，網頁同款）
 BACKFILL_SEASONS = 14   # 首次回填抓 14 季（約 3.5 年，含登記時差餘裕）
 REFRESH_SEASONS = 5     # 每月重抓最近 5 季（涵蓋登記時差與預售解約異動）
 
@@ -808,15 +809,39 @@ def norm_comm(s):
     return _COMM_STRIP.sub("", s or "").lower().strip()
 
 
+# 對照庫每行長相：「"社區名":["路|巷-弄|號基底",…],」（檔尾可能帶逗號）
+_DOORS_LINE = re.compile(r'^"(.+?)":(\[.*\]),?$')
+
+
+def load_comm_doors():
+    """讀 repo 內 community-doors.js（社區→一串門牌基底）。失敗回 {}＝退回舊行為。"""
+    if not DOORS_JS.exists():
+        print("⚠ 找不到 community-doors.js，行情摘要退回只比對建檔門牌")
+        return {}
+    doors = {}
+    for line in DOORS_JS.read_text(encoding="utf-8").splitlines():
+        m = _DOORS_LINE.match(line.strip())
+        if m:
+            try:
+                doors[m.group(1)] = json.loads(m.group(2))
+            except ValueError:
+                pass
+    if not doors:
+        print("⚠ community-doors.js 解析不出任何社區，行情摘要退回只比對建檔門牌")
+    return doors
+
+
 def build_price_summary(records):
     """主檔＋COMMUNITY 對照 → price-summary.json（LINE bot 查行情按鈕的摘要來源）。
-       口徑與 price/ 網頁完全一致：成屋比對社區建檔門牌（路＋巷弄＋基底號）、
+       口徑與 price/ 網頁完全一致（同 report-logic.js 的 commDoorSet）：
+       成屋比對「community-doors.js 對照庫 ∪ 建檔門牌」的整串門牌基底、
        預售比對建案名稱（正規化互含）；近 1 年不足 5 筆放寬至 2、3 年；
        單價/總價中位數不含透天別墅。失敗保留舊檔。"""
     comm = load_community()
     if not comm:
         print("⚠ 抓不到 COMMUNITY，略過 price-summary.json（保留舊檔）")
         return
+    doors = load_comm_doors()
     recs = [r for r in records.values()
             if not r.get("sp") and not r.get("x") and not r.get("o")]
     if not recs:
@@ -852,12 +877,20 @@ def build_price_summary(records):
 
     out_c = {}
     for name, c in comm.items():
-        rows = []
+        # 門牌基底集合＝對照庫 ∪ 建檔地址（key 去重，每筆成交只屬一個基底、不會重複計）
+        keys = set()
+        for k in doors.get(name, []):
+            parts = k.split("|")
+            if len(parts) == 3:                    # "路|巷-弄|號基底"
+                keys.add(tuple(parts))
         addr = (c.get("addr") or "").strip()
         if addr:
             p = parse_house(addr)
             if p:
-                rows += by_addr.get((p["road"], p["lk"], p["num"].split("-")[0]), [])
+                keys.add((p["road"], p["lk"], p["num"].split("-")[0]))
+        rows = []
+        for k in keys:
+            rows += by_addr.get(k, [])
         nn = norm_comm(name)
         if len(nn) >= 2:
             for cm_name, prows in by_proj.items():
