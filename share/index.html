@@ -150,9 +150,11 @@ if(location.protocol==='https:'){
 <button id="liffShare">📤 LINE 分享這份情報</button>
 
 <script src="../linkou-data.js"></script>
+<script src="../community-doors.js"></script>
 <script src="../mortgage-data.js"></script>
 <script src="../bus-data.js"></script>
 <script src="../report-logic.js"></script>
+<script src="../price-list-data.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 
@@ -177,12 +179,34 @@ function render(d){
     schoolHtml=`<div class="sch-note">此${d.cands?'物件跨里（'+d.cands.join('、')+'）':'物件的里別資料不足'}，歡迎用<a href="../school/">學區快查</a>輸入完整門牌精準判定，或直接聯繫我們。</div>`;
   }
 
-  /* 行情 */
+  /* 行情：本社區實價統計優先（樣本≥5筆），不足退回商圈層級 */
   let mktHtml='';
-  if(d.zoneData){
+  const cp=(d.commPrice&&!d.commPrice.insufficient)?d.commPrice:null;
+  if(cp){
+    mktHtml=`<div style="font-size:12.5px;color:var(--ink-soft)">本社區實價登錄：近 ${cp.yrs} 年 <b style="color:var(--ink)">${cp.n}</b> 筆成交${d.zoneData?`・${d.zoneData.name.replace(/商圈$/,'')}商圈`:''}</div>
+      <div class="mkt-big"><span class="v">${cp.unitMed.toFixed(1)}</span><span class="u">萬/坪（本社區中位數，不含車位）</span></div>
+      <div class="mkt-meta">
+        <div class="mi"><div class="mv">${cp.p25.toFixed(1)}–${cp.p75.toFixed(1)}</div><div class="mk">主力區間(萬/坪)</div></div>
+        <div class="mi"><div class="mv">${fmt(cp.totalMed)} 萬</div><div class="mk">總價中位</div></div>
+        <div class="mi"><div class="mv">${cp.sizeMed.toFixed(1)} 坪</div><div class="mk">坪數中位(含車位)</div></div>
+      </div>`;
+  }else if(d.nearType&&!d.nearType.insufficient){
+    const nt=d.nearType;   // 地址模式：鄰近同型態成交（公寓/華廈不被大樓價拉高）
+    mktHtml=`<div style="font-size:12.5px;color:var(--ink-soft)">鄰近 ${nt.radius}m 內<b style="color:var(--ink)">${nt.btName}</b>：近 ${nt.yrs} 年 <b style="color:var(--ink)">${nt.n}</b> 筆成交${d.zoneData?`・${d.zoneData.name.replace(/商圈$/,'')}商圈`:''}</div>
+      <div class="mkt-big"><span class="v">${nt.unitMed.toFixed(1)}</span><span class="u">萬/坪（同型態中位數，不含車位）</span></div>
+      <div class="mkt-meta">
+        <div class="mi"><div class="mv">${nt.p25.toFixed(1)}–${nt.p75.toFixed(1)}</div><div class="mk">主力區間(萬/坪)</div></div>
+        <div class="mi"><div class="mv">${fmt(nt.totalMed)} 萬</div><div class="mk">總價中位</div></div>
+        <div class="mi"><div class="mv">${nt.sizeMed.toFixed(1)} 坪</div><div class="mk">坪數中位(含車位)</div></div>
+      </div>`;
+  }else if(d.zoneData){
     const z=d.zoneData;
-    mktHtml=`<div style="font-size:12.5px;color:var(--ink-soft)">所在商圈：<b style="color:var(--ink)">${z.name}</b>（近一年 ${z.count} 筆成交）</div>
-      <div class="mkt-big"><span class="v">${z.medPrice}</span><span class="u">萬/坪（中位數，不含車位）</span></div>
+    const few=(d.nearType&&d.nearType.insufficient)
+      ?`<div class="sch-note">鄰近 500 公尺內${d.nearType.btName}近 3 年成交僅 ${d.nearType.n} 筆，樣本較少，以下列所在商圈行情。</div>`
+      :(d.commPrice&&d.commPrice.insufficient)
+      ?`<div class="sch-note">本案近 3 年實價登錄僅 ${d.commPrice.n} 筆，樣本較少，以下列所在商圈行情。</div>`:'';
+    mktHtml=`${few}<div style="font-size:12.5px;color:var(--ink-soft)">所在商圈：<b style="color:var(--ink)">${z.name}</b>（近一年 ${z.count} 筆成交）</div>
+      <div class="mkt-big"><span class="v">${z.medPrice}</span><span class="u">萬/坪（商圈中位數，不含車位）</span></div>
       <div class="mkt-meta">
         <div class="mi"><div class="mv">${z.priceRange[0]}–${z.priceRange[1]}</div><div class="mk">主力區間(萬/坪)</div></div>
         <div class="mi"><div class="mv">${z.ageMed} 年</div><div class="mk">屋齡中位</div></div>
@@ -192,7 +216,8 @@ function render(d){
     mktHtml=`<div class="sch-note">此位置不在六大商圈範圍內，以下列林口全區行情供參考。</div>`;
   }
   if(d.resale){
-    mktHtml+=`<div class="mkt-ref">參考：林口全區成屋中位 ${d.resale.unit} 萬/坪、總價中位 ${fmt(d.resale.totalMed)} 萬（近一年 ${d.resale.n} 筆）。資料：新北市實價登錄，每月自動更新。</div>`;
+    mktHtml+=`<div class="mkt-ref">參考：林口全區成屋中位 ${d.resale.unit} 萬/坪、總價中位 ${fmt(d.resale.totalMed)} 萬（近一年 ${d.resale.n} 筆）。資料：內政部實價登錄，每月自動更新。
+      <a href="../price/?c=${encodeURIComponent(d.name)}">👉 看逐筆成交明細</a></div>`;
   }
 
   /* 公車 */
@@ -286,7 +311,7 @@ function render(d){
 
     <div class="disc">
       ⚠️ 本頁由林口置產工具箱自動彙整，僅供參考：學區資料具時效性，額滿與分發以當年度學校及區公所公告為準；
-      行情為近一年實價登錄之商圈層級統計（不含車位、排除透天與特殊交易），非個案估價；房貸試算不代表銀行核貸條件。重大決策請洽專業人士確認。
+      行情為實價登錄統計（樣本足夠時列本社區或鄰近同型態之近一至三年中位數，否則列商圈近一年；不含車位、排除透天與特殊交易），非個案估價；房貸試算不代表銀行核貸條件。重大決策請洽專業人士確認。
     </div>
     <footer>
       太平洋房屋・林口捷運加盟店 ｜ 李天夏 · 温美慈<br>
@@ -370,7 +395,7 @@ async function doShare(){
 function buildFlex(d){
   // 圖卡上的按鈕連到 LIFF 網址：客戶在 LINE 內點開＝全螢幕情報頁，也能再轉傳
   const q=new URLSearchParams(location.search), parts=[];
-  ['c','a','p'].forEach(k=>{const v=q.get(k);if(v)parts.push(k+'='+encodeURIComponent(v));});
+  ['c','a','p','t'].forEach(k=>{const v=q.get(k);if(v)parts.push(k+'='+encodeURIComponent(v));});
   const link='https://liff.line.me/'+LIFF_ID+(parts.length?'?'+parts.join('&'):'');
 
   const rows=[];
@@ -384,7 +409,9 @@ function buildFlex(d){
     const jh=[...new Set(d.school.jh.map(r=>r.base||'自由學區'))];
     if(jh.length)row('🏫 國中',jh.join('／'));
   }
-  if(d.zoneData)row('📈 行情',d.zoneData.medPrice+' 萬/坪・'+d.zoneData.name);
+  if(d.commPrice&&!d.commPrice.insufficient)row('📈 行情',d.commPrice.unitMed.toFixed(1)+' 萬/坪・本社區近'+d.commPrice.yrs+'年'+d.commPrice.n+'筆');
+  else if(d.nearType&&!d.nearType.insufficient)row('📈 行情',d.nearType.unitMed.toFixed(1)+' 萬/坪・鄰近'+d.nearType.btName+'近'+d.nearType.yrs+'年'+d.nearType.n+'筆');
+  else if(d.zoneData)row('📈 行情',d.zoneData.medPrice+' 萬/坪・'+d.zoneData.name);
   else if(d.resale)row('📈 行情','全區中位 '+d.resale.unit+' 萬/坪');
   if(d.mortgage)row('🏦 月付','約 '+fmt(d.mortgage.monthly)+' 元（貸'+(d.mortgage.ratio*10)+'成/'+d.mortgage.years+'年）');
   if(d.stops&&d.stops.length){
@@ -424,7 +451,8 @@ function buildFlex(d){
   const loan={price,ratio:0.8,rate:2.7,years:30};   // 分享頁用預設條件（8 成、2.7%、30 年）
   let d=null;
   const a=q.get('a'), c=q.get('c');
-  if(a)d=buildFromAddress(a,loan);
+  const t=['0','1','2'].includes(q.get('t'))?parseInt(q.get('t')):null;   // 型態索引（報告頁地址模式帶來）
+  if(a)d=buildFromAddress(a,loan,t);
   else if(c){
     if(COMMUNITY[c])d=buildFromCommunity(c,loan);
     else{ // 容錯：名稱不完全相符時試別名
