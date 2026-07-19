@@ -21,6 +21,13 @@
   .field input{padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff}
   .field input:focus{outline:none;border-color:var(--clay)}
   .field.small input{width:110px}
+  /* style.css 的全站 .field 是 flex:1 1 240px（欄位平分整行），在本頁寬螢幕會把格子拉到東倒西歪；
+     窄螢幕（手機）維持原本的整行換行，只在寬螢幕改成「內容多寬就多寬」靠左排 */
+  @media (min-width:700px){ .search .field{flex:0 0 auto} }
+  .lay-sel{display:flex;gap:4px}
+  /* flex:1＋min-width:0：手機整行時三顆平分、可收縮，不會把「衛」擠出畫面 */
+  .lay-sel select{flex:1 1 0;min-width:0;padding:10px 8px;border:1.5px solid var(--line);border-radius:10px;font-size:14.5px;font-family:inherit;background:#fff;cursor:pointer}
+  .lay-sel select:focus{outline:none;border-color:var(--clay)}
   .autocomplete{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--line);
     border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;z-index:1000;display:none}
   .autocomplete.show{display:block}
@@ -163,6 +170,13 @@
       </div>
       <div class="field small"><label class="lbl">本案樓層</label><input type="number" id="myFloor" placeholder="例：18"></div>
       <div class="field small"><label class="lbl">本案權狀坪</label><input type="number" step="0.01" id="mySize" placeholder="例：29.91"></div>
+      <div class="field"><label class="lbl">本案格局</label>
+        <div class="lay-sel">
+          <select id="myRoom"><option value="">房</option><option value="0房">0房</option><option value="1房">1房</option><option value="2房">2房</option><option value="3房">3房</option><option value="4房">4房</option><option value="5房以上">5房以上</option></select>
+          <select id="myHall"><option value="">廳</option><option value="0廳">0廳</option><option value="1廳">1廳</option><option value="2廳">2廳</option></select>
+          <select id="myBath"><option value="">衛</option><option value="0衛">0衛</option><option value="1衛">1衛</option><option value="2衛">2衛</option><option value="3衛">3衛</option><option value="4衛">4衛</option><option value="5衛">5衛</option></select>
+        </div>
+      </div>
       <div class="field small"><label class="lbl">本案開價(萬)</label><input type="number" id="myPrice" placeholder="未定可空白"></div>
       <div class="field small"><label class="lbl">車位價(萬)</label><input type="number" id="myParkP" placeholder="無車位空白"></div>
       <div class="field small"><label class="lbl">車位坪</label><input type="number" step="0.01" id="myParkS" placeholder="例：10.08"></div>
@@ -210,10 +224,10 @@
     <h2 class="sec-title"><span class="bar"></span><span id="mineTitle"></span></h2>
     <div class="table-tools no-print">
       <div class="pills" id="sortPills">
-        <span class="hint" style="margin:0;align-self:center">排序：</span>
-        <button class="pill on" data-s="unit">單價</button>
-        <button class="pill" data-s="price">總價</button>
-        <button class="pill" data-s="floor">樓層</button>
+        <span class="hint" style="margin:0;align-self:center">排序（再點一次反轉高低）：</span>
+        <button class="pill on" data-s="unit" data-label="單價">單價 ▲</button>
+        <button class="pill" data-s="price" data-label="總價">總價</button>
+        <button class="pill" data-s="floor" data-label="樓層">樓層</button>
       </div>
       <div class="del-tools">
         <button class="btn ghost sm" id="delChecked">🗑 刪除勾選</button>
@@ -266,7 +280,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 
 /* ── 狀態 ── */
 let SEL = null;               // 選定的社區名
-let MY = { floor:null, size:null, price:null, pp:null, ps:null };   // pp=車位價(萬)、ps=車位坪
+let MY = { floor:null, size:null, layout:null, price:null, pp:null, ps:null };   // pp=車位價(萬)、ps=車位坪
 let RADIUS = 300;
 let NEAR = [];                // 鄰近社區建議 [{name,dist,stats}]
 const ALL = new Map();        // 物件編號 → 解析結果（跨多次貼上累積）
@@ -308,8 +322,9 @@ $('#commInput').addEventListener('keydown', e => {
 
 /* ── 第 1 步：開始盤點 ── */
 function readMy(){
-  MY.floor = parseInt($('#myFloor').value, 10) || null;
-  MY.size  = parseFloat($('#mySize').value) || null;
+  MY.floor  = parseInt($('#myFloor').value, 10) || null;
+  MY.size   = parseFloat($('#mySize').value) || null;
+  MY.layout = ($('#myRoom').value + $('#myHall').value + $('#myBath').value) || null;   // 直接串成「3房2廳2衛」
   MY.price = parseFloat($('#myPrice').value) || null;
   MY.pp    = parseFloat($('#myParkP').value) || null;
   MY.ps    = parseFloat($('#myParkS').value) || null;
@@ -331,7 +346,7 @@ function startWork(){
   $('#srcSec').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 $('#goBtn').addEventListener('click', startWork);
-['myFloor','mySize','myPrice','myParkP','myParkS'].forEach(id => $('#' + id).addEventListener('change', () => { if (SEL){ readMy(); render(); } }));
+['myFloor','mySize','myRoom','myHall','myBath','myPrice','myParkP','myParkS'].forEach(id => $('#' + id).addEventListener('change', () => { if (SEL){ readMy(); render(); } }));
 
 /* ── 第 2 步：591 連結與鄰近社區建議 ── */
 function s591(name){ return 'https://sale.591.com.tw/?keywords=' + encodeURIComponent(name); }
@@ -355,10 +370,14 @@ document.querySelectorAll('#radiusPills .pill').forEach(b => b.addEventListener(
   if (SEL){ buildSources(); render(); }
 }));
 
-/* 排序切換：單價／總價／樓層 */
+/* 排序切換：單價／總價／樓層；再點一次同一顆＝反轉高低（▲低到高、▼高到低） */
 document.querySelectorAll('#sortPills .pill').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('#sortPills .pill').forEach(x => x.classList.toggle('on', x === b));
-  sortMode = b.dataset.s;
+  if (sortMode === b.dataset.s) sortDir = -sortDir;
+  else sortMode = b.dataset.s;
+  document.querySelectorAll('#sortPills .pill').forEach(x => {
+    x.classList.toggle('on', x === b);
+    x.textContent = x.dataset.label + (x === b ? (sortDir === 1 ? ' ▲' : ' ▼') : '');
+  });
   if (SEL) render();
 }));
 
@@ -426,14 +445,14 @@ $('#resetBtn').addEventListener('click', () => {
 
 /* ── 分組＋畫面 ── */
 const fmtW = n => Math.round(n).toLocaleString('zh-TW');
-/* 排序：單價 / 總價 / 樓層，皆由低到高，抓不到值的殿後 */
-let sortMode = 'unit';
+/* 排序：單價 / 總價 / 樓層，預設低到高，再點同一顆可反轉；抓不到值的一律殿後 */
+let sortMode = 'unit', sortDir = 1;   // sortDir：1=低到高、-1=高到低
 function sortKey(g){
   if (sortMode === 'price') return g.minPrice;
   if (sortMode === 'floor') return g.floor ? parseInt(g.floor, 10) : null;
   return g._e ? g._e.u : g.unit;   // 單價排序用拆算後的值
 }
-const cmpSort = (a, b) => { const va = sortKey(a), vb = sortKey(b); return (va === null) - (vb === null) || va - vb; };
+const cmpSort = (a, b) => { const va = sortKey(a), vb = sortKey(b); return (va === null) - (vb === null) || (va - vb) * sortDir; };
 
 function classify(){
   const mine = [], near = [], unk = [];
@@ -496,7 +515,7 @@ function meRowHTML(myUnit, myAdj){
     <td class="col-check no-print"></td>
     <td class="num"><span class="me-tag">本案</span> ${MY.floor ? MY.floor + 'F' : '—'}</td>
     <td class="num">${MY.size !== null ? MY.size + '坪' : '—'}</td>
-    <td class="num">—</td><td>—</td>
+    <td class="num">—</td><td>${MY.layout ? esc(MY.layout) : '—'}</td>
     <td class="num">${MY.price !== null ? fmtW(MY.price) : '—'}</td>
     <td class="col-park">${parkTxt}</td>
     <td class="num">${myUnit !== null ? myUnit.toFixed(1) + (myAdj ? '<span class="badge-adj">拆</span>' : '') : '—'}</td>
@@ -536,12 +555,12 @@ function render(){
 
   /* 本社區表：有填本案才插「本案」列；有單價就照排序位置插，沒單價就置頂 */
   $('#mineTitle').textContent = `「${SEL}」同社區在售`;
-  const hasMy = MY.floor !== null || MY.size !== null || MY.price !== null;
+  const hasMy = MY.floor !== null || MY.size !== null || MY.layout !== null || MY.price !== null;
   const myVal = sortMode === 'price' ? MY.price : sortMode === 'floor' ? MY.floor : myUnit;
   let mineRows = '', inserted = !hasMy;
   for (const g of gm){
     const gv = sortKey(g);
-    if (!inserted && (myVal === null || gv === null || gv >= myVal)){ mineRows += meRowHTML(myUnit, myAdj); inserted = true; }
+    if (!inserted && (myVal === null || gv === null || (gv - myVal) * sortDir >= 0)){ mineRows += meRowHTML(myUnit, myAdj); inserted = true; }
     mineRows += rowsHTML([g], false);
   }
   if (!inserted) mineRows += meRowHTML(myUnit, myAdj);
@@ -589,7 +608,7 @@ function render(){
   $('#todayTxt').textContent = dstr;
   $('#phTitle').textContent = `「${SEL}」在售競品盤點`;
   $('#phSub').innerHTML = `資料整理日：${dstr}｜太平洋房屋 · 林口捷運加盟店　李天夏 · 温美慈` +
-    (MY.floor || MY.price !== null ? `<br>本案：${MY.floor ? MY.floor + 'F' : ''}${MY.size !== null ? '｜' + MY.size + '坪' : ''}${MY.price !== null ? '｜開價 ' + fmtW(MY.price) + ' 萬' : ''}${MY.pp !== null ? '｜含車位 ' + fmtW(MY.pp) + ' 萬' + (MY.ps !== null ? '(' + MY.ps + '坪)' : '') : ''}` : '');
+    (MY.floor || MY.layout || MY.price !== null ? `<br>本案：${MY.floor ? MY.floor + 'F' : ''}${MY.size !== null ? '｜' + MY.size + '坪' : ''}${MY.layout ? '｜' + esc(MY.layout) : ''}${MY.price !== null ? '｜開價 ' + fmtW(MY.price) + ' 萬' : ''}${MY.pp !== null ? '｜含車位 ' + fmtW(MY.pp) + ' 萬' + (MY.ps !== null ? '(' + MY.ps + '坪)' : '') : ''}` : '');
 }
 
 /* 產生 QR code（SVG 字串）＋說明文字；qrcode.js 沒載到或內容有問題就整塊省略，不擋其他功能 */
