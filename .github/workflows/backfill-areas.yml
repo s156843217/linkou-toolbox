@@ -1,0 +1,40 @@
+name: 門牌坪數庫回填（101S3 起全期，手動觸發）
+
+# 只在需要重建門牌坪數庫時手動跑（gh workflow run backfill-areas.yml）。
+# 平時的增量更新由 update-prices.yml 每月順手做，不需要再跑這支。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出原始碼
+        uses: actions/checkout@v4
+
+      - name: 安裝 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 全期回填（下載 101S3 起各季成屋檔，約 55+ 季）
+        run: python door_areas.py backfill
+        # 只用標準庫，不需 pip install
+
+      - name: 有變動就 commit 並 push
+        run: |
+          FILES="door-area.json area-data.js"
+          if [ -n "$(git status --porcelain $FILES)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add $FILES
+            git commit -m "門牌坪數庫:全期回填（$(date +%F)）"
+            git pull --rebase origin main
+            git push
+            echo "已 push 回填結果"
+          else
+            echo "資料無變動，略過 commit"
+          fi

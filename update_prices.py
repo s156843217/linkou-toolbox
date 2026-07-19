@@ -932,10 +932,14 @@ def build_price_list():
     seasons = roc_seasons(REFRESH_SEASONS if records else BACKFILL_SEASONS)
     print(f"{'每月更新' if records else '首次回填'}：抓 {seasons[0]}～{seasons[-1]} 共 {len(seasons)} 季")
     added = changed = 0
+    a_rows = []                                         # 成屋原始列另存一份，門牌坪數庫用
     try:
         for season in seasons:                          # 舊→新：後出的更正/解約覆蓋舊值
             for f, kind in (("a", "r"), ("b", "p")):
-                for row in fetch_season_rows(season, f):
+                rows = fetch_season_rows(season, f)
+                if f == "a":
+                    a_rows.extend(rows)
+                for row in rows:
                     parsed = parse_moi_row(row, kind)
                     if not parsed:
                         continue
@@ -958,6 +962,13 @@ def build_price_list():
         encoding="utf-8")
     write_price_js(records)
     build_price_summary(records)
+    # 門牌坪數庫（door-area.json＋area-data.js）：同一批成屋列順手增量更新；
+    # 首次全期回填走 backfill-areas.yml，這裡只負責每月補最近幾季。失敗保留舊檔。
+    try:
+        import door_areas
+        door_areas.update_from_rows(a_rows)
+    except Exception as e:                              # noqa: BLE001
+        print(f"⚠ 門牌坪數庫更新失敗（{e}），door-area.json／area-data.js 保留舊值")
     return moi_presale_metrics(records)
 
 
