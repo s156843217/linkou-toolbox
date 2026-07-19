@@ -35,10 +35,15 @@
    - LINE bot：複製整份 `linkou-data.js` 到 `C:\repo\linkou-line-bot\` → commit → push → 用手機對官方 LINE 打該社區名，應秒回學區。
    - 學區獨立站（master）：**不再更新**（退役中，7 月底改跳轉）。
 
-## 3. 房貸與公車資料
+## 3. 房貸、行情與公車資料
 
 - `mortgage-data.js`：`LINKOU_ZONES` 各地段數字由 linkou-mortgage repo 的 Actions **每月自動更新**，真相來源在那邊（流向見 DEPLOY.md 第 3 節）；`LINKOU_PRODUCTS` 等其餘部分才是手改。
 - `bus-data.js`：由 `tools/fetch-bus.ps1` 抓 TDX 產生（需 `tdx-secret.json`，該檔**永不 commit**）。
+- **門牌坪數庫**（`door-area.json` 真相主檔＋`area-data.js` 前端檔）：由 `door_areas.py` 產生，
+  真相來源＝toolbox、不進同步白名單（同 mortgage-data.js 模式）。資料源＝內政部實價登錄季檔（成屋），
+  每戶取最新一筆交易的登記面積，key＝`路|巷-弄|號|樓`。每月由 update-prices.yml 順手增量；
+  需要整庫重建才跑 `gh workflow run backfill-areas.yml`（101S3 起全期，約 10 分鐘）。
+  ⚠ 這是「歷史成交當時」的登記值：從沒交易過的戶查不到（查同棟其他戶）；供估價/查坪數功能串接。
 
 ## 4. 115 學年度切換（大型作業——先讀 memory 再動）
 
