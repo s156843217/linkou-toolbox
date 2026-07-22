@@ -854,6 +854,14 @@ const SETJI_HTML=`
     <div class="step"><div class="n"></div><div><b>超額排序</b>：符合優先資格者若超過名額，依「<b>設籍時間先後</b>」排序——所以越早設籍越有利。</div></div>
   </div>`;
 
+/* 查詢成功後把地圖與結果帶進畫面；只負責畫面導引，不改查詢或學區判定邏輯 */
+function scrollToSchoolResults(){
+  const target=document.querySelector('.layout');
+  if(!target)return;
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  requestAnimationFrame(()=>target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'}));
+}
+
 function render(li,lin,homeLatLng){
   const sp=$("#schoolPick"); if(sp){sp.value="";sp.classList.remove('on');}   // 一般查詢→重置「看某校學區」下拉
   const res=resolve(li,lin);
@@ -882,6 +890,7 @@ function render(li,lin,homeLatLng){
   const names=[]; res.es.forEach(r=>{if(r.base)names.push(r.base);else (r.free||[]).forEach(f=>names.push(f));});
   res.jh.forEach(r=>{if(r.base)names.push(r.base);});
   plotSchools([...new Set(names)],homeLatLng);
+  scrollToSchoolResults();
 }
 
 function buildSummary(){
