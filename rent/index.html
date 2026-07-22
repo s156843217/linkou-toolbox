@@ -19,7 +19,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -36,6 +36,10 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用表單進場動畫，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* ===== 租約產生器 — 頁面專屬樣式（沿用全站 CSS 變數） ===== */
@@ -256,8 +260,9 @@ if(location.protocol==='https:'){
     @page{size:A4;margin:1.8cm 1.6cm}
   }
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page rent-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -272,6 +277,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -685,6 +691,44 @@ if(location.protocol==='https:'){
     契約範本依據：內政部 113 年 7 月 8 日台內地字第 11302639334 號函修正
   </footer>
 </div>
+
+<script>
+/* 租約頁視覺互動：導覽陰影、閱讀進度與表單區塊進場；不介入契約內容或產生邏輯 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('#formArea>.form-panel,#formArea>.disc');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.025:.08,rootMargin:'0px 0px 8% 0px'});
+  reveals.forEach(function(item){observer.observe(item);});
+})();
+</script>
 
 <!-- 身分證 OCR：框選範圍視窗 -->
 <div class="ocr-crop" id="ocrCrop">

@@ -11,7 +11,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../style.css">
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
+<script>
+/* 有 JavaScript 時才啟用新版進場動畫，不影響競品解析與列印內容 */
+document.documentElement.classList.add('js');
+</script>
 <style>
   /* ── 查詢區（沿用行情頁同款版型） ── */
   .search{margin-top:18px;padding:20px}
@@ -123,8 +127,9 @@
     .deal-qr svg{width:88px;height:88px}
   }
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page listing-page">
 
 <!-- 全站導覽列（本頁為內部工具，各頁導覽不列入本頁） -->
 <nav class="site-nav">
@@ -139,6 +144,7 @@
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -161,7 +167,12 @@
   </div>
 
   <!-- 第 1 步：選社區＋本案資料 -->
-  <section class="panel search no-print">
+  <section class="panel search no-print listing-reveal">
+    <div class="search-head">
+      <span class="eyebrow">STEP 01 · SUBJECT PROPERTY</span>
+      <h2>先設定本案條件</h2>
+      <p>社區一定要選，其餘資料可以先留白，之後補填會即時重算。</p>
+    </div>
     <div class="row">
       <div class="field" style="position:relative;flex:1;min-width:220px">
         <label class="lbl">🏘️ 社區（本案所在）</label>
@@ -186,7 +197,12 @@
   </section>
 
   <!-- 第 2 步：開 591 複製、貼回來 -->
-  <section class="panel search no-print" id="srcSec" style="display:none">
+  <section class="panel search no-print listing-reveal" id="srcSec" style="display:none">
+    <div class="search-head">
+      <span class="eyebrow">STEP 02 · COLLECT LISTINGS</span>
+      <h2>開啟 591，貼回在售資料</h2>
+      <p>每一頁都能分次貼上，系統會自動累加、去重並分成本社區與鄰近競品。</p>
+    </div>
     <!-- 第一次使用才要做：把快抓書籤拖到書籤列（一次性） -->
     <details class="bmk-box">
       <summary>📌 第一次使用：安裝「591 快抓」書籤（只做一次）</summary>
@@ -218,7 +234,7 @@
   </section>
 
   <!-- 結果 -->
-  <div id="resSec" style="display:none">
+  <div id="resSec" class="listing-reveal" style="display:none">
     <div class="sumline" id="sumBox"></div>
 
     <h2 class="sec-title"><span class="bar"></span><span id="mineTitle"></span></h2>
@@ -265,6 +281,44 @@
     競品比較（內部工具）　|　在售資料：591 刊登（人工複製，非爬蟲）｜成交資料：內政部實價登錄
   </footer>
 </div>
+
+<script>
+/* 競品比較頁視覺互動：導覽陰影、閱讀進度與分段進場；不介入 591 解析及比較邏輯 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('.listing-reveal');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.04:.1});
+  reveals.forEach(function(item){observer.observe(item);});
+})();
+</script>
 
 <!-- 資料與共用純函式：linkou-data(社區/門牌) → community-doors(社區↔門牌對照庫) → report-logic(parseHouse/houseCoord/distM/commDoorSet) → price-list-data(行情) → listing-logic(解析+比較)；qrcode.js=列印用 QR 產生器 -->
 <script src="../internal-nav.js"></script>

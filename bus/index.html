@@ -21,7 +21,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -38,6 +38,10 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用進場動畫，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* === 沿用學區頁的版面元件（hero / search / layout / map / autocomplete / 聯絡卡）=== */
@@ -173,8 +177,9 @@ if(location.protocol==='https:'){
   .home-pin{background:var(--clay);color:#fff;font-size:12px;font-weight:700;padding:4px 9px;border-radius:9px;
     white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);transform:translate(-50%,-130%)}
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page bus-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -189,6 +194,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -205,38 +211,50 @@ if(location.protocol==='https:'){
   </header>
 
   <!-- 查詢區 -->
-  <section class="panel search">
-    <div class="row">
-      <div class="field" style="position:relative">
-        <label class="lbl">🏘️ 輸入社區名稱（建檔過的最準）</label>
-        <input type="text" id="commInput" placeholder="例：陽光社區、凡爾賽、春城麗池…" autocomplete="off">
-        <div id="commList" class="autocomplete"></div>
-      </div>
-      <button class="btn" id="commBtn">🚌 查附近公車</button>
+  <section class="panel search bus-reveal">
+    <div class="search-head">
+      <span class="eyebrow">BUS ROUTE · NEARBY SEARCH</span>
+      <h2>先找住家附近有哪些公車</h2>
+      <p>社區名稱最方便，也能改用完整地址或公車路線編號。</p>
     </div>
-    <div class="hint">內建林口區社區資料庫，支援模糊搜尋（打「馥御」、「未來」、「春城」都查得到）。本地查不到時會自動上網搜尋並定位。也可改用下方「地址定位」。</div>
 
-    <div class="or">或輸入地址定位</div>
-
-    <div class="row">
-      <div class="field">
-        <label class="lbl">輸入地址</label>
-        <input type="text" id="addrInput" placeholder="例：林口區文化三路一段100號" autocomplete="off">
+    <div class="search-primary">
+      <div class="row">
+        <div class="field" style="position:relative">
+          <label class="lbl">🏘️ 輸入社區名稱（建檔過的最準）</label>
+          <input type="text" id="commInput" placeholder="例：陽光社區、凡爾賽、春城麗池…" autocomplete="off">
+          <div id="commList" class="autocomplete"></div>
+        </div>
+        <button class="btn" id="commBtn">🚌 查附近公車</button>
       </div>
-      <button class="btn ghost" id="addrBtn">🔍 定位並查公車</button>
+      <div class="hint">內建林口區社區資料庫，支援模糊搜尋（打「馥御」、「未來」、「春城」都查得到）。本地查不到時會自動上網搜尋並定位。也可改用下方「地址定位」。</div>
     </div>
-    <div class="hint">先用官方門牌資料庫精準定位，查不到才退回線上路名／路段定位。輸入越完整（含路段、巷弄、號）越準。</div>
 
-    <div class="or">或直接查公車路線</div>
-
-    <div class="row">
-      <div class="field">
-        <label class="lbl">🚌 輸入公車路線編號</label>
-        <input type="text" id="routeInput" placeholder="例：936、946、F236、林口-臺北車站…" autocomplete="off">
+    <div class="search-alternatives">
+      <div class="search-option">
+        <div class="or">或輸入地址定位</div>
+        <div class="row">
+          <div class="field">
+            <label class="lbl">輸入地址</label>
+            <input type="text" id="addrInput" placeholder="例：林口區文化三路一段100號" autocomplete="off">
+          </div>
+          <button class="btn ghost" id="addrBtn">🔍 定位並查公車</button>
+        </div>
+        <div class="hint">先用官方門牌資料庫精準定位，查不到才退回線上路名／路段定位。輸入越完整（含路段、巷弄、號）越準。</div>
       </div>
-      <button class="btn ghost" id="routeBtn">查整條走向</button>
+
+      <div class="search-option">
+        <div class="or">或直接查公車路線</div>
+        <div class="row">
+          <div class="field">
+            <label class="lbl">🚌 輸入公車路線編號</label>
+            <input type="text" id="routeInput" placeholder="例：936、946、F236、林口-臺北車站…" autocomplete="off">
+          </div>
+          <button class="btn ghost" id="routeBtn">查整條走向</button>
+        </div>
+        <div class="hint">直接看整條路線「停哪些站、往哪裡開」。同編號的副線／區間車（如 946、946副）會一起列出來比較。</div>
+      </div>
     </div>
-    <div class="hint">直接看整條路線「停哪些站、往哪裡開」。同編號的副線／區間車（如 946、946副）會一起列出來比較。</div>
 
     <div class="radius-row">
       <span class="rr-label">🚶 步行範圍</span>
@@ -247,7 +265,7 @@ if(location.protocol==='https:'){
   </section>
 
   <!-- 主結果 -->
-  <div class="layout">
+  <div class="layout bus-reveal">
     <div id="map"></div>
     <div class="results" id="results">
       <div class="panel placeholder">
@@ -258,8 +276,8 @@ if(location.protocol==='https:'){
   </div>
 
   <!-- 聯絡卡（置底） -->
-  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
-  <section class="panel contact">
+  <h2 id="contact" class="sec-title bus-reveal"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact bus-reveal">
     <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
     <div class="sub">買林口、問交通，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
     <div class="agents">
@@ -294,7 +312,7 @@ if(location.protocol==='https:'){
     </div>
   </section>
 
-  <div class="disc">
+  <div class="disc bus-reveal">
     ⚠️ <b>提醒</b>：公車站牌與路線資料來自交通部 TDX 運輸資料流通服務平台，會定期更新；實際發車、停靠與路線異動請以各客運業者及站牌公告為準。本工具僅供參考。
   </div>
 
@@ -303,6 +321,44 @@ if(location.protocol==='https:'){
     地圖：© OpenStreetMap 貢獻者　|　本工具僅供參考，實際路線與班次以業者公告為準
   </footer>
 </div><!-- /wrap -->
+
+<script>
+/* 公車頁視覺互動：導覽陰影、閱讀進度與分段進場；不介入定位或路線查詢 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('.bus-reveal');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.05:.1});
+  reveals.forEach(function(item){observer.observe(item);});
+})();
+</script>
 
 <div class="toast" id="toast"></div>
 
@@ -481,6 +537,14 @@ function chipHtml(k){
   return `<button class="bchip" data-k="${k}">${r.n}${al}<span class="src">${sl}</span></button>`;
 }
 
+/* 查詢成功後把地圖與結果帶進畫面；只負責畫面導引，不改定位或路線資料 */
+function scrollToBusResults(){
+  const target=document.querySelector('.layout');
+  if(!target)return;
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  requestAnimationFrame(()=>target.scrollIntoView({behavior:reduceMotion?'auto':'smooth',block:'start'}));
+}
+
 /* 主流程：定位到某點 → 畫家點、附近站牌、列出路線 */
 function locate(lat,lon,label){
   lastPoint=[lat,lon,label];
@@ -526,6 +590,7 @@ function locate(lat,lon,label){
   if(pts.length>1)map.fitBounds(pts,{padding:[50,50],maxZoom:17}); else map.setView(ll,16);
 
   renderSummary(label,near,routeKeys,routeMap);
+  scrollToBusResults();
 }
 
 /* 右側：附近路線 + 站牌清單 */
@@ -681,9 +746,10 @@ function doRouteSearch(q){
   if(!q){toast("請輸入公車路線編號");return;}
   const m=routeMatches(q);
   if(!m.length){toast(`查無路線「${q}」`);return;}
-  if(m.length===1){showRoute(m[0]);return;}                       // 只有一條 → 直接畫
+  if(m.length===1){showRoute(m[0]);scrollToBusResults();return;}  // 只有一條 → 直接畫
   // 多條相符 → 列出讓客戶選（同走廊的直達／區間車也會一起出現，方便比較）
   const sorted=m.sort((a,b)=>{const x=routeSortKey(ROUTES[a].n),y=routeSortKey(ROUTES[b].n);return x[0]-y[0]||(''+x[1]).localeCompare(y[1]);});
+  scrollToBusResults();
   const chips=sorted.map(chipHtml).join('');
   $("#results").innerHTML=`<div class="panel bsum"><h3>🚌 符合「${q}」的路線（${m.length}）</h3>
     <div class="bsub">點選要看走向的路線：</div>

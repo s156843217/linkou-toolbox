@@ -19,7 +19,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -38,6 +38,10 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用進場動畫，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* 計算模組版面 */
@@ -162,8 +166,9 @@ if(location.protocol==='https:'){
     box-shadow:0 6px 18px rgba(0,0,0,.28)}
   #liffShare:active{transform:scale(.97)}
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page mortgage-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -178,6 +183,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -193,7 +199,10 @@ if(location.protocol==='https:'){
     </div>
   </header>
 
+  <div class="calc-grid">
+
   <!-- ── 模組 A：薪資推算 ─────────────────────────────── -->
+  <article class="calc-module mortgage-reveal">
   <div class="sec-title"><span class="bar"></span>💰 <span style="color:var(--clay-d)">薪資</span>推算可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
@@ -235,8 +244,10 @@ if(location.protocol==='https:'){
       <div id="aProductSuggest" class="product-suggest"></div>
     </div>
   </section>
+  </article>
 
   <!-- ── 模組 B：月繳反推 ─────────────────────────────── -->
+  <article class="calc-module mortgage-reveal">
   <div class="sec-title"><span class="bar"></span>📅 <span style="color:var(--clay-d)">月繳金額</span>反推可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
@@ -266,8 +277,10 @@ if(location.protocol==='https:'){
       <div id="bProductSuggest" class="product-suggest"></div>
     </div>
   </section>
+  </article>
 
   <!-- ── 模組 C：自訂貸款試算 ────────────────────────── -->
+  <article class="calc-module mortgage-reveal">
   <div class="sec-title"><span class="bar"></span>🧮 <span style="color:var(--clay-d)">自訂</span>貸款試算（含寬限期）</div>
   <section class="panel calc-panel">
     <div class="module-header">
@@ -343,8 +356,10 @@ if(location.protocol==='https:'){
       </div>
     </div>
   </section>
+  </article>
 
   <!-- ── 模組 D：頭期款反推 ──────────────────────────── -->
+  <article class="calc-module mortgage-reveal">
   <div class="sec-title"><span class="bar"></span>🔑 <span style="color:var(--clay-d)">頭期款</span>推算可買房價</div>
   <section class="panel calc-panel">
     <div class="module-header">
@@ -392,10 +407,13 @@ if(location.protocol==='https:'){
       <div id="dProductSuggest" class="product-suggest"></div>
     </div>
   </section>
+  </article>
+
+  </div><!-- /calc-grid -->
 
   <!-- ── 林口市場參考 ──────────────────────────────── -->
-  <div class="sec-title"><span class="bar"></span>林口各地段每坪單價參考</div>
-  <div class="panel" style="padding:22px">
+  <div class="sec-title mortgage-reveal"><span class="bar"></span>林口各地段每坪單價參考</div>
+  <div class="panel market-panel mortgage-reveal" style="padding:22px">
     <div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px">
       依新北市政府開放平臺實價登錄，統計林口區住宅近一年成交資料、依地段分區，單價已扣除車位。排除親友／股東特殊交易、預售屋、海砂屋。（各地段筆數見下表，資料隨每月自動更新）
     </div>
@@ -435,8 +453,8 @@ if(location.protocol==='https:'){
   </div>
 
   <!-- 聯絡卡（置底，與學區頁、公車頁一致） -->
-  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
-  <section class="panel contact">
+  <h2 id="contact" class="sec-title mortgage-reveal"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact mortgage-reveal">
     <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
     <div class="sub">買林口、問貸款，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
     <div class="agents">
@@ -471,7 +489,7 @@ if(location.protocol==='https:'){
     </div>
   </section>
 
-  <div class="disc">
+  <div class="disc mortgage-reveal">
     ⚠️ <b>免責聲明</b>：本工具所有試算結果均為估算，僅供參考。實際核貸金額視個人信用條件、收入核實及銀行政策而定，與試算結果可能有所差異。購屋為重大財務決策，建議向銀行或專業人士確認。
   </div>
 
@@ -481,6 +499,44 @@ if(location.protocol==='https:'){
   </footer>
 
 </div><!-- /wrap -->
+
+<script>
+/* 房貸頁視覺互動：導覽陰影、閱讀進度與分段進場；不介入任何試算公式 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('.mortgage-reveal');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.05:.1});
+  reveals.forEach(function(item){observer.observe(item);});
+})();
+</script>
 
 <div class="toast" id="toast"></div>
 

@@ -13,7 +13,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -32,6 +32,10 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用操作介面動畫，不影響報告紙本內容 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* ============ 螢幕操作區（列印時整塊隱藏） ============ */
@@ -152,8 +156,9 @@ if(location.protocol==='https:'){
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   }
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page report-page">
 
 <!-- 全站導覽列（列印時隱藏） -->
 <nav class="site-nav">
@@ -169,6 +174,7 @@ if(location.protocol==='https:'){
       <a href="./" class="active">📋 社區報告</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -243,6 +249,28 @@ if(location.protocol==='https:'){
   </div><!-- /app -->
 
 </div><!-- /wrap -->
+
+<script>
+/* 社區報告頁視覺互動：導覽陰影與閱讀進度；不介入通關、報告或分享邏輯 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+})();
+</script>
 
 <div class="toast" id="toast"></div>
 

@@ -19,7 +19,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -37,6 +37,10 @@ if(location.protocol==='https:'){
     if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; }
   }catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用進場動畫，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* ── 查詢區 ── */
@@ -142,9 +146,36 @@ if(location.protocol==='https:'){
   .brand-badge b{display:block;font-family:var(--serif);font-size:13px;color:#fff;letter-spacing:.3px}
   .brand-badge.show:hover{background:rgba(44,38,32,1);transform:translateY(-2px)}
   @media(max-width:600px){.brand-badge{font-size:11px;padding:6px 9px;right:8px;bottom:8px}.brand-badge b{font-size:12px}}
+
+  /* ── 列印／存 PDF：藏操作介面、保留查詢結果，讓瀏覽器自然分頁（比照 listing/ 頁做法） ──
+     以下多用 !important：price-page 專屬樣式來自 style-next.css，選擇器比這裡的規則更精準，
+     不加 !important 會被蓋掉（例如 .price-page .sec-title、.price-page .tbl-wrap）。 */
+  @media print{
+    .site-nav,.nav-progress,.search,.brand-badge,.toast,.more-wrap,#allSec,#printBtn{display:none!important}
+    .hero p{display:none!important}
+    body{background:#fff}
+    .wrap{max-width:none;padding:0}
+    /* 明細表：拿掉橫向捲軸（印表機印不出可捲動區塊，只會留一條灰色軌道），縮小欄寬字級讓整欄印得下 */
+    .tbl-wrap{display:block!important;overflow-x:visible!important;box-shadow:none!important;border:1px solid #ccc!important;border-radius:0!important}
+    table.pt{min-width:0!important;font-size:10.5px!important}
+    .pt th,.pt td{padding:6px 6px!important}
+    .cards{display:none!important}
+    /* 統計卡：置中＋加大字級，紙本才看得清楚（上一版縮太小了） */
+    .stats{gap:10px!important}
+    .stat{box-shadow:none!important;border:1.5px solid #999!important;padding:14px 12px!important;text-align:center!important}
+    .stat .v{font-size:24px!important;margin-top:6px!important}
+    .stat .k{font-size:13px!important;color:#444!important}
+    /* 段落標題：畫面上是低調的小標籤，印出來要更明顯才看得清楚是哪一段 */
+    .sec-title{font-size:15px!important;color:#2C424B!important;font-weight:900!important;letter-spacing:.02em!important;padding:10px 4px 8px!important}
+    .sec-title .bar{width:5px!important;height:16px!important;border-radius:3px!important}
+    /* 聯絡資料：紙本不需要大頭照，只留文字聯絡方式 */
+    .agent .photo{display:none!important}
+    .agent .top{gap:0!important}
+  }
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page price-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -159,6 +190,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -175,7 +207,12 @@ if(location.protocol==='https:'){
   </header>
 
   <!-- 查詢區 -->
-  <section class="panel search">
+  <section class="panel search price-reveal">
+    <div class="search-head">
+      <span class="eyebrow">MARKET DATA · LIVE SEARCH</span>
+      <h2>查一個社區，看真實成交</h2>
+      <p>輸入社區名稱、常用俗稱或完整門牌，就能開始比較。</p>
+    </div>
     <div class="row">
       <div class="field" style="position:relative">
         <label class="lbl">🏘️ 輸入社區名或門牌地址</label>
@@ -198,7 +235,9 @@ if(location.protocol==='https:'){
 
   <!-- 查詢結果：本社區成交 -->
   <div id="mainSec" style="display:none">
-    <h2 class="sec-title"><span class="bar"></span><span id="mainTitle"></span></h2>
+    <h2 class="sec-title"><span class="bar"></span><span id="mainTitle"></span>
+      <button class="btn ghost no-print" id="printBtn" style="float:right;font-size:13px">🖨 列印／存 PDF</button>
+    </h2>
     <div id="mainNote"></div>
     <div id="mainList"></div>
   </div>
@@ -211,19 +250,19 @@ if(location.protocol==='https:'){
   </div>
 
   <!-- 未查詢時：全區最新成交 -->
-  <div id="allSec">
+  <div id="allSec" class="price-reveal">
     <h2 class="sec-title"><span class="bar"></span>林口最新成交</h2>
     <div id="allList"></div>
     <div class="more-wrap"><button class="btn ghost" id="moreBtn">載入更多</button></div>
   </div>
 
-  <div class="disc" id="discBox">
+  <div class="disc price-reveal" id="discBox">
     ⚠️ <b>重要提醒</b>：本表整理自「內政部不動產實價登錄」開放資料（每月自動更新），單價口徑＝（總價 − 車位總價）÷ 不含車位坪數；已排除備註特殊交易（親友交易、債務抵償等）與預售解約件，透天／別墅因含土地價值以「型態」標示、單價不宜與大樓直接相比。逐筆資料忠實呈現官方登錄內容（含少數登錄缺漏），正式資訊請以<b>內政部實價登錄網站</b>為準。
   </div>
 
   <!-- 聯絡卡（置底） -->
-  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
-  <section class="panel contact">
+  <h2 id="contact" class="sec-title price-reveal"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact price-reveal">
     <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
     <div class="sub">想知道自家社區值多少、或想進一步了解某社區，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
     <div class="agents">
@@ -271,6 +310,44 @@ if(location.protocol==='https:'){
   var b=document.querySelector('.brand-badge'); if(!b)return;
   var f=function(){ b.classList.toggle('show', window.scrollY>220); };
   window.addEventListener('scroll',f,{passive:true}); f();
+})();
+</script>
+
+<script>
+/* 行情頁視覺互動：導覽陰影、閱讀進度與分段進場；不介入行情查詢邏輯 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('.price-reveal');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.05:.1});
+  reveals.forEach(function(item){observer.observe(item);});
 })();
 </script>
 
@@ -451,6 +528,7 @@ function renderQuery(){
   // 本社區成交
   $("#mainSec").style.display='block';
   $("#mainTitle").textContent=`「${q.label}」成交明細`;
+  document.title=`${q.label} 社區行情 — 林口置產工具箱`;   // 另存 PDF 檔名跟著社區名，方便歸檔
   let note='';
   if(w.rows.length&&w.yrs>1)note=`<div class="widen-note">近 1 年成交較少，已自動放寬顯示<b>近 ${w.yrs} 年</b>共 ${w.rows.length} 筆。</div>`;
   else if(w.rows.length)note=`<div class="widen-note" style="background:#EAF3EE;border-color:#CBE2D4;color:var(--teal-d)">近 1 年共 ${w.rows.length} 筆成交。</div>`;
@@ -461,12 +539,12 @@ function renderQuery(){
        <span style="font-size:12.5px">提示：成屋依社區門牌對照庫（實價登錄歸戶）比對；也可改輸入完整門牌地址查。</span></div>`;
   renderStats(w.rows,w.yrs);
 
-  // 鄰近參考（有座標才有）
-  const nearT=applyType(q.near).filter(r=>r.d>=PRICE_META.maxDate-w.yrs*10000)
+  // 鄰近參考（有座標才有；固定近 1 年，不跟著本社區放寬，避免資料量太大）
+  const nearT=applyType(q.near).filter(r=>r.d>=PRICE_META.maxDate-10000)
     .sort((a,b)=>b.d-a.d).slice(0,40);
   if(q.hasCenter&&nearT.length){
     $("#nearSec").style.display='block';
-    $("#nearTitle").textContent=`鄰近 150 公尺成交參考（近 ${w.yrs} 年）`;
+    $("#nearTitle").textContent=`鄰近 150 公尺成交參考（近 1 年）`;
     $("#nearList").innerHTML=listHTML(nearT,true);
   }else{
     $("#nearSec").style.display='none';
@@ -505,6 +583,7 @@ function renderLatest(reset){
   $("#moreBtn").style.display=shown<rows.length?'':'none';
 }
 $("#moreBtn").addEventListener('click',()=>renderLatest(false));
+$("#printBtn").addEventListener('click',()=>window.print());
 
 /* ── 社區搜尋（autocomplete；與學區頁同款邏輯，離線比對） ── */
 const COMM_NAMES=Object.keys(COMMUNITY);

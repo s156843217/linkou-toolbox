@@ -16,10 +16,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style-next.css">
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#173647">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -36,56 +37,11 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+/* 有 JavaScript 時才啟用滾動進場，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
-<style>
-  /* 工具集首頁 — 工具卡片牆（沿用全站設計系統，僅補排版） */
-  .tools-intro{font-size:14px;color:var(--ink-soft);margin:0 4px 4px;max-width:54ch}
-
-  .tools-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px;margin-top:6px}
-
-  /* 整張卡可點：用 <a> 包整張，hover 上浮 */
-  .tool-card{display:flex;flex-direction:column;padding:26px 24px;text-decoration:none;color:inherit;
-    border-top:4px solid var(--clay);transition:transform .18s, box-shadow .18s}
-  .tool-card:hover{transform:translateY(-4px);box-shadow:0 14px 36px rgba(60,44,28,.16)}
-
-  /* 三個工具各自的頂條色，呼應全站色系 */
-  .tool-card.t-school{border-top-color:var(--clay)}
-  .tool-card.t-price{border-top-color:var(--red)}
-  .tool-card.t-bus{border-top-color:var(--gold)}
-  .tool-card.t-loan{border-top-color:var(--teal)}
-  .tool-card.t-rent{border-top-color:var(--amber)}
-
-  .tool-card .tc-icon{font-size:36px;line-height:1;margin-bottom:14px}
-  .tool-card h3{font-family:var(--serif);font-weight:900;font-size:21px;color:var(--ink);margin-bottom:8px}
-  .tool-card .tc-desc{font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px}
-
-  .tool-card ul{list-style:none;margin:0 0 20px;display:flex;flex-direction:column;gap:7px}
-  .tool-card li{font-size:13px;color:var(--ink);padding-left:20px;position:relative;line-height:1.5}
-  .tool-card li::before{content:"✓";position:absolute;left:0;top:0;color:var(--teal);font-weight:900}
-
-  .tool-card .tc-go{margin-top:auto;font-weight:700;font-size:14.5px;color:var(--clay-d);
-    display:inline-flex;align-items:center;gap:6px}
-  .tool-card .tc-go .arr{transition:transform .18s}
-  .tool-card:hover .tc-go .arr{transform:translateX(4px)}
-
-  /* 認識我們卡：兩張大頭照＋一句話，整張可點連到 about/ */
-  .about-card{display:flex;align-items:center;gap:18px;padding:22px 24px;text-decoration:none;color:inherit;
-    border-top:4px solid var(--teal);transition:transform .18s, box-shadow .18s}
-  .about-card:hover{transform:translateY(-3px);box-shadow:0 14px 36px rgba(60,44,28,.16)}
-  .about-card .faces{display:flex;flex-shrink:0}
-  .about-card .faces img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 12%;
-    border:2.5px solid #fff;box-shadow:var(--shadow);background:var(--bg)}
-  .about-card .faces img+img{margin-left:-14px}
-  .about-card .ac-txt{flex:1 1 auto;min-width:0}
-  .about-card .ac-txt h3{font-family:var(--serif);font-weight:900;font-size:19px;color:var(--ink);margin-bottom:3px}
-  .about-card .ac-txt p{font-size:13.5px;color:var(--ink-soft);line-height:1.6}
-  .about-card .ac-go{flex-shrink:0;font-weight:700;font-size:14.5px;color:var(--clay-d);display:inline-flex;align-items:center;gap:6px}
-  .about-card .ac-go .arr{transition:transform .18s}
-  .about-card:hover .ac-go .arr{transform:translateX(4px)}
-  @media(max-width:560px){.about-card{flex-wrap:wrap}.about-card .ac-go{margin-left:auto}}
-</style>
 </head>
-<body>
+<body class="home-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -100,6 +56,7 @@ if(location.protocol==='https:'){
       <a href="about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -107,7 +64,7 @@ if(location.protocol==='https:'){
   <header class="hero">
     <div>
       <span class="badge">林口一站式置產服務</span>
-      <h1>林口<span class="mk">置產</span>工具箱</h1>
+      <h1><span class="hero-title-line">林口<span class="mk">置產</span></span><span class="hero-title-line">工具箱</span></h1>
       <p>從學區、行情、房貸到租約，一個網站搞定購屋與租賃的大小事。選一個工具開始：</p>
     </div>
     <div class="yr">
@@ -121,7 +78,15 @@ if(location.protocol==='https:'){
 
     <!-- 學區快查 -->
     <a class="panel tool-card t-school" href="school/">
-      <div class="tc-icon">🏫</div>
+      <div class="tool-demo demo-school" aria-hidden="true">
+        <div class="demo-top"><span class="demo-dots"><i></i><i></i><i></i></span><b>學區查詢</b><span class="tc-icon">🏫</span></div>
+        <div class="demo-search"><span>輸入地址或社區名</span><strong>查詢</strong></div>
+        <div class="demo-map">
+          <i class="map-road r-one"></i><i class="map-road r-two"></i><i class="map-road r-three"></i>
+          <span class="map-pin"></span><span class="map-zone">學區範圍</span>
+        </div>
+        <div class="demo-result"><b>里鄰與學區</b><span>查詢結果即時顯示</span></div>
+      </div>
       <h3>林口學區快查</h3>
       <div class="tc-desc">輸入地址或社區名，立刻查出所屬里鄰與對應的國小、國中學區，並在地圖上標示。</div>
       <ul>
@@ -134,7 +99,15 @@ if(location.protocol==='https:'){
 
     <!-- 社區行情 -->
     <a class="panel tool-card t-price" href="price/">
-      <div class="tc-icon">📈</div>
+      <div class="tool-demo demo-price" aria-hidden="true">
+        <div class="demo-top"><span class="demo-dots"><i></i><i></i><i></i></span><b>成交行情</b><span class="tc-icon">📈</span></div>
+        <div class="demo-metric"><span>近三年成交</span><strong>每月更新</strong></div>
+        <div class="demo-bars">
+          <i style="--bar:38%"></i><i style="--bar:56%"></i><i style="--bar:47%"></i>
+          <i style="--bar:72%"></i><i style="--bar:64%"></i><i style="--bar:86%"></i>
+        </div>
+        <div class="demo-caption"><span>成屋</span><span>預售</span><span>鄰近成交</span></div>
+      </div>
       <h3>林口社區行情</h3>
       <div class="tc-desc">輸入社區名或門牌地址，逐筆列出近三年實價登錄成交明細，含成屋與預售，每月自動更新。</div>
       <ul>
@@ -147,7 +120,15 @@ if(location.protocol==='https:'){
 
     <!-- 公車路線 -->
     <a class="panel tool-card t-bus" href="bus/">
-      <div class="tc-icon">🚌</div>
+      <div class="tool-demo demo-bus" aria-hidden="true">
+        <div class="demo-top"><span class="demo-dots"><i></i><i></i><i></i></span><b>附近公車</b><span class="tc-icon">🚌</span></div>
+        <div class="demo-search"><span>輸入社區或地址</span><strong>定位</strong></div>
+        <div class="demo-route-label"><b>附近站牌</b><span>多條路線</span></div>
+        <div class="demo-route">
+          <i></i><i></i><i></i><i></i><span class="route-line"></span>
+        </div>
+        <div class="demo-stops"><span>目前位置</span><span>轉乘站</span><span>目的地</span></div>
+      </div>
       <h3>林口公車路線</h3>
       <div class="tc-desc">輸入社區或地址，立刻在地圖上看到附近的公車站牌、有哪幾條路線經過，點路線還能看完整走向與站序。</div>
       <ul>
@@ -160,7 +141,14 @@ if(location.protocol==='https:'){
 
     <!-- 房貸試算 -->
     <a class="panel tool-card t-loan" href="mortgage/">
-      <div class="tc-icon">🏦</div>
+      <div class="tool-demo demo-loan" aria-hidden="true">
+        <div class="demo-top"><span class="demo-dots"><i></i><i></i><i></i></span><b>房貸試算</b><span class="tc-icon">🏦</span></div>
+        <div class="demo-loan-summary"><span>試算結果</span><strong>依條件即時計算</strong></div>
+        <div class="demo-loan-grid">
+          <div class="loan-ring"><span>月繳</span></div>
+          <div class="loan-values"><p><i></i><span>本金</span></p><p><i></i><span>利息</span></p><p><i></i><span>總負擔</span></p></div>
+        </div>
+      </div>
       <h3>房貸試算</h3>
       <div class="tc-desc">從薪資、月繳、頭期款或自訂條件四種方式，快速估算購屋預算與每月房貸負擔。</div>
       <ul>
@@ -173,7 +161,13 @@ if(location.protocol==='https:'){
 
     <!-- 租約產生器 -->
     <a class="panel tool-card t-rent" href="rent/">
-      <div class="tc-icon">📄</div>
+      <div class="tool-demo demo-rent" aria-hidden="true">
+        <div class="demo-top"><span class="demo-dots"><i></i><i></i><i></i></span><b>租約文件</b><span class="tc-icon">📄</span></div>
+        <div class="demo-paper">
+          <b>住宅租賃契約</b><i></i><i></i><i></i><i></i><span>✓ 欄位已完成</span>
+        </div>
+        <div class="demo-steps"><span>填寫</span><i></i><span>預覽</span><i></i><span>匯出</span></div>
+      </div>
       <h3>租約產生器</h3>
       <div class="tc-desc">填好欄位即可產生住宅租賃契約，可直接列印成 PDF 或匯出 Word，版面比照紙本租約。</div>
       <ul>
@@ -212,6 +206,45 @@ if(location.protocol==='https:'){
 
 </div><!-- /wrap -->
 
+<script>
+/* 首頁視覺互動：導覽狀態、閱讀進度、Hero 輕微視差與分段進場 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const hero=document.querySelector('header.hero');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    if(!reduceMotion)hero.style.setProperty('--hero-shift',Math.min(38,y*.07)+'px');
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const stories=document.querySelectorAll('.tool-card');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    stories.forEach(function(story){story.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.08:.16});
+  stories.forEach(function(story){observer.observe(story);});
+})();
+</script>
 <script src="internal-nav.js"></script>
 </body>
 </html>

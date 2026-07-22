@@ -21,7 +21,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -40,6 +40,8 @@ if(location.protocol==='https:'){
     if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; }
   }catch(e){ window.top.location.href=location.href; } // 跨域無法讀 top → 必為他站內嵌，導回本站
 })();
+/* 有 JavaScript 時才啟用進場動畫，避免關閉 JavaScript 後內容消失 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   :root{
@@ -270,8 +272,9 @@ if(location.protocol==='https:'){
   .sx .sweb{background:#fff;color:var(--ink-soft);border:1px solid var(--line)}
   .sx .stel:hover{background:var(--clay-d)} .sx .sweb:hover{border-color:var(--clay);color:var(--clay-d)}
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page school-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -286,6 +289,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -302,7 +306,12 @@ if(location.protocol==='https:'){
   </header>
 
   <!-- 查詢區 -->
-  <section class="panel search">
+  <section class="panel search school-reveal">
+    <div class="search-head">
+      <span class="eyebrow">SCHOOL ZONE · QUICK SEARCH</span>
+      <h2>先從社區名稱開始</h2>
+      <p>也可以輸入完整地址，或直接選擇里鄰查詢。</p>
+    </div>
     <div class="row">
       <div class="field" style="position:relative">
         <label class="lbl">🏘️ 輸入社區名稱（建檔過的最準）</label>
@@ -359,7 +368,7 @@ if(location.protocol==='https:'){
   </section>
 
   <!-- 主結果 -->
-  <div class="layout">
+  <div class="layout school-reveal">
     <div>
       <div class="map-toggle">
         <span class="mt-label">地圖範圍</span>
@@ -386,8 +395,8 @@ if(location.protocol==='https:'){
   </div>
 
   <!-- 學校聯絡資訊 -->
-  <h2 class="sec-title"><span class="bar"></span>學校聯絡資訊</h2>
-  <section class="panel schools-info">
+  <h2 class="sec-title school-reveal"><span class="bar"></span>學校聯絡資訊</h2>
+  <section class="panel schools-info school-reveal">
     <div class="school-tabs">
       <div class="school-tab on" data-sch="es">國小（10所）</div>
       <div class="school-tab" data-sch="jh">國中（4所）</div>
@@ -398,8 +407,8 @@ if(location.protocol==='https:'){
   </section>
 
   <!-- 幼兒園名額 -->
-  <h2 class="sec-title"><span class="bar"></span>林口區幼兒園招生名額（參考）</h2>
-  <section class="panel" style="padding:18px">
+  <h2 class="sec-title school-reveal"><span class="bar"></span>林口區幼兒園招生名額（參考）</h2>
+  <section class="panel kg-panel school-reveal">
     <div class="kg-tabs">
       <div class="kg-tab on" data-kg="public">公立 / 非營利・名額</div>
       <div class="kg-tab" data-kg="private">私立幼兒園・聯絡電話</div>
@@ -409,13 +418,13 @@ if(location.protocol==='https:'){
     <div class="hint" style="margin-top:10px">幼兒園採全區登記／抽籤，非依里鄰學區分發；名額為 115/04 公告參考值，請以各園最新公告為準。資料來源：新北市幼兒教育資源網。</div>
   </section>
 
-  <div class="disc">
+  <div class="disc school-reveal">
     ⚠️ <b>重要提醒</b>：本工具依「115 學年度新北市國小／國中學區一覽表」整理，<b>已更新為 2026/7/1（民國 115 年）重新編組後的新里鄰</b>（含新增的新林里、力行里、頭湖里、文湖里）。門牌里鄰係依林口戶政事務所「新舊里鄰門牌對照表」轉換，待政府門牌開放資料完成更新後將再全面校正；實際里鄰與學區請以戶政事務所及教育局「當年度最新公告」為準。額滿學校的最後設籍日亦每年變動，請一併向學校與區公所確認。
   </div>
 
   <!-- 聯絡卡（置底） -->
-  <h2 id="contact" class="sec-title"><span class="bar"></span>聯絡我們</h2>
-  <section class="panel contact">
+  <h2 id="contact" class="sec-title school-reveal"><span class="bar"></span>聯絡我們</h2>
+  <section class="panel contact school-reveal">
     <div class="co">🏠 太平洋房屋 · 林口捷運加盟店</div>
     <div class="sub">買林口、問學區，歡迎與我們聯繫 👇 點一下即可加 LINE 或直撥</div>
     <div class="agents">
@@ -464,6 +473,44 @@ if(location.protocol==='https:'){
   var b=document.querySelector('.brand-badge'); if(!b)return;
   var f=function(){ b.classList.toggle('show', window.scrollY>220); };
   window.addEventListener('scroll',f,{passive:true}); f();
+})();
+</script>
+
+<script>
+/* 學區頁視覺互動：導覽陰影、閱讀進度與分段進場；不介入查詢邏輯 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+
+  const reveals=document.querySelectorAll('.school-reveal');
+  if(reduceMotion||!('IntersectionObserver' in window)){
+    reveals.forEach(function(item){item.classList.add('is-visible');});
+    return;
+  }
+  const observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:window.innerWidth<=640?.06:.12});
+  reveals.forEach(function(item){observer.observe(item);});
 })();
 </script>
 

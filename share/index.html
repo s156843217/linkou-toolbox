@@ -19,7 +19,7 @@
 <!-- 網站圖示：瀏覽器分頁小圖＋手機「加入主畫面」圖示；theme-color＝手機瀏覽器上方框色 -->
 <link rel="icon" type="image/svg+xml" href="../img/favicon.svg">
 <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
-<meta name="theme-color" content="#BD5E39">
+<meta name="theme-color" content="#FAF9F6">
 <!-- 流量統計（GoatCounter）：匿名計數、無 cookie；只在正式網站計數，本機 file:// 測試不會灌水 -->
 <script>
 if(location.protocol==='https:'){
@@ -40,6 +40,10 @@ if(location.protocol==='https:'){
   try{ if(window.top.location.hostname!==location.hostname){ window.top.location.href=location.href; } }
   catch(e){ window.top.location.href=location.href; }
 })();
+</script>
+<script>
+/* 有 JavaScript 時才啟用情報卡進場動畫，不影響內容與 LINE 分享 */
+document.documentElement.classList.add('js');
 </script>
 <style>
   /* ============ 手機優先的情報卡版型 ============ */
@@ -124,8 +128,9 @@ if(location.protocol==='https:'){
     box-shadow:0 6px 18px rgba(0,0,0,.28)}
   #liffShare:active{transform:scale(.97)}
 </style>
+<link rel="stylesheet" href="../style-next.css">
 </head>
-<body>
+<body class="next-page share-page">
 
 <!-- 全站導覽列 -->
 <nav class="site-nav">
@@ -140,6 +145,7 @@ if(location.protocol==='https:'){
       <a href="../about/">🤝 關於我們</a>
     </div>
   </div>
+  <span class="nav-progress" aria-hidden="true"></span>
 </nav>
 
 <div class="wrap">
@@ -148,6 +154,28 @@ if(location.protocol==='https:'){
 
 <!-- 在 LINE 內開啟時才會出現（見下方 initLiff） -->
 <button id="liffShare">📤 LINE 分享這份情報</button>
+
+<script>
+/* 置產情報頁視覺互動：導覽陰影與閱讀進度；不介入情報計算、地圖及 LINE 分享 */
+(function(){
+  const nav=document.querySelector('.site-nav');
+  const progress=document.querySelector('.nav-progress');
+  let ticking=false;
+
+  function updateScrollVisuals(){
+    const y=window.scrollY||document.documentElement.scrollTop;
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    nav.classList.toggle('nav-scrolled',y>16);
+    progress.style.width=(max>0?Math.min(100,y/max*100):0)+'%';
+    ticking=false;
+  }
+
+  window.addEventListener('scroll',function(){
+    if(!ticking){requestAnimationFrame(updateScrollVisuals);ticking=true;}
+  },{passive:true});
+  updateScrollVisuals();
+})();
+</script>
 
 <script src="../linkou-data.js"></script>
 <script src="../community-doors.js"></script>
@@ -246,7 +274,7 @@ function render(d){
   let loanHtml='';
   if(d.mortgage){
     const m=d.mortgage;
-    loanHtml=`<section class="panel sh-box">
+    loanHtml=`<section class="panel sh-box loan-box">
       <h2><span class="bar" style="background:var(--teal)"></span>🏦 房貸月付試算</h2>
       <div style="font-size:12.5px;color:var(--ink-soft)">總價 ${fmt(m.price)} 萬・貸 ${m.ratio*100/10} 成試算</div>
       <div class="loan-big"><span class="v">${fmt(m.monthly)}</span><span class="u">元/月（本息平均攤還）</span></div>
@@ -268,10 +296,10 @@ function render(d){
       <div class="addr">📍 ${d.addr||'—'}${liTxt?`　｜　${liTxt}`:''}</div>
       <div class="brand">太平洋房屋・林口捷運加盟店　製表 ${dateTxt}</div>
     </div>
-    <section class="panel sh-box"><h2><span class="bar"></span>🏫 學區（115 學年度）</h2>${schoolHtml}</section>
-    <section class="panel sh-box"><h2><span class="bar" style="background:var(--gold)"></span>📈 成交行情</h2>${mktHtml}</section>
+    <section class="panel sh-box school-box"><h2><span class="bar"></span>🏫 學區（115 學年度）</h2>${schoolHtml}</section>
+    <section class="panel sh-box market-box"><h2><span class="bar" style="background:var(--gold)"></span>📈 成交行情</h2>${mktHtml}</section>
     ${loanHtml}
-    <section class="panel sh-box"><h2><span class="bar" style="background:var(--amber)"></span>🚌 附近公車</h2>${busHtml}</section>
+    <section class="panel sh-box bus-box"><h2><span class="bar" style="background:var(--amber)"></span>🚌 附近公車</h2>${busHtml}</section>
 
     <!-- 聯絡卡（樣式與房貸頁一致；營業員資料為固定內容） -->
     <section class="panel contact">
