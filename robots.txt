@@ -1,7 +1,8 @@
-# 搜尋引擎爬蟲規則：公開頁都歡迎，內部報告頁不要收錄
+# 搜尋引擎爬蟲規則：公開頁都歡迎，內部頁（通關碼保護）不要收錄
 # share/ 不擋——LINE/FB 抓分享預覽卡需要讀得到它
 User-agent: *
 Allow: /
 Disallow: /report/
+Disallow: /listing/
 
 Sitemap: https://swcasa.com/sitemap.xml
