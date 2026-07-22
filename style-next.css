@@ -1661,8 +1661,18 @@
 .mortgage-page .calc-module:nth-child(2)::before{content:"02"}
 .mortgage-page .calc-module:nth-child(3)::before{content:"03"}
 .mortgage-page .calc-module:nth-child(4)::before{content:"04"}
-.mortgage-page .calc-module .sec-title{padding:12px 4px 14px;color:#6D7D77;font-size:11px;font-weight:900;letter-spacing:.12em}
-.mortgage-page .calc-module .sec-title .bar{width:26px;background:var(--clay)}
+.mortgage-page .calc-module .sec-title{
+  padding:10px 4px 16px;
+  gap:9px;
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:19px;
+  font-weight:900;
+  line-height:1.35;
+  letter-spacing:.01em;
+}
+.mortgage-page .calc-module .sec-title>span:not(.bar){font-size:22px}
+.mortgage-page .calc-module .sec-title .bar{width:4px;height:24px;background:var(--clay)}
 .mortgage-page .panel{border-color:rgba(38,51,58,.09);box-shadow:0 18px 48px rgba(38,51,58,.06)}
 .mortgage-page .calc-panel{
   min-height:0;
@@ -1671,9 +1681,9 @@
   background:rgba(255,255,255,.96);
 }
 .mortgage-page .module-header{margin-bottom:19px;padding-bottom:16px;border-bottom:1px solid var(--next-line)}
-.mortgage-page .module-title{color:#2E3D38;font-size:18px;line-height:1.45}
+.mortgage-page .module-title{color:#2E3D38;font-size:16px;line-height:1.5}
 .mortgage-page .module-title .dot{width:8px;height:8px;background:var(--clay)}
-.mortgage-page .module-desc{margin-top:5px;color:#71807A;font-size:12px;line-height:1.65}
+.mortgage-page .module-desc{margin-top:6px;color:#65756F;font-size:13px;line-height:1.7}
 .mortgage-page .calc-row{gap:10px;margin-bottom:14px}
 .mortgage-page label.lbl{margin-bottom:7px;color:#596762;font-size:12px;font-weight:800}
 .mortgage-page input[type=number],.mortgage-page select{
@@ -1770,11 +1780,13 @@
   .mortgage-page .hero p{margin-top:10px;font-size:13px;line-height:1.7}
   .mortgage-page .calc-grid{margin-top:14px;gap:8px}
   .mortgage-page .calc-module::before{right:12px;top:7px;font-size:28px}
-  .mortgage-page .calc-module .sec-title{padding:13px 4px 12px}
+  .mortgage-page .calc-module .sec-title{padding:12px 4px 13px;font-size:17px}
+  .mortgage-page .calc-module .sec-title>span:not(.bar){font-size:19px}
+  .mortgage-page .calc-module .sec-title .bar{height:22px}
   .mortgage-page .calc-panel{padding:19px 16px;border-radius:21px}
   .mortgage-page .module-header{margin-bottom:15px;padding-bottom:13px}
-  .mortgage-page .module-title{font-size:16px}
-  .mortgage-page .module-desc{font-size:11.5px}
+  .mortgage-page .module-title{font-size:15px}
+  .mortgage-page .module-desc{font-size:12.5px}
   .mortgage-page .calc-row{align-items:stretch}
   .mortgage-page .calc-panel>.btn{width:100%}
   .mortgage-page .result-box{padding:13px;border-radius:16px}
