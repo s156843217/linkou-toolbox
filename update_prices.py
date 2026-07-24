@@ -972,8 +972,11 @@ def parse_manual_case(case):
         return None
 
     addr = to_half((case.get("地段位置或門牌") or "").strip())
+    # 官網匯出的門牌格式是「林口區XXX」，不像季檔是「新北市林口區XXX」，兩種前綴都要能去掉
     if addr.startswith("新北市林口區"):
         addr = addr[len("新北市林口區"):]
+    elif addr.startswith("林口區"):
+        addr = addr[len("林口區"):]
     house = parse_house(addr)
     if not house:
         return None
