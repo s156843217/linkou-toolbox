@@ -687,6 +687,20 @@ def fetch_season_rows(season, f):
     return rows
 
 
+def calc_unit(total_wan, ping_h, park_p_wan):
+    """單價(萬/坪) = (總價萬−車位總價萬) / 不含車位坪；ping_h<=0 回 0。
+       手動補登(parse_manual_case)與季檔(parse_moi_row)共用同一套算法，避免兩邊口徑對不起來。"""
+    return round((total_wan - park_p_wan) / ping_h, 1) if ping_h > 0 else 0
+
+
+def flag_special(rec, unit, note_text):
+    """備註含特殊交易關鍵字→sp=1；單價超出合理範圍(5~200萬/坪)→o=1。就地修改 rec。"""
+    if any(kw in (note_text or "") for kw in SPECIAL):
+        rec["sp"] = 1
+    if unit and not (5 <= unit <= 200):
+        rec["o"] = 1
+
+
 def parse_moi_row(r, kind):
     """季檔一列 → (編號, 精簡紀錄)；非住宅建物或關鍵欄位缺漏回 None。
        特殊交易 sp／預售解約 x／離譜值 o 只加旗標不丟棄（輸出時才過濾）。"""
@@ -709,7 +723,7 @@ def parse_moi_row(r, kind):
     park_a = num(r.get("車位移轉總面積平方公尺")) or 0.0
     park_p = num(r.get("車位總價元")) or 0.0
     ping_h = (area - park_a) / PING_M2                 # 不含車位坪（單價分母，與地段表同口徑）
-    unit = round((total - park_p) / 10000 / ping_h, 1) if ping_h > 0 else 0
+    unit = calc_unit(total / 10000, ping_h, park_p / 10000)
 
     addr = to_half((r.get("土地位置建物門牌") or "").strip())
     if addr.startswith("新北市林口區"):
@@ -740,10 +754,7 @@ def parse_moi_row(r, kind):
         rec["cm"] = (r.get("建案名稱") or "").strip()
         if (r.get("解約情形") or "").strip():
             rec["x"] = 1
-    if any(kw in (r.get("備註") or "") for kw in SPECIAL):
-        rec["sp"] = 1
-    if unit and not (5 <= unit <= 200):
-        rec["o"] = 1
+    flag_special(rec, unit, r.get("備註"))
     return rid, rec
 
 
@@ -911,6 +922,160 @@ def build_price_summary(records):
     print(f"✅ 已更新 {SUMMARY_JSON}（有成交的社區 {len(out_c)}、預售建案 {len(out_p)}）")
 
 
+# 手動補登（內政部官網「進階條件查詢→匯出列表+明細」.xls，Claude 用 PowerShell+Excel COM
+# 解析後存成的 manual-updates/*.json）：批次資料源天生落後官網即時查詢 1~2 個月，
+# 這條路徑讓使用者需要時能手動補上更即時的資料。只加不改──資料夾不存在就完全不啟用。
+MANUAL_DIR = Path("manual-updates")
+
+
+def roc_slash(s):
+    """交易日期 '115/06/22' → 1150622(民國yyymmdd)；解析不了回 None。"""
+    m = re.match(r"(\d{2,3})/(\d{1,2})/(\d{1,2})", (s or "").strip())
+    if not m:
+        return None
+    y, mo, d = (int(x) for x in m.groups())
+    return y * 10000 + mo * 100 + d
+
+
+def roc_year_slash(s):
+    """建築完成日期 '103/05' → 103(民國年)；解析不了回 None。"""
+    m = re.match(r"(\d{1,3})/", (s or "").strip())
+    return int(m.group(1)) if m else None
+
+
+def fuzzy_key(house, d, total_wan):
+    """門牌(parse_house 回傳)＋交易日期＋總價(萬) → 比對用字串鍵。
+       手動補登沒有官方「編號」，用這組合判斷「是不是同一筆交易」；
+       parse_manual_case 與 fuzzy_key_of 都呼叫這支，保證兩邊算出的鍵格式一致。"""
+    return f'{house["road"]}|{house["lk"]}|{house["num"].split("-")[0]}|{d}|{total_wan}'
+
+
+def fuzzy_key_of(rec):
+    """官方季檔 rec（已有 a/d/t 欄位）→ fuzzy key；門牌解析不出回 None。"""
+    house = parse_house(rec["a"])
+    return fuzzy_key(house, rec["d"], rec["t"]) if house else None
+
+
+def parse_manual_case(case):
+    """手動上傳 json 的一筆「案件」→ (fuzzy_key, rec) | None。
+       非住宅建物/缺關鍵欄位/門牌解析不出來 → 回 None，呼叫端(merge_manual)只跳過這一筆。
+       只支援成屋(k固定"r")：官網「列表+明細」沒有「解約情形」欄，判斷不出預售解約，不假裝支援。"""
+    if "建物" not in (case.get("交易標的") or ""):
+        return None
+    btxt = case.get("型態") or ""
+    bt = None
+    for i, name in enumerate(BT_NAMES):
+        if name[:2] in btxt:
+            bt = i
+            break
+    if bt is None:                                      # 店面/辦公…不進住宅行情表，同 parse_moi_row
+        return None
+
+    addr = to_half((case.get("地段位置或門牌") or "").strip())
+    if addr.startswith("新北市林口區"):
+        addr = addr[len("新北市林口區"):]
+    house = parse_house(addr)
+    if not house:
+        return None
+
+    d = roc_slash(case.get("交易日期"))
+    total = num(case.get("總價萬元"))                    # xls 欄位已是「萬」，不用再除10000
+    area = num(case.get("總面積坪"))                      # xls 欄位已是「坪」，不用再除PING_M2
+    if d is None or not total or not area:
+        return None
+
+    parkings = case.get("車位") or []
+    park_area = sum(num(x.get("車位面積坪")) or 0.0 for x in parkings)
+    park_price = sum((num(x.get("車位價格元")) or 0.0) / 10000 for x in parkings)
+    ping_h = area - park_area
+    if ping_h <= 0:
+        return None
+    unit = calc_unit(total, ping_h, park_price)          # 不採信 xls 自帶單價欄，統一用同一套算法重算
+
+    by = 0
+    for b in (case.get("建物") or []):
+        y = roc_year_slash(b.get("建築完成日期"))
+        if y:
+            by = y
+            break
+
+    tf, floor_txt = 0, ""
+    lh = (case.get("樓別樓高") or "").strip()
+    if "/" in lh:
+        floor_part, total_part = lh.split("/", 1)
+        floor_txt = floors_of(floor_part)      # 中文數字「八層」「一層,二層」，沿用季檔同一套轉換
+        tf = zh2int(total_part.replace("層", "").strip()) or 0
+
+    pt_txt = (parkings[0].get("車位類別") or "").strip() if parkings else ""
+    pt = PT_NAMES.index(pt_txt) if pt_txt in PT_NAMES else (7 if pt_txt else 0)
+
+    rm = re.search(r"(\d+)房", case.get("建物現況格局") or "")
+    rooms = int(rm.group(1)) if rm else 0
+
+    rec = {"k": "r", "d": d, "a": addr, "f": floor_txt, "tf": tf,
+           "bt": bt, "by": by, "t": round(total), "u": unit,
+           "s": round(area, 1), "ps": round(park_area, 1),
+           "pt": pt, "pp": round(park_price), "r": rooms,
+           "gs": -1}       # 手動路徑沒有主建物/附屬/陽台拆細面積，公設比一律標記無資料
+
+    flag_special(rec, unit, case.get("備註"))
+    return fuzzy_key(house, d, rec["t"]), rec
+
+
+def merge_manual(records):
+    """讀 manual-updates/*.json 併入 records；官方季檔已收錄的筆就讓對應 MANUAL: 記錄自動讓位。
+       就地修改 records。任何一筆/一檔解析失敗只跳過該筆/該檔，絕不中斷、絕不覆蓋既有資料。"""
+    official_fuzzy = set()
+    for k, r in records.items():
+        if k.startswith("MANUAL:"):
+            continue
+        fk = fuzzy_key_of(r)
+        if fk:
+            official_fuzzy.add(fk)
+
+    superseded = 0
+    for k in [k for k in records if k.startswith("MANUAL:")]:
+        if k[len("MANUAL:"):].split("#")[0] in official_fuzzy:
+            del records[k]
+            superseded += 1
+    if superseded:
+        print(f"手動補登：官方資料已追上，汰換舊 MANUAL 記錄 {superseded} 筆")
+
+    if not MANUAL_DIR.exists():
+        return
+
+    added = changed = skipped_dup = skipped_bad = 0
+    for f in sorted(MANUAL_DIR.glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except Exception as e:                          # noqa: BLE001
+            print(f"⚠ 手動檔 {f.name} 讀取失敗（{e}），略過此檔")
+            continue
+        for case in data.get("案件", []):
+            try:
+                parsed = parse_manual_case(case)
+            except Exception as e:                      # noqa: BLE001
+                print(f"⚠ {f.name} 一筆案件解析例外（{e}），略過此筆")
+                continue
+            if not parsed:
+                skipped_bad += 1
+                continue
+            fk, rec = parsed
+            if fk in official_fuzzy:
+                skipped_dup += 1                         # 官方已有這筆，不重複計
+                continue
+            full_key = "MANUAL:" + fk
+            if full_key in records and records[full_key] != rec:
+                full_key += "#2"    # 同key但內容不同：可能真的是兩筆不同交易撞key，都保留不覆蓋
+            if full_key not in records:
+                added += 1
+            elif records[full_key] != rec:
+                changed += 1
+            records[full_key] = rec
+    print(f"手動補登：新增 {added}、更新 {changed}、"
+          f"官方已有跳過 {skipped_dup}、解析失敗跳過 {skipped_bad}")
+
+
 def moi_presale_metrics(records):
     """從主檔取預售筆，轉成與 row_metrics 同構的 dict 餵給 type_stat（LINKOU_TYPES 用）。"""
     apt, house = [], []
@@ -955,6 +1120,7 @@ def build_price_list():
     if not records:
         print("⚠ 季檔無林口住宅資料，行情檔不更新")
         return None, None
+    merge_manual(records)          # 手動補登合併＋官方追上汰換（manual-updates/ 不存在就無作用）
     print(f"行情主檔：共 {len(records)} 筆（本次新增 {added}、異動 {changed}）")
     HISTORY_JSON.write_text(
         json.dumps({"updated": date.today().isoformat(), "records": records},

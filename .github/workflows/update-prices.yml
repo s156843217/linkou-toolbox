@@ -1,10 +1,12 @@
 name: 更新林口實價登錄（地段單價＋行情逐筆表）
 
-# 手動觸發保留（可隨時在雲端 dry-run）；schedule 已啟用，每月自動更新。
+# 手動觸發保留（可隨時在雲端 dry-run）；schedule 已啟用，對齊內政部季檔／新北API的批次更新節奏(1/11/21號)。
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 20 1 * *'   # 每月 1 號 20:00 UTC = 台灣 2 號 04:00
+    - cron: '0 20 1 * *'    # 每月 1 號 20:00 UTC = 台灣 2 號 04:00
+    - cron: '0 20 11 * *'   # 每月11 號 20:00 UTC = 台灣12 號 04:00
+    - cron: '0 20 21 * *'   # 每月21 號 20:00 UTC = 台灣22 號 04:00
 
 permissions:
   contents: write             # 允許 job 內 git push 回 main
