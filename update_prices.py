@@ -1047,7 +1047,7 @@ def merge_manual(records):
     added = changed = skipped_dup = skipped_bad = 0
     for f in sorted(MANUAL_DIR.glob("*.json")):
         try:
-            data = json.loads(f.read_text(encoding="utf-8"))
+            data = json.loads(f.read_text(encoding="utf-8-sig"))  # -sig：PowerShell常見寫BOM，容錯讀取
         except Exception as e:                          # noqa: BLE001
             print(f"⚠ 手動檔 {f.name} 讀取失敗（{e}），略過此檔")
             continue
