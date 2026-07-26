@@ -5,7 +5,7 @@
 //   m 主建物｜sa 附屬｜ba 陽台｜gs 共有(不含車位)｜ps 車位｜tot 登記總坪(含車位)
 //   bt 建物型態＝AREA_BT 索引。單位＝坪(2位小數)。車位/總坪取自單一交易，僅供參考
 //   ⚠ 面積為該戶「歷史成交當時」的登記值；從沒交易過的戶查不到（可查同棟其他戶）
-const AREA_META = { updated: "2026-07-24", maxDate: 1150519, doors: 32277, bases: 5622 };
+const AREA_META = { updated: "2026-07-26", maxDate: 1150519, doors: 32277, bases: 5622 };
 const AREA_COLS = ["m", "sa", "ba", "gs", "ps", "tot", "bt"];
 const AREA_BT = ["住宅大樓", "華廈", "公寓", "透天厝", "別墅", "套房", "店面", "辦公商業大樓", "廠辦", "工廠", "農舍", "倉庫", "其他"];
 const AREA_DATA = {
