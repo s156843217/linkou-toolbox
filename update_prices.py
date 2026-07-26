@@ -692,6 +692,31 @@ def park_price_for_calc(pt, park_a, park_p_wan):
     return park_p_wan
 
 
+def recalc_units(records):
+    """對主檔每一筆重新算 u(單價)／o(離譜值旗標)，用目前的 calc_unit／車位假設值邏輯，
+       直接拿已存的 t/s/ps/pt/pp 現算，不必重抓來源季檔。每次跑都做這一步，
+       單價公式一有異動(例如這次的車位假設值)才會追溯套用到舊季度的歷史紀錄，
+       不會卡在「只有最近 REFRESH_SEASONS 季會抓新公式、更早的季度永遠停在舊算法」。"""
+    n = skipped = 0
+    for rec in records.values():
+        try:
+            ping_h = rec["s"] - rec["ps"]
+            if ping_h <= 0:
+                continue
+            new_u = calc_unit(rec["t"], ping_h, park_price_for_calc(rec["pt"], rec["ps"], rec["pp"]))
+        except (KeyError, TypeError):                  # 舊格式缺欄位，跳過不重算，不影響其他筆
+            skipped += 1
+            continue
+        if new_u != rec.get("u"):
+            rec["u"] = new_u
+            rec.pop("o", None)
+            if new_u and not (5 <= new_u <= 200):
+                rec["o"] = 1
+            n += 1
+    if n or skipped:
+        print(f"  單價公式異動重算：{n} 筆更新" + (f"（{skipped} 筆缺欄位跳過）" if skipped else ""))
+
+
 def flag_special(rec, unit, note_text):
     """備註含特殊交易關鍵字→sp=1；單價超出合理範圍(5~200萬/坪)→o=1。就地修改 rec。"""
     if any(kw in (note_text or "") for kw in SPECIAL):
@@ -1102,6 +1127,7 @@ def build_price_list():
     records = {}
     if HISTORY_JSON.exists():
         records = json.loads(HISTORY_JSON.read_text(encoding="utf-8")).get("records", {})
+    recalc_units(records)          # 單價公式若有異動，追溯套用到全部既有歷史紀錄
     seasons = roc_seasons(REFRESH_SEASONS if records else BACKFILL_SEASONS)
     print(f"{'每月更新' if records else '首次回填'}：抓 {seasons[0]}～{seasons[-1]} 共 {len(seasons)} 季")
     added = changed = 0
