@@ -57,9 +57,6 @@ GEOJSON = Path("林口價格地圖.geojson")                # 你畫的商圈多
 
 ZONE_ORDER = ["三井Outlet", "南勢", "家樂福商圈", "北側", "林口舊市區", "麗園國小"]
 RESIDENTIAL = {"住家用", "住商用"}
-# 排除的建物型態（rps11）：透天厝/別墅含大片土地，每坪單價與集合住宅不可比，會拉低中位數。
-# 保留 大樓/華廈/公寓（同屬集合住宅、每坪可比）。
-EXCLUDE_BTYPE = ("透天", "別墅")
 SPECIAL = ["親友", "二親等", "特殊關係", "急售", "債務", "拍賣", "法拍",
            "贈與", "含增建", "毛胚", "含裝潢", "含傢俱", "含家具", "瑕疵"]
 
@@ -279,7 +276,10 @@ def road_of(addr):
 
 
 # ── 主流程 ────────────────────────────────────────────────
-def build_zones(raw):
+def build_zones(records):
+    """商圈單價中位數：改吃內政部季檔＋手動補登後的行情主檔（跟 price-list-data.js 同一份
+       records，單價 u 也是同一套 calc_unit／車位假設值算出來的），不再另抓新北市 API，
+       避免兩邊各自計算、同一戶單價卻對不起來。門牌配商圈邏輯不變（座標×多邊形，路名備援）。"""
     print("載入商圈多邊形 …")
     zones = load_zones()
     print(f"  {len(zones)} 個商圈：{[z[0] for z in zones]}")
@@ -298,34 +298,19 @@ def build_zones(raw):
     cand = []
     by_coord = by_fallback = unmatched = excl_btype = 0
     miss_roads = {}
-    for r in raw:
-        if r.get("district") != "林口區":
+    for rec in records.values():
+        if rec.get("k") != "r":                      # 只算成屋
             continue
-        if "建物" not in (r.get("rps01") or ""):
-            continue
-        if (r.get("rps12") or "") not in RESIDENTIAL:
-            continue
-        if any(t in (r.get("rps11") or "") for t in EXCLUDE_BTYPE):  # 排除透天/別墅
+        if rec.get("bt") in (3, 4):                  # 排除透天厝/別墅
             excl_btype += 1
             continue
-        if any(k in (r.get("rps26") or "") for k in SPECIAL):
+        if rec.get("sp") or rec.get("o"):            # 特殊交易／離譜值旗標，跟行情表同一套
             continue
-
-        d = roc_int(r.get("rps07_yyymmddroc"))
-        total = num(r.get("rps21_amountsunitdollars"))
-        area = num(r.get("rps15_area"))
-        if d is None or not total or not area:
-            continue
-        park_area = num(r.get("rps24_area")) or 0.0
-        park_price = num(r.get("rps25_amountsunitdollars")) or 0.0
-        house_ping = (area - park_area) / PING_M2
-        if house_ping <= 0:
-            continue
-        unit = (total - park_price) / 10000 / house_ping
+        unit = rec.get("u") or 0
         if unit <= 0:
             continue
 
-        addr = r.get("rps02")
+        addr = rec.get("a") or ""
         # 商圈分配：先座標+多邊形，退回路名對照
         zone = None
         coord = house_coord(addr, house) if house else None
@@ -343,14 +328,13 @@ def build_zones(raw):
                 miss_roads[road] = miss_roads.get(road, 0) + 1
                 continue
 
-        ty, by = roc_year(r.get("rps07_yyymmddroc")), roc_year(r.get("rps14_yyymmddroc"))
+        d = rec.get("d") or 0
+        by = rec.get("by") or 0
+        ty = d // 10000                              # d 格式 yyymmdd，前3碼即民國年
         age = (ty - by) if (ty and by and ty >= by) else None
-        rooms = num(r.get("rps16_quantity"))
-        main_a = num(r.get("rps28_area")) or 0.0
-        sub_a = num(r.get("rps29_area")) or 0.0
-        bal_a = num(r.get("rps30_area")) or 0.0
-        denom = area - park_area
-        indoor = (main_a + sub_a + bal_a) / denom if denom > 0 else None
+        rooms = rec.get("r") or None
+        gs = rec.get("gs", -1)                        # 公設比%；室內占比 = 1 - gs/100
+        indoor = (1 - gs / 100) if gs is not None and gs >= 0 else None
 
         cand.append({"date": d, "zone": zone, "unit": unit,
                      "age": age, "rooms": rooms, "indoor": indoor})
@@ -422,7 +406,8 @@ def write_js(zones, max_d):
     out.append("// <<AUTO-ZONES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改")
     out.append(f"// ── 林口各商圈每坪單價（自動更新：{today}；資料截至 {data_month}，"
                f"近一年共 {total_n} 筆） ──")
-    out.append("// 來源：新北市政府資料開放平臺 不動產買賣實價登錄（每 10 日更新）")
+    out.append("// 來源：內政部實價登錄季檔＋手動補登（與 price-list-data.js 同一份主檔，單價口徑一致）")
+    out.append("// 季檔本身約落後官網 1~2.5 個月，最新資料需靠手動補登（/price-manual）才會即時反映")
     out.append("// 商圈分配：門牌座標 × 商圈多邊形（點在多邊形），跨區路自動切分")
     out.append("// 僅集合住宅（大樓/華廈/公寓）；已排除透天厝/別墅、車位、特殊交易")
     out.append("// medPrice：中位數（萬/坪）｜priceRange：[Q1,Q3]｜"
@@ -693,6 +678,20 @@ def calc_unit(total_wan, ping_h, park_p_wan):
     return round((total_wan - park_p_wan) / ping_h, 1) if ping_h > 0 else 0
 
 
+# 車位有登記坪數、但官方「車位總價元」缺漏(=0)時，用林口在地行情假設一個車位價(萬)，
+# 避免車位坪被扣掉分母、車位的錢卻沒扣分子，導致單價虛高。只涵蓋樣本夠多、判斷得住的類別；
+# 其餘類別(升降平面/塔式車位/一樓平面/其他)樣本太少(<20筆)，維持原樣不假設。
+PARK_ASSUMED_PRICE = {1: 200, 2: 120, 4: 120}   # pt: 1坡道平面 2坡道機械 4升降機械
+
+
+def park_price_for_calc(pt, park_a, park_p_wan):
+    """回傳「用來算單價」的車位價：官方有揭露就用官方的；沒揭露且車位類別在 PARK_ASSUMED_PRICE 內，
+       就假設一個車位價；其餘情況原樣回傳(可能是0)。"""
+    if park_p_wan <= 0 and park_a > 0 and pt in PARK_ASSUMED_PRICE:
+        return PARK_ASSUMED_PRICE[pt]
+    return park_p_wan
+
+
 def flag_special(rec, unit, note_text):
     """備註含特殊交易關鍵字→sp=1；單價超出合理範圍(5~200萬/坪)→o=1。就地修改 rec。"""
     if any(kw in (note_text or "") for kw in SPECIAL):
@@ -723,14 +722,16 @@ def parse_moi_row(r, kind):
     park_a = num(r.get("車位移轉總面積平方公尺")) or 0.0
     park_p = num(r.get("車位總價元")) or 0.0
     ping_h = (area - park_a) / PING_M2                 # 不含車位坪（單價分母，與地段表同口徑）
-    unit = calc_unit(total / 10000, ping_h, park_p / 10000)
+
+    pt_txt = (r.get("車位類別") or "").strip()
+    pt = PT_NAMES.index(pt_txt) if pt_txt in PT_NAMES else (7 if pt_txt else 0)
+
+    park_p_wan = park_price_for_calc(pt, park_a / PING_M2, park_p / 10000)
+    unit = calc_unit(total / 10000, ping_h, park_p_wan)
 
     addr = to_half((r.get("土地位置建物門牌") or "").strip())
     if addr.startswith("新北市林口區"):
         addr = addr[len("新北市林口區"):]
-
-    pt_txt = (r.get("車位類別") or "").strip()
-    pt = PT_NAMES.index(pt_txt) if pt_txt in PT_NAMES else (7 if pt_txt else 0)
 
     rec = {"k": kind, "d": d, "a": addr,
            "f": floors_of(r.get("移轉層次")),
@@ -790,11 +791,13 @@ def write_price_js(records):
     L.append("// price-list-data.js — 林口實價登錄逐筆明細（update_prices.py 自動產生，請勿手改）")
     L.append("// 來源：內政部實價登錄季檔（成屋+預售），每月自動累積更新；僅住宅類建物")
     L.append("// 口徑：u 單價 =（總價 − 車位總價）÷ 不含車位坪；已排除特殊交易、預售解約、離譜單價")
+    L.append("// 車位坪有登記但官方車位總價缺漏(pp=0)時，u 改用假設車位價估算(坡道平面200萬/坡道機械"
+              "與升降機械120萬)，避免車位坪被扣分母、車位的錢卻沒扣分子造成單價虛高；pp 欄位本身仍忠實呈現官方原始值(0=官方未揭露)")
     L.append("// 欄位（每列依 PRICE_COLS 順序）：")
     L.append("//   k 成屋r/預售p｜d 交易日(民國yyymmdd)｜a 門牌｜f 移轉層次｜tf 總樓層")
     L.append("//   bt 建物型態(PRICE_BT 索引)｜by 建成民國年(0=無，預售即此類)｜t 總價(萬)")
     L.append("//   u 單價(萬/坪，0=無法計算)｜s 登記總坪(含車位)｜ps 車位坪｜pt 車位類別(PRICE_PT 索引)")
-    L.append("//   pp 車位價(萬)｜r 房數｜gs 公設比%(-1=無資料)｜cm 建案名稱(預售才有)")
+    L.append("//   pp 車位價(萬，官方原始揭露值，0=官方未拆算)｜r 房數｜gs 公設比%(-1=無資料)｜cm 建案名稱(預售才有)")
     L.append(f'const PRICE_META = {{ updated: "{today}", maxDate: {max_d}, '
              f'n: {len(recs)}, nResale: {n_r}, nPresale: {n_p} }};')
     L.append("const PRICE_COLS = " + json.dumps(PRICE_COLS) + ";")
@@ -993,7 +996,11 @@ def parse_manual_case(case):
     ping_h = area - park_area
     if ping_h <= 0:
         return None
-    unit = calc_unit(total, ping_h, park_price)          # 不採信 xls 自帶單價欄，統一用同一套算法重算
+
+    pt_txt = (parkings[0].get("車位類別") or "").strip() if parkings else ""
+    pt = PT_NAMES.index(pt_txt) if pt_txt in PT_NAMES else (7 if pt_txt else 0)
+
+    unit = calc_unit(total, ping_h, park_price_for_calc(pt, park_area, park_price))  # 不採信 xls 自帶單價欄，統一用同一套算法重算
 
     by = 0
     for b in (case.get("建物") or []):
@@ -1008,9 +1015,6 @@ def parse_manual_case(case):
         floor_part, total_part = lh.split("/", 1)
         floor_txt = floors_of(floor_part)      # 中文數字「八層」「一層,二層」，沿用季檔同一套轉換
         tf = zh2int(total_part.replace("層", "").strip()) or 0
-
-    pt_txt = (parkings[0].get("車位類別") or "").strip() if parkings else ""
-    pt = PT_NAMES.index(pt_txt) if pt_txt in PT_NAMES else (7 if pt_txt else 0)
 
     rm = re.search(r"(\d+)房", case.get("建物現況格局") or "")
     rooms = int(rm.group(1)) if rm else 0
@@ -1092,8 +1096,9 @@ def moi_presale_metrics(records):
 
 
 def build_price_list():
-    """下載季檔、合併主檔、產出前端檔。回傳預售 metrics (apt, house)；
-       失敗回 (None, None) 且不動舊檔（與 LINKOU_TYPES「保留舊值」同一安全設計）。"""
+    """下載季檔、合併主檔、產出前端檔。回傳 (預售apt metrics, 預售house metrics, records)；
+       records 同時餵給 build_zones 算商圈單價，兩邊共用同一份主檔、單價口徑一致。
+       失敗回 (None, None, None) 且不動舊檔（與 LINKOU_TYPES「保留舊值」同一安全設計）。"""
     records = {}
     if HISTORY_JSON.exists():
         records = json.loads(HISTORY_JSON.read_text(encoding="utf-8")).get("records", {})
@@ -1119,10 +1124,10 @@ def build_price_list():
                     records[rid] = rec
     except Exception as e:                              # noqa: BLE001
         print(f"⚠ 季檔下載/解析失敗（{e}），行情檔保留舊值不更新")
-        return None, None
+        return None, None, None
     if not records:
         print("⚠ 季檔無林口住宅資料，行情檔不更新")
-        return None, None
+        return None, None, None
     merge_manual(records)          # 手動補登合併＋官方追上汰換（manual-updates/ 不存在就無作用）
     print(f"行情主檔：共 {len(records)} 筆（本次新增 {added}、異動 {changed}）")
     HISTORY_JSON.write_text(
@@ -1138,21 +1143,24 @@ def build_price_list():
         door_areas.update_from_rows(a_rows)
     except Exception as e:                              # noqa: BLE001
         print(f"⚠ 門牌坪數庫更新失敗（{e}），door-area.json／area-data.js 保留舊值")
-    return moi_presale_metrics(records)
+    presale_apt, presale_house = moi_presale_metrics(records)
+    return presale_apt, presale_house, records
 
 
 def main():
-    print("抓取新北開放平臺 API（成屋）…")
-    raw_resale = fetch_all(API)
-    print(f"全新北成屋累計 {len(raw_resale)} 筆")
-    zones, max_d = build_zones(raw_resale)
+    print("更新行情主檔（內政部季檔＋手動補登，成屋＋預售）…")
+    presale_apt, presale_house, records = build_price_list()
+    if presale_apt is None:
+        print("⚠ 無預售資料，LINKOU_TYPES／LINKOU_ZONES 保留舊值")
+        return
+
+    print("商圈單價中位數（改吃行情主檔，不再另抓新北市 API）…")
+    zones, max_d = build_zones(records)
     write_js(zones, max_d)
 
-    print("更新行情逐筆檔（內政部季檔，成屋＋預售）…")
-    presale_apt, presale_house = build_price_list()
-    if presale_apt is None:
-        print("⚠ 無預售資料，LINKOU_TYPES 保留舊值")
-        return
+    print("抓取新北開放平臺 API（成屋／透天，三類全區行情用）…")
+    raw_resale = fetch_all(API)
+    print(f"全新北成屋累計 {len(raw_resale)} 筆")
     write_types_js(build_types(raw_resale, presale_apt, presale_house))
 
 
