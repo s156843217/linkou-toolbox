@@ -13,9 +13,9 @@
 // medPrice：中位數（萬/坪）｜priceRange：[Q1,Q3]｜ageMed：屋齡中位數｜roomMed：房數中位數
 // indoorPct：室內(主建物+附屬+陽台)/扣車位登記坪數 之中位數
 const LINKOU_ZONES = [
-  { name: "三井Outlet", medPrice: 55.8, priceRange: [47.3, 64.2], count: 158, ageMed: 11, roomMed: 3, indoorPct: 0.675 },
-  { name: "南勢", medPrice: 55.1, priceRange: [47.0, 57.5], count: 103, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
-  { name: "家樂福商圈", medPrice: 48.2, priceRange: [43.5, 54.3], count: 302, ageMed: 9, roomMed: 3, indoorPct: 0.68 },
+  { name: "三井Outlet", medPrice: 55.9, priceRange: [47.3, 64.3], count: 159, ageMed: 11, roomMed: 3, indoorPct: 0.675 },
+  { name: "南勢", medPrice: 55.1, priceRange: [46.6, 57.5], count: 103, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
+  { name: "家樂福商圈", medPrice: 48.2, priceRange: [43.5, 54.2], count: 301, ageMed: 9, roomMed: 3, indoorPct: 0.68 },
   { name: "北側", medPrice: 42.8, priceRange: [40.0, 45.3], count: 86, ageMed: 11, roomMed: 2, indoorPct: 0.69 },
   { name: "林口舊市區", medPrice: 36.0, priceRange: [27.5, 44.4], count: 62, ageMed: 28, roomMed: 3, indoorPct: 0.76 },
   { name: "麗園國小", medPrice: 27.9, priceRange: [25.9, 34.1], count: 21, ageMed: 41, roomMed: 3, indoorPct: 0.83 },
