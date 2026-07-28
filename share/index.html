@@ -448,14 +448,15 @@ function buildFlex(d){
   }
 
   const head=[
-    {type:'text',text:'社區置產情報',size:'xs',color:'#C9A24A',weight:'bold'},
-    {type:'text',text:d.name,size:'xl',color:'#F7EEDF',weight:'bold',wrap:true}
+    {type:'text',text:'社區置產情報',size:'xs',color:'#FBE4D8',weight:'bold'},
+    {type:'text',text:d.name,size:'xl',color:'#FFFFFF',weight:'bold',wrap:true}
   ];
-  if(d.addr)head.push({type:'text',text:'📍 '+d.addr,size:'xxs',color:'#C9B89B',wrap:true,margin:'sm'});
+  if(d.addr)head.push({type:'text',text:'📍 '+d.addr,size:'xxs',color:'#FBE4D8',wrap:true,margin:'sm'});
 
   return {type:'flex',altText:'【'+d.name+'】林口置產情報：學區/行情/公車/房貸一頁看懂',
     contents:{type:'bubble',   /* 寬度用預設 mega：giga 太寬（2026-07-16 拍板） */
-      header:{type:'box',layout:'vertical',backgroundColor:'#2C2620',paddingAll:'16px',contents:head},
+      /* header 改陶土橘（2026-07-28 拍板：跟學區快查橘色卡統一，原本是深咖啡） */
+      header:{type:'box',layout:'vertical',backgroundColor:'#BD5E39',paddingAll:'16px',contents:head},
       body:{type:'box',layout:'vertical',spacing:'md',contents:rows},
       footer:{type:'box',layout:'vertical',spacing:'sm',contents:[
         {type:'button',style:'primary',color:'#BD5E39',height:'sm',
