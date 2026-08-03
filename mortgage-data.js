@@ -5,7 +5,7 @@
 */
 
 // <<AUTO-ZONES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口各商圈每坪單價（自動更新：2026-08-01；資料截至 民國115年06月，近一年共 807 筆） ──
+// ── 林口各商圈每坪單價（自動更新：2026-08-03；資料截至 民國115年06月，近一年共 854 筆） ──
 // 來源：內政部實價登錄季檔＋手動補登（與 price-list-data.js 同一份主檔，單價口徑一致）
 // 季檔本身約落後官網 1~2.5 個月，最新資料需靠手動補登（/price-manual）才會即時反映
 // 商圈分配：門牌座標 × 商圈多邊形（點在多邊形），跨區路自動切分
@@ -13,17 +13,17 @@
 // medPrice：中位數（萬/坪）｜priceRange：[Q1,Q3]｜ageMed：屋齡中位數｜roomMed：房數中位數
 // indoorPct：室內(主建物+附屬+陽台)/扣車位登記坪數 之中位數
 const LINKOU_ZONES = [
-  { name: "三井Outlet", medPrice: 55.7, priceRange: [47.2, 63.9], count: 168, ageMed: 11, roomMed: 3, indoorPct: 0.68 },
-  { name: "南勢", medPrice: 55.5, priceRange: [47.2, 57.6], count: 130, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
-  { name: "家樂福商圈", medPrice: 48.1, priceRange: [43.5, 54.5], count: 324, ageMed: 9, roomMed: 3, indoorPct: 0.68 },
-  { name: "北側", medPrice: 42.6, priceRange: [39.7, 45.3], count: 93, ageMed: 11, roomMed: 2, indoorPct: 0.69 },
-  { name: "林口舊市區", medPrice: 35.3, priceRange: [27.0, 44.2], count: 70, ageMed: 30, roomMed: 3, indoorPct: 0.76 },
-  { name: "麗園國小", medPrice: 28.0, priceRange: [26.0, 34.6], count: 22, ageMed: 41, roomMed: 3, indoorPct: 0.83 },
+  { name: "三井Outlet", medPrice: 55.6, priceRange: [47.0, 63.9], count: 177, ageMed: 12, roomMed: 3, indoorPct: 0.68 },
+  { name: "南勢", medPrice: 55.5, priceRange: [47.1, 57.5], count: 145, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
+  { name: "家樂福商圈", medPrice: 48.5, priceRange: [43.3, 54.5], count: 337, ageMed: 10, roomMed: 3, indoorPct: 0.68 },
+  { name: "北側", medPrice: 42.5, priceRange: [39.5, 45.2], count: 98, ageMed: 11, roomMed: 2, indoorPct: 0.695 },
+  { name: "林口舊市區", medPrice: 35.4, priceRange: [26.8, 43.9], count: 73, ageMed: 32, roomMed: 3, indoorPct: 0.77 },
+  { name: "麗園國小", medPrice: 28.0, priceRange: [25.9, 34.8], count: 24, ageMed: 41, roomMed: 3, indoorPct: 0.83 },
 ];
 // <<AUTO-ZONES-END>>
 
 // <<AUTO-TYPES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-08-01；近一年） ──
+// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-08-03；近一年） ──
 // 來源：成屋=新北開放平臺 實價登錄(ACCE802D，透天同源用建物型態拆出)；預售=內政部季檔
 // 單價=(總價−車位價)/不含車位坪/10000（與地段表同口徑）；預售排除解約、無屋齡
 // calc=true 可依預算精準試算坪數；false 樣本少、僅作總價門檻參考
