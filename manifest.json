@@ -1,0 +1,13 @@
+{
+  "name": "林口置產工具箱",
+  "short_name": "置產工具箱",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FBF6EE",
+  "theme_color": "#2C2620",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "/img/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
