@@ -18,7 +18,7 @@ html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-hei
 body{background-image:radial-gradient(circle at 12% -5%,#F7EEDF 0,transparent 42%),radial-gradient(circle at 110% 8%,#F0E5D2 0,transparent 46%)}
 
 /* 全站導覽列 */
-.site-nav{background:#2C2620;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top)}/* 加入主畫面全螢幕模式下，把導覽列往下推開，避免被 iPhone 狀態列（時間/電量）蓋住；一般瀏覽模式下 inset 為 0，不影響 */
+.site-nav{background:#2C2620;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top);transform:translateZ(0)}/* 加入主畫面全螢幕模式下，把導覽列往下推開，避免被 iPhone 狀態列（時間/電量）蓋住；一般瀏覽模式下 inset 為 0，不影響。translateZ(0) 強制獨立圖層，避免 iOS 在 sticky+safe-area 這個組合下捲動時背景沒重繪、下層內容透出來的殘影問題 */
 .nav-inner{max-width:1120px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:52px}
 .nav-logo{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--gold);text-decoration:none;letter-spacing:.3px;flex-shrink:0}
 .nav-links{display:flex;gap:4px;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}

@@ -1058,7 +1058,7 @@
   .school-page .hero .yr{display:none}
 }
 @media(max-width:640px){
-  .school-page .wrap{padding-top:12px}
+  .school-page .wrap{padding-top:20px}
   .school-page header.hero{padding:25px 20px;border-radius:24px}
   .school-page .hero .badge{margin-bottom:10px;padding:5px 10px;font-size:10px}
   .school-page .hero h1{font-size:36px}
@@ -1336,7 +1336,7 @@
   .price-page .hero .yr{display:none}
 }
 @media(max-width:640px){
-  .price-page .wrap{padding-top:12px}
+  .price-page .wrap{padding-top:20px}
   .price-page header.hero{padding:25px 20px;border-radius:24px}
   .price-page .hero .badge{margin-bottom:10px;padding:5px 10px;font-size:10px}
   .price-page .hero h1{font-size:36px}
@@ -1557,7 +1557,7 @@
   .bus-page .search-alternatives{grid-template-columns:1fr}
 }
 @media(max-width:640px){
-  .bus-page .wrap{padding-top:12px}
+  .bus-page .wrap{padding-top:20px}
   .bus-page header.hero{padding:25px 20px;border-radius:24px}
   .bus-page .hero .badge{margin-bottom:10px;padding:5px 10px;font-size:10px}
   .bus-page .hero h1{font-size:36px}
@@ -1773,7 +1773,7 @@
   .mortgage-page .hero .yr{display:none}
 }
 @media(max-width:640px){
-  .mortgage-page .wrap{padding-top:12px}
+  .mortgage-page .wrap{padding-top:20px}
   .mortgage-page header.hero{padding:25px 20px;border-radius:24px}
   .mortgage-page .hero .badge{margin-bottom:10px;padding:5px 10px;font-size:10px}
   .mortgage-page .hero h1{font-size:36px}
@@ -1999,7 +1999,7 @@
   .rent-page .hero .yr{display:none}
 }
 @media(max-width:640px){
-  .rent-page .wrap{padding-top:12px}
+  .rent-page .wrap{padding-top:20px}
   .rent-page header.hero{padding:25px 20px;border-radius:24px}
   .rent-page .hero .badge{margin-bottom:10px;padding:5px 10px;font-size:10px}
   .rent-page .hero h1{font-size:36px}
