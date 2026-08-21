@@ -7,7 +7,7 @@
 //   bt 建物型態(PRICE_BT 索引)｜by 建成民國年(0=無，預售即此類)｜t 總價(萬)
 //   u 單價(萬/坪，0=無法計算)｜s 登記總坪(含車位)｜ps 車位坪｜pt 車位類別(PRICE_PT 索引)
 //   pp 車位價(萬，官方原始揭露值，0=官方未拆算)｜r 房數｜gs 公設比%(-1=無資料)｜cm 建案名稱(預售才有)
-const PRICE_META = { updated: "2026-08-11", maxDate: 1150625, n: 9149, nResale: 4497, nPresale: 4652 };
+const PRICE_META = { updated: "2026-08-21", maxDate: 1150625, n: 9149, nResale: 4497, nPresale: 4652 };
 const PRICE_COLS = ["k", "d", "a", "f", "tf", "bt", "by", "t", "u", "s", "ps", "pt", "pp", "r", "gs", "cm"];
 const PRICE_BT = ["住宅大樓", "華廈", "公寓", "透天厝", "別墅", "套房"];
 const PRICE_PT = ["", "坡道平面", "坡道機械", "升降平面", "升降機械", "塔式車位", "一樓平面", "其他"];
