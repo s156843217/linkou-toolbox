@@ -5,7 +5,7 @@
 */
 
 // <<AUTO-ZONES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口各商圈每坪單價（自動更新：2026-08-27；資料截至 民國115年07月，近一年共 891 筆） ──
+// ── 林口各商圈每坪單價（自動更新：2026-09-01；資料截至 民國115年07月，近一年共 892 筆） ──
 // 來源：內政部實價登錄季檔＋手動補登（與 price-list-data.js 同一份主檔，單價口徑一致）
 // 季檔本身約落後官網 1~2.5 個月，最新資料需靠手動補登（/price-manual）才會即時反映
 // 商圈分配：門牌座標 × 商圈多邊形（點在多邊形），跨區路自動切分
@@ -15,7 +15,7 @@
 const LINKOU_ZONES = [
   { name: "三井Outlet", medPrice: 55.5, priceRange: [45.7, 63.0], count: 184, ageMed: 12, roomMed: 2, indoorPct: 0.67 },
   { name: "南勢", medPrice: 55.7, priceRange: [48.2, 57.6], count: 161, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
-  { name: "家樂福商圈", medPrice: 48.6, priceRange: [43.3, 54.5], count: 346, ageMed: 10, roomMed: 3, indoorPct: 0.68 },
+  { name: "家樂福商圈", medPrice: 48.8, priceRange: [43.3, 54.6], count: 347, ageMed: 10, roomMed: 3, indoorPct: 0.68 },
   { name: "北側", medPrice: 42.8, priceRange: [39.3, 46.5], count: 104, ageMed: 11, roomMed: 2, indoorPct: 0.69 },
   { name: "林口舊市區", medPrice: 35.4, priceRange: [26.7, 41.8], count: 72, ageMed: 33, roomMed: 3, indoorPct: 0.775 },
   { name: "麗園國小", medPrice: 29.9, priceRange: [25.9, 34.8], count: 24, ageMed: 41, roomMed: 3, indoorPct: 0.835 },
@@ -23,7 +23,7 @@ const LINKOU_ZONES = [
 // <<AUTO-ZONES-END>>
 
 // <<AUTO-TYPES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-08-27；近一年） ──
+// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-09-01；近一年） ──
 // 來源：成屋=新北開放平臺 實價登錄(ACCE802D，透天同源用建物型態拆出)；預售=內政部季檔
 // 單價=(總價−車位價)/不含車位坪/10000（與地段表同口徑）；預售排除解約、無屋齡
 // calc=true 可依預算精準試算坪數；false 樣本少、僅作總價門檻參考
