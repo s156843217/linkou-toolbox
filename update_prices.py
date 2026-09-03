@@ -984,6 +984,13 @@ def fuzzy_key_of(rec):
     return fuzzy_key(house, rec["d"], rec["t"]) if house else None
 
 
+def manual_identity(rec):
+    """手動補登同一交易的穩定識別：完整門牌（含樓層）＋日期＋總價。
+       單價會因每次重算使用已四捨五入坪數而差 0.1，不可拿整筆 rec 判斷是否為另一筆交易。"""
+    addr = re.sub(r"\s+", "", to_half(rec.get("a") or ""))
+    return addr, rec.get("d"), rec.get("t")
+
+
 def parse_manual_case(case):
     """手動上傳 json 的一筆「案件」→ (fuzzy_key, rec) | None。
        非住宅建物/缺關鍵欄位/門牌解析不出來 → 回 None，呼叫端(merge_manual)只跳過這一筆。
@@ -1057,6 +1064,21 @@ def parse_manual_case(case):
 def merge_manual(records):
     """讀 manual-updates/*.json 併入 records；官方季檔已收錄的筆就讓對應 MANUAL: 記錄自動讓位。
        就地修改 records。任何一筆/一檔解析失敗只跳過該筆/該檔，絕不中斷、絕不覆蓋既有資料。"""
+    # 清掉舊版邏輯因單價差 0.1 而產生的同交易重複記錄；保留編號最前面的那筆，
+    # 隨後若本次手動檔仍含此交易，會用最新內容覆寫它。
+    seen_manual = set()
+    deduped = 0
+    for k in sorted(k for k in records if k.startswith("MANUAL:")):
+        base = k[len("MANUAL:"):].split("#")[0]
+        sig = (base, manual_identity(records[k]))
+        if sig in seen_manual:
+            del records[k]
+            deduped += 1
+        else:
+            seen_manual.add(sig)
+    if deduped:
+        print(f"手動補登：清除同交易重複記錄 {deduped} 筆")
+
     official_fuzzy = set()
     for k, r in records.items():
         if k.startswith("MANUAL:"):
@@ -1096,9 +1118,20 @@ def merge_manual(records):
             if fk in official_fuzzy:
                 skipped_dup += 1                         # 官方已有這筆，不重複計
                 continue
-            full_key = "MANUAL:" + fk
-            if full_key in records and records[full_key] != rec:
-                full_key += "#2"    # 同key但內容不同：可能真的是兩筆不同交易撞key，都保留不覆蓋
+            base_key = "MANUAL:" + fk
+            full_key = None
+            for candidate in records:
+                if (candidate == base_key or candidate.startswith(base_key + "#")) and \
+                        manual_identity(records[candidate]) == manual_identity(rec):
+                    full_key = candidate       # 同一交易的新版本：覆寫，不另增一筆
+                    break
+            if full_key is None:
+                full_key = base_key
+                if full_key in records:        # 同門牌基底、同日同價，但完整門牌不同，視為另一筆
+                    suffix = 2
+                    while f"{base_key}#{suffix}" in records:
+                        suffix += 1
+                    full_key = f"{base_key}#{suffix}"
             if full_key not in records:
                 added += 1
             elif records[full_key] != rec:
