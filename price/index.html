@@ -698,7 +698,8 @@ function handleDeepLink(){
 }
 
 /* ── 啟動 ── */
-$("#heroBadge").textContent=`內政部實價登錄 · 資料截至 ${String(PRICE_META.maxDate).slice(0,3)}/${String(PRICE_META.maxDate).slice(3,5)}`;
+const [updateY,updateM,updateD]=PRICE_META.updated.split("-").map(Number);
+$("#heroBadge").textContent=`內政部實價登錄 · 最近更新 ${updateY-1911}/${String(updateM).padStart(2,"0")}/${String(updateD).padStart(2,"0")}`;
 $("#discBox").innerHTML+=`　<span style="white-space:nowrap">（更新日：${PRICE_META.updated}，共 ${fmt(PRICE_META.n)} 筆）</span>`;
 renderLatest(true);
 handleDeepLink();
