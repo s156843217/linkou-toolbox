@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>學區資料自檢 — selftest</title>
+<style>
+  /* 沿用全站色系（陶土橘/墨綠/米色），但本頁獨立、不依賴 style.css */
+  body{font-family:"Noto Sans TC",system-ui,sans-serif;background:#faf6ef;color:#3d3229;margin:0;padding:24px;max-width:900px;margin-inline:auto}
+  h1{font-size:22px;color:#b5542d}
+  .note{font-size:13px;color:#7a6a5b;line-height:1.7;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  #summary{font-size:18px;font-weight:700;padding:14px 18px;border-radius:10px;margin:16px 0}
+  #summary.ok{background:#e6f2e6;color:#2e7d32}
+  #summary.bad{background:#fdeaea;color:#c0392b}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  th,td{padding:9px 12px;border-bottom:1px solid #efe7dc;text-align:left;font-size:14px;vertical-align:top}
+  th{background:#f3ece1;color:#6b5847}
+  .st{font-weight:700;white-space:nowrap}
+  .pass .st{color:#2e7d32}.warn .st{color:#b07d1a}.fail .st{color:#c0392b}
+  .detail{font-size:12px;color:#8a7a6a;word-break:break-all}
+</style>
+</head>
+<body>
+<h1>林口學區資料自檢（selftest）</h1>
+<div class="note">
+  <b>用法</b>：每次改完 <code>linkou-data.js</code>，開這一頁。
+  <b style="color:#c0392b">紅字＝資料有錯，修好前不要 commit</b>；黃字＝留意但不擋。
+  全綠之後再照 CHECKLIST.md 開學區頁實測改動的那一筆。
+</div>
+<div id="summary">檢查中…</div>
+<table><thead><tr><th style="width:70px">狀態</th><th style="width:260px">檢查項目</th><th>結果</th></tr></thead><tbody id="rows"></tbody></table>
+
+<script src="../linkou-data.js"></script>
+<script>
+const R = [];   // {level:'pass'|'warn'|'fail', name, msg}
+const add = (level, name, msg) => R.push({level, name, msg});
+const lim = (arr, n=10) => arr.slice(0, n).join('、') + (arr.length > n ? ` …等共 ${arr.length} 筆` : '');
+const run = (name, fn) => { try { fn(); } catch (e) { add('fail', name, '檢查程式本身出錯：' + e.message); } };
+
+/* T1 所有資料物件都載入了 */
+run('資料物件載入', () => {
+  /* 注意：top-level const 不會掛在 window 上，要逐一用 typeof 直接檢查 */
+  const have = {
+    COMMUNITY: typeof COMMUNITY !== 'undefined', LI: typeof LI !== 'undefined',
+    SCHOOLS: typeof SCHOOLS !== 'undefined', HOUSE: typeof HOUSE !== 'undefined',
+    ALIASES: typeof ALIASES !== 'undefined', FULL_ES: typeof FULL_ES !== 'undefined',
+    CITY_FREE_ES: typeof CITY_FREE_ES !== 'undefined', FULL_DATA: typeof FULL_DATA !== 'undefined',
+    KG_PUBLIC: typeof KG_PUBLIC !== 'undefined', KG_PRIVATE: typeof KG_PRIVATE !== 'undefined',
+    LK_GEO: typeof LK_GEO !== 'undefined', INFO: typeof INFO !== 'undefined'
+  };
+  const miss = Object.keys(have).filter(k => !have[k]);
+  miss.length ? add('fail','資料物件載入','缺少：' + miss.join('、') + '（linkou-data.js 可能有語法錯誤，開 F12 Console 看）')
+              : add('pass','資料物件載入','12 個資料物件都在');
+});
+
+/* T2 社區筆數不能異常縮水（基準 2026-07：962 筆） */
+run('COMMUNITY 筆數', () => {
+  const n = Object.keys(COMMUNITY).length;
+  n < 900 ? add('fail','COMMUNITY 筆數', n + ' 筆（低於 900，疑似整段被誤刪）')
+          : add('pass','COMMUNITY 筆數', n + ' 筆');
+});
+
+/* T3 每筆社區的里必須存在於 LI；lin 要是正整數 */
+run('COMMUNITY → LI 對照', () => {
+  const badLi = [], badLin = [], badCand = []; let unk = 0;
+  for (const [name, c] of Object.entries(COMMUNITY)) {
+    if (c.unk) { unk++; continue; }
+    if (c.li && !LI[c.li]) badLi.push(name + '→' + c.li);
+    if (c.cands) c.cands.forEach(li => { if (!LI[li]) badCand.push(name + '→' + li); });
+    if ('lin' in c && !(Number.isInteger(c.lin) && c.lin > 0 && c.lin < 100)) badLin.push(name + '(lin=' + c.lin + ')');
+  }
+  if (badLi.length)  add('fail','社區的里不存在於 LI', lim(badLi) + '（打錯字？或 115 切換沒同步 LI）');
+  if (badCand.length) add('fail','社區 cands 的里不存在', lim(badCand));
+  if (badLin.length) add('fail','社區的鄰(lin)格式錯誤', lim(badLin) + '（鄰要是 1–99 的整數）');
+  if (!badLi.length && !badCand.length && !badLin.length)
+    add('pass','COMMUNITY → LI 對照', '全部對得上（另有 ' + unk + ' 筆標記里鄰不明 unk）');
+});
+
+/* T4 別名字典的值必須是 COMMUNITY 的正式名稱 */
+run('ALIASES → COMMUNITY', () => {
+  const bad = Object.entries(ALIASES).filter(([a, official]) => typeof official === 'string' && !COMMUNITY[official])
+                    .map(([a, o]) => a + '→' + o);
+  bad.length ? add('fail','別名指向不存在的社區', lim(bad) + '（別名的值必須與 COMMUNITY 的 key 一字不差）')
+             : add('pass','ALIASES → COMMUNITY', Object.keys(ALIASES).length + ' 筆別名都指向存在的社區');
+});
+
+/* T5/T6 額滿與自由學區的校名、額滿設籍日的校名，都要存在於 SCHOOLS */
+run('校名一致性', () => {
+  const bad = [];
+  FULL_ES.concat(CITY_FREE_ES).forEach(s => { if (!SCHOOLS[s]) bad.push('FULL/FREE:' + s); });
+  Object.keys(FULL_DATA).forEach(s => { if (!SCHOOLS[s]) bad.push('FULL_DATA:' + s); });
+  bad.length ? add('fail','校名不存在於 SCHOOLS', lim(bad))
+             : add('pass','校名一致性', 'FULL_ES / CITY_FREE_ES / FULL_DATA 的校名都在 SCHOOLS 裡');
+});
+
+/* T7 里界圖與 LI 互相對照 */
+run('LK_GEO 里界 ↔ LI', () => {
+  const geoLi = LK_GEO.features.map(f => f.properties.li);
+  const badGeo = geoLi.filter(li => !LI[li]);
+  const noPoly = Object.keys(LI).filter(li => !geoLi.includes(li));
+  if (badGeo.length) add('fail','里界圖有 LI 沒有的里', lim(badGeo));
+  else add('pass','里界圖的里都在 LI', geoLi.length + ' 個里界');
+  if (noPoly.length) add('warn','LI 有里但沒有里界多邊形', lim(noPoly) + '（該里無法做點在多邊形判定）');
+});
+
+/* T8 LI 每個里都要有國小(es)與國中(jh)規則 */
+run('LI 結構', () => {
+  const bad = Object.entries(LI).filter(([li, v]) => !v || !v.es || !v.jh).map(([li]) => li);
+  bad.length ? add('warn','LI 缺 es/jh 規則', lim(bad))
+             : add('pass','LI 結構', Object.keys(LI).length + ' 個里都有國小/國中規則');
+});
+
+/* T9 HOUSE 門牌座標必須落在林口（抓「座標飛走」——過去混入外區門牌的事故） */
+run('HOUSE 門牌座標範圍', () => {
+  let total = 0, badFmt = [], outside = [];
+  let latMin = 99, latMax = -99, lonMin = 999, lonMax = -999;
+  const walk = obj => {
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'string') {
+        total++;
+        /* 值格式：里碼|鄰*緯偏,經偏；門牌跨鄰時有多組候選用分號隔開，如 "4|11;4|14*7884,9766" */
+        const m = v.match(/^\d+\|\d+(?:;\d+\|\d+)*\*(-?\d+),(-?\d+)$/);
+        if (!m) { if (badFmt.length < 10) badFmt.push(k + '=' + v); else badFmt.push(''); continue; }
+        const lat = 25 + (+m[1]) / 1e5, lon = 121.3 + (+m[2]) / 1e5;
+        latMin = Math.min(latMin, lat); latMax = Math.max(latMax, lat);
+        lonMin = Math.min(lonMin, lon); lonMax = Math.max(lonMax, lon);
+        if (lat < 24.95 || lat > 25.35 || lon < 121.15 || lon > 121.55)
+          { if (outside.length < 10) outside.push(k + '→' + lat.toFixed(4) + ',' + lon.toFixed(4)); else outside.push(''); }
+      } else if (v && typeof v === 'object') walk(v);
+    }
+  };
+  walk(HOUSE);
+  const range = '緯 ' + latMin.toFixed(3) + '~' + latMax.toFixed(3) + '、經 ' + lonMin.toFixed(3) + '~' + lonMax.toFixed(3);
+  if (outside.filter(Boolean).length)
+    add('fail','門牌座標飛出林口範圍', outside.filter(Boolean).length + '+ 筆超界：' + lim(outside.filter(Boolean)) + '（疑似混入外區門牌，重讀 DATA-UPDATE.md 第 5 節）');
+  else
+    add('pass','HOUSE 門牌座標範圍', total + ' 筆門牌，' + range + '，全部落在林口');
+  if (badFmt.filter(Boolean).length)
+    add('warn','門牌值格式不符', lim(badFmt.filter(Boolean)) + '（預期格式 里碼|鄰*緯偏,經偏）');
+});
+
+/* T10 幼兒園資料非空 */
+run('幼兒園資料', () => {
+  (Object.keys(KG_PUBLIC).length && Object.keys(KG_PRIVATE).length)
+    ? add('pass','幼兒園資料', '公立 ' + Object.keys(KG_PUBLIC).length + ' 筆／私立 ' + Object.keys(KG_PRIVATE).length + ' 筆')
+    : add('warn','幼兒園資料', '有一邊是空的，確認是否誤刪');
+});
+
+/* T11 INFO 的校名（僅提醒） */
+run('INFO 校名', () => {
+  const bad = Object.keys(INFO).filter(s => !SCHOOLS[s]);
+  bad.length ? add('warn','INFO 有 SCHOOLS 沒有的校名', lim(bad) + '（可能是國中或改名，確認即可）')
+             : add('pass','INFO 校名', '都對得上 SCHOOLS');
+});
+
+/* ---- 輸出 ---- */
+const tbody = document.getElementById('rows');
+for (const r of R) {
+  const tr = document.createElement('tr');
+  tr.className = r.level;
+  const label = r.level === 'pass' ? '✓ 通過' : (r.level === 'warn' ? '△ 留意' : '✗ 錯誤');
+  tr.innerHTML = '<td class="st">' + label + '</td><td>' + r.name + '</td><td class="detail">' + r.msg + '</td>';
+  tbody.appendChild(tr);
+}
+const nf = R.filter(r => r.level === 'fail').length, nw = R.filter(r => r.level === 'warn').length;
+const sum = document.getElementById('summary');
+if (nf) { sum.className = 'bad'; sum.textContent = '✗ ' + nf + ' 項錯誤、' + nw + ' 項留意 — 修好前不要 commit'; }
+else    { sum.className = 'ok';  sum.textContent = '✓ 全數通過' + (nw ? '（另有 ' + nw + ' 項留意）' : '') + ' — 可以 commit，接著照 CHECKLIST 實測'; }
+</script>
+</body>
+</html>

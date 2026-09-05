@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><title>115 切換資料自檢</title></head>
+<body>
+<pre id="out">載入中…</pre>
+<script src="../linkou-data.js"></script>
+<script>
+// 115 切換專用深度自檢：
+//  A. 基本結構（四新里齊備、鄰號範圍）
+//  B. LI 規則覆蓋：HOUSE/COMMUNITY 出現過的每個(里,鄰)都要能對到國小與國中規則（無死角）
+//  C. 交叉比對：改過的社區，其地址在 HOUSE 查到的里鄰要與社區建檔一致
+//  D. 里界多邊形：每個新里取一個內部門牌座標，點在多邊形判定要回到同一個里
+const lines = [];
+const fail = [];
+function matchRule(rules, lin) {
+  // 比照 school/index.html 的規則語義：r="all" | 區間陣列 | "else"(搭配 exclude)
+  return rules.filter(rule => {
+    if (rule.r === "all") return true;
+    if (rule.r === "else") {
+      return !(rule.exclude || []).some(([a, b]) => lin >= a && lin <= b);
+    }
+    return rule.r.some(([a, b]) => lin >= a && lin <= b);
+  });
+}
+try {
+  // ---- A ----
+  const geoLis = LK_GEO.features.map(f => f.properties.li);
+  const newLis = ["新林里", "力行里", "頭湖里", "文湖里"];
+  const aOK = newLis.every(li => (li in LI) && geoLis.includes(li) && LI_HOUSE_IDX.includes(li));
+  lines.push("A. 四新里齊備(LI/LK_GEO/LI_HOUSE_IDX): " + aOK);
+  if (!aOK) fail.push("A");
+
+  // ---- B ----
+  const seen = {};   // li → Set(lin)
+  for (const road in HOUSE) for (const lk in HOUSE[road]) for (const num in HOUSE[road][lk]) {
+    HOUSE[road][lk][num].split("*")[0].split(";").forEach(c => {
+      const [i, lin] = c.split("|");
+      const li = LI_HOUSE_IDX[+i];
+      (seen[li] = seen[li] || new Set()).add(+lin);
+    });
+  }
+  for (const nm in COMMUNITY) {
+    const c = COMMUNITY[nm];
+    if (c.li && c.lin) (seen[c.li] = seen[c.li] || new Set()).add(c.lin);
+  }
+  let bGaps = [];
+  for (const li in seen) {
+    if (!LI[li]) { bGaps.push(li + "(LI無此里)"); continue; }
+    for (const lin of seen[li]) {
+      if (!matchRule(LI[li].es, lin).length) bGaps.push(li + lin + "鄰(無國小規則)");
+      if (!matchRule(LI[li].jh, lin).length) bGaps.push(li + lin + "鄰(無國中規則)");
+    }
+  }
+  lines.push("B. 全部實際存在的(里,鄰)共 " + Object.keys(seen).reduce((s, k) => s + seen[k].size, 0) + " 組，規則無死角: " + (bGaps.length === 0));
+  if (bGaps.length) { fail.push("B"); lines.push("   缺口: " + bGaps.slice(0, 15).join("、")); }
+
+  // ---- C ----
+  function lookup(addr) {   // 簡版 houseLookup（同鍵規則）
+    let a = addr.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFF10 + 0x30));
+    a = a.replace(/^.*林口區/, "").replace(/^\d{3}/, "").replace(/(新北市)/g, "");
+    a = a.replace(/[一-鿿]+(村|里)/g, "").replace(/\d+鄰/g, "").trim();
+    const i = a.search(/\d/); if (i < 0) return null;
+    const road = a.slice(0, i).replace(/[\s\-,，、]/g, "");
+    let rest = a.slice(i), lane = "", alley = "";
+    const ml = rest.match(/(\d+)\s*巷/); if (ml) lane = ml[1];
+    const ma = rest.match(/(\d+)\s*弄/); if (ma) alley = ma[1];
+    let r2 = rest.replace(/\d+\s*巷/, "").replace(/\d+\s*弄/, "").replace(/之/g, "-");
+    const mn = r2.match(/(\d+(?:-\d+)?)/); if (!mn) return null;
+    const node = HOUSE[road]; if (!node) return null;
+    const bucket = node[lane + "-" + alley]; if (!bucket || !bucket[mn[1]]) return null;
+    const codes = bucket[mn[1]].split("*")[0].split(";");
+    if (codes.length !== 1) return null;
+    const [ix, lin] = codes[0].split("|");
+    return { li: LI_HOUSE_IDX[+ix], lin: +lin };
+  }
+  let cN = 0, cHit = 0, cMis = [];
+  const sixLi = new Set(["南勢里", "湖南里", "新林里", "力行里", "頭湖里", "文湖里"]);
+  for (const nm in COMMUNITY) {
+    const c = COMMUNITY[nm];
+    if (!c.li || !sixLi.has(c.li) || !c.addr || !c.lin) continue;
+    cN++;
+    const h = lookup(c.addr);
+    if (!h) continue;
+    cHit++;
+    if (h.li !== c.li || h.lin !== c.lin) cMis.push(nm + " 社區=" + c.li + c.lin + " 門牌=" + h.li + h.lin);
+  }
+  lines.push("C. 六里社區 " + cN + " 筆、地址在 HOUSE 精確命中 " + cHit + " 筆、不一致 " + cMis.length + " 筆");
+  if (cMis.length) { fail.push("C"); lines.push("   " + cMis.slice(0, 12).join(" / ")); }
+
+  // ---- D ----
+  function liAt(lat, lon) {   // 射線法（同頁面 liAtPoint 語義）
+    for (const f of LK_GEO.features) {
+      const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+      for (const poly of polys) {
+        const ring = poly[0];
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+          if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        if (inside) return f.properties.li;
+      }
+    }
+    return null;
+  }
+  // 每個新里取一筆該里門牌的座標當測試點
+  const samplePt = {};
+  for (const road in HOUSE) for (const lk in HOUSE[road]) for (const num in HOUSE[road][lk]) {
+    const v = HOUSE[road][lk][num];
+    const [codes, co] = v.split("*");
+    if (!co || codes.indexOf(";") >= 0) continue;
+    const [ix] = codes.split("|");
+    const li = LI_HOUSE_IDX[+ix];
+    if (sixLi.has(li) && !samplePt[li]) {
+      const [a, b] = co.split(",");
+      samplePt[li] = [25.0 + (+a) / 100000, 121.3 + (+b) / 100000, road + num];
+    }
+  }
+  let dBad = [];
+  for (const li in samplePt) {
+    const [lat, lon, tag] = samplePt[li];
+    const got = liAt(lat, lon);
+    if (got !== li) dBad.push(li + "(" + tag + ")判成" + got);
+  }
+  lines.push("D. 六里門牌座標點在多邊形回判: " + (dBad.length === 0 ? "全部一致" : dBad.join("、")));
+  if (dBad.length) fail.push("D");
+
+  lines.push(fail.length === 0 ? "ALL-OK" : "HAS-PROBLEM: " + fail.join(","));
+} catch (e) {
+  lines.push("錯誤: " + e.message);
+  lines.push("HAS-PROBLEM");
+}
+document.getElementById("out").textContent = lines.join("\n");
+</script>
+</body>
+</html>

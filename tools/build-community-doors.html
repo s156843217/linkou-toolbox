@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>產生社區↔門牌對照庫（開發工具）</title>
+<style>body{font-family:monospace;font-size:13px;white-space:pre-wrap}</style>
+</head>
+<body>
+<!-- ============================================================
+  build-community-doors.html — 產生 community-doors.js（開發工具，不上線）
+  ------------------------------------------------------------
+  輸入：price_data/官網匯出/doors-input.js（lvr-export-merge.ps1 產生）
+  作法：用網站「真正的」parseHouse / normComm591 / resolveComm591 / houseCoord
+        計算社區→門牌基底對照，保證與 listing / price 頁的比對口徑一致。
+  用法：headless Edge --dump-dom 開本頁，從輸出抓兩段標記文字：
+        ###BEGIN_DOORS### … ###END_DOORS###   → 存成 community-doors.js
+        ###BEGIN_REPORT### … ###END_REPORT### → 人工校對報告
+  ============================================================ -->
+<pre id="out">（計算中…）</pre>
+<pre id="report"></pre>
+<script src="../linkou-data.js"></script>
+<script src="../report-logic.js"></script>
+<script src="../listing-logic.js"></script>
+<script src="../price_data/官網匯出/doors-input.js"></script>
+<script>
+(function(){
+  const MAJORITY = 0.8;   // 門牌衝突：占比達 8 成的社區視為正解
+  const MAX_DIST = 500;   // 門牌離社區建檔地址超過 500m → 視為官方標錯社區，剔除
+
+  /* ── 1. 每筆(社區,門牌)解析成門牌基底 key＝road|lk|號基底 ── */
+  const cnt = {};          // 官方社區名 → key → 筆數
+  const doorClaims = {};   // key → 官方社區名 → 筆數（偵測衝突用）
+  const parseFail = [], badRoad = [];
+  for (const [comm, addr, n] of DOORS_INPUT){
+    const p = parseHouse(addr);
+    if (!p){ parseFail.push(comm + '｜' + addr + '×' + n); continue; }
+    /* 路名防呆：門牌表(HOUSE)沒有這條路＝官方打錯字（如「仁愛二路」「仁愛路」漏段），剔除 */
+    if (!HOUSE[p.road]){ badRoad.push(comm + '｜' + addr + '×' + n); continue; }
+    const key = p.road + '|' + p.lk + '|' + p.num.split('-')[0];
+    (cnt[comm] = cnt[comm] || {})[key] = (cnt[comm][key] || 0) + n;
+    (doorClaims[key] = doorClaims[key] || {})[comm] = (doorClaims[key][comm] || 0) + n;
+  }
+
+  /* ── 2. 門牌衝突：同一基底被多個社區宣告 ── */
+  const conflicts = [];
+  const drop = {};   // 官方社區名 → Set(要剔除的 key)
+  for (const key in doorClaims){
+    const claims = Object.entries(doorClaims[key]);
+    if (claims.length < 2) continue;
+    claims.sort((a, b) => b[1] - a[1]);
+    const total = claims.reduce((s, c) => s + c[1], 0);
+    const line = key + '：' + claims.map(c => c[0] + '×' + c[1]).join('、');
+    if (claims[0][1] / total >= MAJORITY){
+      for (let i = 1; i < claims.length; i++)
+        (drop[claims[i][0]] = drop[claims[i][0]] || new Set()).add(key);
+      conflicts.push(line + ' →判給「' + claims[0][0] + '」');
+    } else {
+      conflicts.push(line + ' →無明顯多數，各自保留（請人工確認）');
+    }
+  }
+
+  /* ── 3. 距離防呆：門牌基底離社區建檔地址太遠＝官方把別棟標成這社區 ── */
+  ensureNameIndex591();
+  function keyToAddr(key){
+    const [road, lk, num] = key.split('|');
+    const [lane, alley] = lk.split('-');
+    return road + (lane ? lane + '巷' : '') + (alley ? alley + '弄' : '') + num + '號';
+  }
+  /* 人工校對強制對應（2026-07-15 使用者逐條確認模糊比對後拍板）：
+     值＝建檔名：強制對到該社區；值＝null：不合併、保留官方名
+     （家族分多區/多期而建檔只有其中一個時，合併會把別期成交混進來，寧可分開） */
+  const FUZZY_OVERRIDE = {
+    '禮讚': '呈冠禮讚',              // 門牌＝文化三路一段394巷37號＝呈冠禮讚建檔地址（原誤對仁愛禮讚華廈；建檔曾誤植「承冠」，2026-07-15更正）
+    '首席': '森聯首席',              // 門牌全在文化三路二段211~225＝森聯首席（原誤對極致首席）
+    '廉永翔品3期': '廉永翔品第三期',
+    '廉永翔品NO.5': '廉永翔品第五期',  // 門牌＝文化北路二段550巷19弄＝第五期建檔地址
+    '廉永翔品NO.6': '廉永翔品第六期',
+    '米蘭小鎮B區': null,             // 米蘭小鎮分ABC區、建檔只有一筆，不混
+    '法國小鎮': null,               // 法國小鎮分十多區、官方沒寫哪區，不混
+    '國泰理想家': null,             // 分多期、建檔只有C棟，不混
+    /* ↓ 2026-07-15 使用者校對「對不上」名單後補（官方名含問號＝官方匯出把罕用字轉成?） */
+    '?丰?卉': '長耀双丰双卉',         // ＝双丰双卉，門牌文化三路一段39巷275~287
+    '?暉石尚': '峰暉石尚',           // 官方另有「峰暉石尚」，兩者同案合併（未建檔）
+    '?源吉第': '堃源吉第',           // 堃不在Big5被轉成?
+    '川弘˙深': '川弘.深',            // 官方用注音點˙、建檔用半形點
+    '天之驕子綠璽': '綠璽',
+    '文化玉璽': '文化御璽',
+    '台北小天地第2期': '台北小天地第二期',
+    '台北雪梨2': '甜Me2',           // 實際案名和洲甜me2，建檔名為「甜Me2」（2026-07-21修正對齊）
+    '立軒Money': '立軒CMBD',
+    '立軒藏悅': '藏悅',
+    '安廬園景': '安盧園景',
+    '昕樂章A': '亞昕昕樂章',          // A=民富街81~87、B=文化三路一段470~476，同案兩棟
+    '昕樂章B': '亞昕昕樂章',
+    '長滎晶品': '長榮晶品',          // 同案：門牌＝文化二路一段138號＝建檔地址（官方寫滎、建檔寫榮）
+    '長耀雙峰匯': '長耀PARK/長耀雙峰滙',  // 官方寫匯、建檔寫滙
+    '恆達翡翠': '恆達翡翠大道'        // 建檔原名「翡翠」，2026-07-15改名
+  };
+  function matchComm(name){
+    if (name in FUZZY_OVERRIDE){
+      const t = FUZZY_OVERRIDE[name];
+      return t ? { name: t, how: 'manual' } : { name: name, how: 'keep' };
+    }
+    const nt = normComm591(name);
+    if (_L_NIDX[nt]) return { name: _L_NIDX[nt], how: 'exact' };
+    const r = resolveComm591(name);
+    return r ? { name: r, how: 'fuzzy' } : { name: name, how: 'none' };
+  }
+  const farDrop = [], lostDrop = [];
+  const farCnt = {};   // 官方社區名 → 被距離剔除的門牌數（抓「模糊比對疑似對錯社區」用）
+  for (const comm in cnt){
+    const m = matchComm(comm);
+    const c = COMMUNITY[m.name];
+    const co = (c && c.addr) ? houseCoord(c.addr) : null;
+    for (const key in cnt[comm]){
+      const dco = houseCoord(keyToAddr(key));
+      if (!dco){
+        /* 路存在但門牌表定位不到這個號：只出現 1 次＝孤筆錯字（如「仁愛路二段」誤植
+           「仁愛二路」），剔除；出現多次可能是門牌表沒收的新門牌，保留並列報告 */
+        if (cnt[comm][key] === 1){
+          (drop[comm] = drop[comm] || new Set()).add(key);
+          lostDrop.push(comm + '｜' + key + '×1（剔除）');
+        } else {
+          lostDrop.push(comm + '｜' + key + '×' + cnt[comm][key] + '（保留，請確認）');
+        }
+        continue;
+      }
+      if (!co) continue;
+      const d = Math.round(distM(co.lat, co.lon, dco.lat, dco.lon));
+      if (d > MAX_DIST){
+        (drop[comm] = drop[comm] || new Set()).add(key);
+        farCnt[comm] = (farCnt[comm] || 0) + 1;
+        farDrop.push(comm + '｜' + key + '×' + cnt[comm][key] + '（離建檔地址 ' + d + 'm）');
+      }
+    }
+  }
+
+  /* ── 4. 官方社區名對回 COMMUNITY 建檔名，合併輸出 ── */
+  const final = {};   // 最終社區名 → Set(key)
+  const stat = { exact: 0, fuzzy: 0, none: 0, manual: 0, keep: 0 };
+  const fuzzyList = [], noneList = [], manualList = [];
+  for (const comm in cnt){
+    const m = matchComm(comm);
+    stat[m.how]++;
+    const recs = Object.values(cnt[comm]).reduce((s, v) => s + v, 0);
+    if (m.how === 'fuzzy'){
+      /* 模糊比對後門牌超過一半被距離剔除＝八成是對錯社區（同名不同案），特別標記 */
+      const nKeys = Object.keys(cnt[comm]).length;
+      const flag = (farCnt[comm] || 0) > nKeys / 2 ? '　⚠疑似對錯（門牌多數離建檔地址>500m，請確認）' : '';
+      fuzzyList.push('官方「' + comm + '」→ 建檔「' + m.name + '」（' + recs + '筆）' + flag);
+    }
+    if (m.how === 'none')  noneList.push(comm + '（' + recs + '筆）');
+    if (m.how === 'manual') manualList.push('官方「' + comm + '」→ 建檔「' + m.name + '」（' + recs + '筆）');
+    if (m.how === 'keep')   manualList.push('官方「' + comm + '」不合併，保留官方名（' + recs + '筆）');
+    const set = (final[m.name] = final[m.name] || new Set());
+    for (const key in cnt[comm]){
+      if (drop[comm] && drop[comm].has(key)) continue;
+      set.add(key);
+    }
+  }
+
+  /* ── 5. 輸出 community-doors.js 內容 ── */
+  const names = Object.keys(final).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  const today = new Date().toISOString().slice(0, 10);
+  let js = '';
+  js += '/* community-doors.js — 社區↔門牌對照庫（自動產生，勿手改）\n';
+  js += '   來源：實價登錄官網匯出(101~115年)「社區簡稱」欄歸戶，' + today + ' 產生\n';
+  js += '   產生流程：tools/lvr-export-merge.ps1 → tools/build-community-doors.html\n';
+  js += '   格式：{ 社區名: ["路|巷-弄|號基底", ...] }，口徑同 report-logic.js 的 parseHouse\n';
+  js += '   社區名已對回 COMMUNITY 建檔名；對不上的保留官方簡稱（查詢不到、僅供門牌反查） */\n';
+  js += 'const COMM_DOORS={\n';
+  for (const n of names){
+    if (!final[n].size) continue;
+    const doors = [...final[n]].sort().map(k => '"' + k + '"').join(',');
+    js += JSON.stringify(n) + ':[' + doors + '],\n';
+  }
+  js += '};\n';
+
+  /* ── 6. 校對報告 ── */
+  const totalDoors = names.reduce((s, n) => s + final[n].size, 0);
+  let rep = '';
+  rep += '＝＝ 總覽 ＝＝\n';
+  rep += '輸入組合：' + DOORS_INPUT.length + '（解析失敗 ' + parseFail.length + '、路名不存在剔除 ' + badRoad.length + '）\n';
+  rep += '官方社區：' + Object.keys(cnt).length + '（名稱完全對上 ' + stat.exact + '、模糊對上 ' + stat.fuzzy + '、對不上 ' + stat.none + '、人工強制 ' + stat.manual + '、人工不合併 ' + stat.keep + '）\n';
+  rep += '輸出社區：' + names.length + '，門牌基底合計 ' + totalDoors + '\n';
+  rep += '門牌衝突：' + conflicts.length + '、距離異常剔除：' + farDrop.length + '、定位不到：' + lostDrop.length + '\n';
+  rep += '\n＝＝ 人工校對已套用（FUZZY_OVERRIDE）＝＝\n' + (manualList.join('\n') || '（無）');
+  rep += '\n\n＝＝ 模糊比對（請人工掃一眼有沒有對錯）＝＝\n' + (fuzzyList.join('\n') || '（無）');
+  rep += '\n\n＝＝ 對不上 COMMUNITY 的官方社區 ＝＝\n' + (noneList.join('\n') || '（無）');
+  rep += '\n\n＝＝ 門牌衝突 ＝＝\n' + (conflicts.join('\n') || '（無）');
+  rep += '\n\n＝＝ 距離異常剔除（離社區建檔地址>' + MAX_DIST + 'm）＝＝\n' + (farDrop.join('\n') || '（無）');
+  rep += '\n\n＝＝ 門牌表定位不到（孤筆剔除／多筆保留）＝＝\n' + (lostDrop.join('\n') || '（無）');
+  rep += '\n\n＝＝ 路名不存在剔除（門牌表查無此路）＝＝\n' + (badRoad.join('\n') || '（無）');
+  rep += '\n\n＝＝ 解析失敗樣本（前50）＝＝\n' + (parseFail.slice(0, 50).join('\n') || '（無）');
+  rep += '\n\n＝＝ 抽驗：台北新都 ＝＝\n' + (final['台北新都'] ? [...final['台北新都']].sort().join('\n') : '（沒建到！）');
+
+  document.getElementById('out').textContent = '###BEGIN_DOORS###\n' + js + '\n###END_DOORS###';
+  document.getElementById('report').textContent = '###BEGIN_REPORT###\n' + rep + '\n###END_REPORT###';
+})();
+</script>
+</body>
+</html>

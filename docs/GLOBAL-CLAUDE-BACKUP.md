@@ -13,8 +13,8 @@
 ## 1. 環境事實（永遠成立，不要浪費時間重試）
 
 - Windows 11 + PowerShell 5.1（沒有 `&&`，鏈接用 `;` 或 `if ($?)`）。
-- **本機沒有 Node**；`python` 是 WindowsApps 空殼，**執行不了**。不要嘗試 npm / node / pip。
-  需要 Python 的工作（如房貸實價登錄更新）只能在 GitHub Actions 雲端跑，用 `gh workflow run` 觸發。
+- **本機沒有 Node**；不要嘗試 npm / node。
+- **本機已裝真正的 Python**（3.12.10，`C:\Users\{使用者}\AppData\Local\Programs\Python\Python312\`，pip 可用，2026-08-11 確認），也已裝 ffmpeg（winget，full build）。需要 Python 的雲端定期工作（如房貸實價登錄更新）仍走 GitHub Actions（`gh workflow run`）；但需要碰本機檔案（如剪片）的 Python 工作可以直接在本機跑。
 - 測試網頁 = 瀏覽器開 `file:///C:/repo/.../xxx.html`（所有工具都設計成 file:// 可完整運作）。
 - **沒有 Node 但有 headless Edge**——你可以自己執行網頁 JS 來驗證，不必每次都請使用者開頁面：
   ```powershell
@@ -29,16 +29,16 @@
 
 | 本機目錄 C:\repo\ | 是什麼 | push 會發生什麼 | 狀態 |
 |---|---|---|---|
-| `my-project` | 網站**開發主場（過渡期）**。⚠ remote 名叫 `linkou-school-zone` | push `dev`：無部署效果。push `master`：更新學區獨立站（退役中，勿隨意動） | 開發中，7月底後主場移往 toolbox |
-| `linkou-toolbox` | **整合站＝正式站**（首頁+school/mortgage/rent/bus）。未來開發主場 | push `main` → Pages 自動上線 | 上線中 |
-| `linkou-mortgage` | 房貸獨立測試站。⚠ 掛**每月自動更新 Actions**（每月1號） | push `main` → Pages 上線 | 退役中（7月底關，關前 Actions 要先遷移） |
-| `rent-tool` | 租約獨立測試站 | push `main` → Pages 上線 | 退役中（7月底關） |
-| `linkou-bus` | 公車獨立測試站 | push `main` → Pages 上線 | 退役中（7月底關） |
+| `my-project` | **已退役＝歷史檔庫**。⚠ remote 名叫 `linkou-school-zone`。不要在此開發，改了不會上線 | push `dev`：無部署效果（且不建議再改）。push `master`：更新學區獨立站跳轉頁 | 已退役，本機還留著 reference/price_data 等真實資料未搬 |
+| `linkou-toolbox` | **整合站＝正式站＝開發主場**（首頁+school/mortgage/rent/bus） | push `main` → Pages 自動上線 | 上線中，2026-09-05起唯一開發主場 |
+| `linkou-mortgage` | 房貸獨立站，**已改跳轉頁**導向 toolbox /mortgage/ | push `main` → Pages 上線 | 已退役＝跳轉頁；舊每月自動更新 Actions 已刪除 |
+| `rent-tool` | 租約獨立站，**已改跳轉頁**導向 toolbox /rent/ | push `main` → Pages 上線 | 已退役＝跳轉頁 |
+| `linkou-bus` | 公車獨立站，**已改跳轉頁**導向 toolbox /bus/ | push `main` → Pages 上線 | 已退役＝跳轉頁 |
 | `linkou-crm` | 買方追蹤 CRM（兩人用，Supabase） | push `main` → Pages 自動上線 | 使用中 |
 | `rental-mgmt` | 套房代管記帳。⚠ remote 名叫 `linkou-rental-mgmt` | push `main` → Pages 自動上線 | 使用中 |
 | `linkou-line-bot` | LINE 官方帳號學區 bot（Cloudflare Worker） | push `main` → Cloudflare 自動 build+deploy | 使用中 |
 
-**最容易搞錯的一件事**：`my-project` 的 remote 叫 `linkou-school-zone`，但它是整個網站的開發主場；它的 `master` 反而是「學區獨立站」部署版（結構跟 dev 不同）。日常一律待在 `dev`。
+**最容易搞錯的一件事**：`my-project` 曾經是開發主場，但 2026-09-05 已收斂完畢——**現在開發一律去 `linkou-toolbox`**，`my-project` 只剩歷史檔庫與本機資料的用途，不要再誤以為它是開發主場。
 
 ## 3. 開工儀式（每個 session 改任何檔案之前，照順序做）
 
@@ -57,7 +57,7 @@
 
 規則：
 - 回報一律標明等級，並給使用者**具體的驗證步驟＋預期結果**。範例：
-  「已改好並自檢（L1）。請開 `file:///C:/repo/my-project/school/index.html`，輸入『世紀長虹』，應顯示南勢里19鄰、南勢國小。確認 OK 我再 commit。」
+  「已改好並自檢（L1）。請開 `file:///C:/repo/linkou-toolbox/school/index.html`，輸入『世紀長虹』，應顯示南勢里19鄰、南勢國小。確認 OK 我再 commit。」
 - **禁止**：沒開過頁面卻說「測試通過」；改了共用檔（`style.css`、`linkou-data.js`）卻只檢查一個工具頁。
 - 每類改動要驗證什麼 → `C:\repo\linkou-toolbox\docs\CHECKLIST.md`。
 
@@ -73,5 +73,5 @@
 
 - 訊息格式照既有風格：`範圍:做了什麼`（繁中一行為主）。例：`學區資料:新增社區「世紀長虹」(南勢里19鄰)`。
 - 告一段落就提醒 commit，並附一句判斷：「commit 即存檔，diff 已完整記錄」——只有「多步驟做到一半的計畫、決策理由、踩過的雷」才值得寫進 HANDOFF/md，小改動不用。
-- `my-project` 的改動 commit 到 `dev`；上線另有 SOP（`docs/DEPLOY.md`），**不要自行 push master 或自行 cherry-pick**。
+- `linkou-toolbox` 的改動 commit 到 `main`，push 即上線（`docs/DEPLOY.md`）。`my-project` 已退役，不要在那裡開發。
 - 新的重大決定拍板時：追記到 `C:\repo\linkou-toolbox\docs\DECISIONS.md`（一行：日期｜決定｜原因）。

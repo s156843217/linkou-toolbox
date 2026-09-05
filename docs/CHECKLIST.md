@@ -1,7 +1,7 @@
 # 驗證清單（改完之後、回報之前）
 
 > 「完成」的三級定義見全域 `~/.claude/CLAUDE.md` 第 4 節：L0 已修改 → L1 已自檢 → L2 已實測。
-> 回報時標明等級，並給使用者具體步驟＋預期結果。本檔的路徑以開發主場為準（過渡期 = `C:/repo/my-project`）。
+> 回報時標明等級，並給使用者具體步驟＋預期結果。本檔的路徑以開發主場為準（已收斂＝`C:/repo/linkou-toolbox`）。
 
 ## 判斷表：改了什麼 → 跑哪些清單
 
@@ -17,18 +17,18 @@
 
 ## selftest：學區資料一致性自檢
 
-開 `file:///C:/repo/my-project/tools/selftest.html` → 必須**全綠**。有紅字先修資料再往下。
+開 `file:///C:/repo/linkou-toolbox/tools/selftest.html` → 必須**全綠**。有紅字先修資料再往下。
 
 AI 可以不勞煩使用者、自己用 headless Edge 跑：
 ```powershell
-& "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" --headless --disable-gpu --virtual-time-budget=5000 --dump-dom "file:///C:/repo/my-project/tools/selftest.html" | Out-File "$env:TEMP\st.html" -Encoding utf8
+& "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe" --headless --disable-gpu --virtual-time-budget=5000 --dump-dom "file:///C:/repo/linkou-toolbox/tools/selftest.html" | Out-File "$env:TEMP\st.html" -Encoding utf8
 Select-String -Path "$env:TEMP\st.html" -Pattern 'id="summary"[^<]*'   # 看到「全數通過」才算過；有錯誤時 grep class="fail" 的列
 ```
 同一招（dump-dom 或 `--screenshot`）也可用來驗證其他頁面有沒有算出結果、版面有沒有爆。
 
 ## A. 學區頁
 
-開 `file:///C:/repo/my-project/school/index.html`：
+開 `file:///C:/repo/linkou-toolbox/school/index.html`：
 1. 輸入這次改動的社區名（沒有就用「世紀長虹」）→ 顯示里＋鄰＋國小/國中，地圖 pin 落在**林口**（pin 飛到外縣市＝門牌座標壞了）。
 2. 輸入門牌地址（例：`文化三路一段356號`）→ 能解析出里鄰與學區。
 3. 輸入額滿學校（頭湖/南勢/新林/東湖國小）學區內的地址 → 出現紅字額滿警示與最後設籍日。

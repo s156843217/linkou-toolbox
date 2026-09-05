@@ -1,0 +1,5 @@
+# 本機資料，永不 commit（含真實個資／官方原始檔／金鑰）
+reference/
+price_data/
+tdx-secret.json
+*.xlsx

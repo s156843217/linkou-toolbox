@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>591 貼上解析測試</title>
+<style>
+  /* 沿用全站色系（陶土橘/墨綠/米色），但本頁是開發工具、獨立不依賴 style.css */
+  body{font-family:"Noto Sans TC",system-ui,sans-serif;background:#faf6ef;color:#3d3229;margin:0;padding:24px;max-width:1000px;margin-inline:auto}
+  h1{font-size:22px;color:#b5542d}
+  .note{font-size:13px;color:#7a6a5b;line-height:1.8;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  #zone{margin:16px 0;padding:38px 16px;border:2px dashed #b5542d;border-radius:12px;text-align:center;color:#b5542d;font-size:16px;background:#fff;cursor:pointer}
+  #zone.got{border-color:#2e6e62;color:#2e6e62}
+  #stats{font-size:15px;font-weight:700;margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  th,td{padding:8px 10px;border-bottom:1px solid #efe7dc;text-align:left;font-size:13px;vertical-align:top}
+  th{background:#f3ece1;color:#6b5847;white-space:nowrap}
+  td.num{text-align:right;white-space:nowrap}
+  .miss{color:#c0392b}
+  .btn{display:inline-block;margin:8px 8px 8px 0;padding:8px 14px;border:none;border-radius:8px;background:#2e6e62;color:#fff;font-size:14px;cursor:pointer;font-family:inherit}
+  .btn.gray{background:#8a7a6a}
+  #skipped{margin-top:18px}
+  #skipped pre{font-size:12px;background:#fff;border-radius:10px;padding:10px 14px;white-space:pre-wrap;word-break:break-all;color:#8a7a6a}
+  .warn{background:#fdf3e3;color:#b07d1a;border-radius:10px;padding:10px 14px;font-size:14px;margin:10px 0}
+</style>
+</head>
+<body>
+<h1>591 貼上解析測試（競品比較工具・第一步）</h1>
+<div class="note">
+  <b>用法</b>：① 開 591 出售清單頁（社區搜尋結果）→ ② 在該頁 <b>Ctrl+A</b> 全選、<b>Ctrl+C</b> 複製
+  → ③ 回到本頁直接 <b>Ctrl+V</b> 貼上。有第二頁就翻頁重複 ②③，結果會自動累加、同物件不會重複計。<br>
+  解析若有缺漏很正常（樓層/屋齡寫法要用真實資料校正）——請按「下載原始樣本」把檔案交給開發端調整解析器。
+</div>
+
+<div id="zone">點一下這裡，然後 Ctrl+V 貼上 591 頁面</div>
+<div id="stats"></div>
+<div id="warnbox"></div>
+<div>
+  <button class="btn" id="dl" style="display:none">下載原始樣本（給開發端校正用）</button>
+  <button class="btn gray" id="reset" style="display:none">清空重來</button>
+</div>
+<div id="out"></div>
+<div id="skipped"></div>
+
+<!-- 解析器已併入 listing-logic.js（競品比較頁與本測試頁共用同一份） -->
+<script src="../listing-logic.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const all = new Map();      // 跨多次貼上累積的物件（key=591 物件編號）
+const rawPastes = [];       // 每次貼上的原始 HTML（供下載校正解析器）
+let pasteCount = 0, lastSkipped = [];
+
+document.addEventListener('paste', e => {
+  e.preventDefault();
+  const html = e.clipboardData.getData('text/html');
+  const plain = e.clipboardData.getData('text/plain');
+  if (!html){
+    $('#warnbox').innerHTML = '<div class="warn">這次貼上沒有帶網頁格式（可能經過記事本等純文字軟體）。請直接在 591 頁面 Ctrl+A、Ctrl+C，再回來貼。</div>';
+    return;
+  }
+  $('#warnbox').innerHTML = '';
+  pasteCount++;
+  rawPastes.push(html);
+
+  const r = parse591(html);
+  lastSkipped = r.skipped;
+  for (const it of r.items){
+    /* 跨頁去重：留欄位比較齊的那筆 */
+    const old = all.get(it.id);
+    if (!old || fieldCount591(it) > fieldCount591(old)) all.set(it.id, it);
+  }
+  render(plain.length, html.length, r.items.length);
+});
+
+function render(plainLen, htmlLen, newCount){
+  $('#zone').classList.add('got');
+  $('#zone').textContent = '已收到，可以繼續貼下一頁';
+  $('#stats').textContent = `已貼 ${pasteCount} 次｜這次解析出 ${newCount} 筆｜累計 ${all.size} 筆（去重後）｜這次剪貼簿：HTML ${Math.round(htmlLen/1024)}KB / 純文字 ${Math.round(plainLen/1024)}KB`;
+  $('#dl').style.display = $('#reset').style.display = 'inline-block';
+
+  const items = Array.from(all.values());
+  const cell = (v, suffix='') => v === null || v === undefined
+    ? '<td class="num miss">—</td>' : `<td class="num">${v}${suffix}</td>`;
+  $('#out').innerHTML = `<table><thead><tr>
+    <th>#</th><th>社區</th><th>標題</th><th>樓層</th><th>權狀</th><th>主建</th><th>格局</th><th>總價(萬)</th><th>單價(萬/坪)</th><th>屋齡</th><th>連結</th>
+    </tr></thead><tbody>` +
+    items.map((it, i) => `<tr>
+      <td>${i+1}</td>
+      ${it.community ? `<td>${esc(it.community)}</td>` : '<td class="miss">—</td>'}
+      <td>${it.title ? esc(it.title) : `<span class="miss">（沒抓到標題）</span>`}</td>
+      ${it.floor ? `<td class="num">${it.floor}${it.floorTotal ? '/' + it.floorTotal : ''}</td>` : '<td class="num miss">—</td>'}
+      ${cell(it.size, '坪')}
+      ${cell(it.sizeMain, '坪')}
+      ${it.layout ? `<td>${esc(it.layout)}</td>` : '<td class="miss">—</td>'}
+      ${cell(it.price)}
+      ${cell(it.unitPrice)}
+      ${cell(it.age, '年')}
+      <td><a href="${it.url}" target="_blank">開啟</a></td>
+    </tr>`).join('') + '</tbody></table>';
+
+  $('#skipped').innerHTML = lastSkipped.length
+    ? `<b>這次略過 ${lastSkipped.length} 筆（無價格的連結，多半是廣告）：</b><pre>${esc(lastSkipped.map(s => s.id + '：' + s.text).join('\n'))}</pre>`
+    : '';
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* 下載原始貼上內容：多次貼上會合成一個檔，中間用註解分隔 */
+$('#dl').onclick = () => {
+  const blob = new Blob([rawPastes.join('\n<!-- ===== 下一次貼上 ===== -->\n')], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '591貼上樣本.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+$('#reset').onclick = () => location.reload();
+</script>
+</body>
+</html>

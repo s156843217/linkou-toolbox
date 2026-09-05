@@ -26,8 +26,8 @@
 
 ## 2. 標準流程（新增/修改一筆社區為例）
 
-1. 在開發主場（過渡期＝`my-project` dev）改 `linkou-data.js` 對應物件。
-2. 開 `file:///C:/repo/my-project/tools/selftest.html` → 全綠。
+1. 在開發主場（`linkou-toolbox`）改 `linkou-data.js` 對應物件。
+2. 開 `file:///C:/repo/linkou-toolbox/tools/selftest.html` → 全綠。
 3. 開學區頁實測**改的那一筆**（照 CHECKLIST.md 的 A）。
 4. commit，格式：`學區資料:新增社區「世紀長虹」(南勢里19鄰)`。
 5. **傳播到所有複本**（少一步就會有一份過期）：
