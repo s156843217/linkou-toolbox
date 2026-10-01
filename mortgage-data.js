@@ -5,7 +5,7 @@
 */
 
 // <<AUTO-ZONES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口各商圈每坪單價（自動更新：2026-09-30；資料截至 民國115年08月，近一年共 873 筆） ──
+// ── 林口各商圈每坪單價（自動更新：2026-10-01；資料截至 民國115年08月，近一年共 902 筆） ──
 // 來源：內政部實價登錄季檔＋手動補登（與 price-list-data.js 同一份主檔，單價口徑一致）
 // 季檔本身約落後官網 1~2.5 個月，最新資料需靠手動補登（/price-manual）才會即時反映
 // 商圈分配：門牌座標 × 商圈多邊形（點在多邊形），跨區路自動切分
@@ -13,17 +13,17 @@
 // medPrice：中位數（萬/坪）｜priceRange：[Q1,Q3]｜ageMed：屋齡中位數｜roomMed：房數中位數
 // indoorPct：室內(主建物+附屬+陽台)/扣車位登記坪數 之中位數
 const LINKOU_ZONES = [
-  { name: "三井Outlet", medPrice: 55.0, priceRange: [47.2, 62.2], count: 168, ageMed: 12, roomMed: 2, indoorPct: 0.68 },
-  { name: "南勢", medPrice: 56.1, priceRange: [51.8, 58.0], count: 162, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
-  { name: "家樂福商圈", medPrice: 48.0, priceRange: [42.9, 54.2], count: 338, ageMed: 10, roomMed: 3, indoorPct: 0.68 },
-  { name: "北側", medPrice: 42.6, priceRange: [39.7, 46.7], count: 105, ageMed: 11, roomMed: 2, indoorPct: 0.695 },
-  { name: "林口舊市區", medPrice: 35.4, priceRange: [26.6, 44.1], count: 75, ageMed: 33, roomMed: 3, indoorPct: 0.785 },
-  { name: "麗園國小", medPrice: 28.5, priceRange: [25.8, 34.8], count: 25, ageMed: 31, roomMed: 3, indoorPct: 0.76 },
+  { name: "三井Outlet", medPrice: 55.2, priceRange: [47.2, 62.7], count: 170, ageMed: 12, roomMed: 2, indoorPct: 0.68 },
+  { name: "南勢", medPrice: 56.0, priceRange: [51.8, 57.9], count: 166, ageMed: 1, roomMed: 3, indoorPct: 0.67 },
+  { name: "家樂福商圈", medPrice: 48.3, priceRange: [43.1, 54.5], count: 349, ageMed: 10, roomMed: 3, indoorPct: 0.68 },
+  { name: "北側", medPrice: 42.6, priceRange: [39.2, 46.5], count: 112, ageMed: 11, roomMed: 2, indoorPct: 0.7 },
+  { name: "林口舊市區", medPrice: 36.0, priceRange: [26.6, 44.8], count: 77, ageMed: 32, roomMed: 3, indoorPct: 0.78 },
+  { name: "麗園國小", medPrice: 29.2, priceRange: [25.7, 34.3], count: 28, ageMed: 31, roomMed: 3, indoorPct: 0.76 },
 ];
 // <<AUTO-ZONES-END>>
 
 // <<AUTO-TYPES-START>>  ← 此區塊由 update_prices.py 自動產生，請勿手改
-// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-09-30；近一年） ──
+// ── 林口 成屋／預售／透天 三類行情（自動更新：2026-10-01；近一年） ──
 // 來源：成屋=新北開放平臺 實價登錄(ACCE802D，透天同源用建物型態拆出)；預售=內政部季檔
 // 單價=(總價−車位價)/不含車位坪/10000（與地段表同口徑）；預售排除解約、無屋齡
 // calc=true 可依預算精準試算坪數；false 樣本少、僅作總價門檻參考
@@ -33,12 +33,12 @@ const LINKOU_TYPES = [
     n: 753, window: "近一年", calc: true,
     note: "現成可看實屋、可立即入住，屋齡中位約 10 年。" },
   { key: "presale", name: "預售屋", sub: "興建中／全新", tag: "全新可分期",
-    unit: 62.7, unitRange: [56.5, 68.1], totalMed: 1966, ageMed: null, pingMed: 27.3, roomMed: 2,
-    n: 726, window: "近一年", calc: true,
+    unit: 63.0, unitRange: [58.8, 67.5], totalMed: 2069, ageMed: null, pingMed: 27.9, roomMed: 2,
+    n: 647, window: "近一年", calc: true,
     note: "全新、可依工程期分期付款；單價約比成屋高三成，需等交屋。" },
   { key: "house", name: "透天／別墅", sub: "獨棟含土地", tag: "樣本少·參考",
-    unit: 45.2, unitRange: [38.1, 50.8], totalMed: 3865, threshold: 3000, ageMed: 18, pingMed: 88.4, roomMed: 4,
-    n: 66, window: "近一年", calc: false,
-    note: "總價門檻約 3,000 萬起、中位約 3,865 萬；近一年林口僅 66 筆成交，僅供方向參考。" },
+    unit: 45.3, unitRange: [38.2, 51.0], totalMed: 3910, threshold: 3000, ageMed: 18, pingMed: 90.5, roomMed: 4,
+    n: 67, window: "近一年", calc: false,
+    note: "總價門檻約 3,000 萬起、中位約 3,910 萬；近一年林口僅 67 筆成交，僅供方向參考。" },
 ];
 // <<AUTO-TYPES-END>>
