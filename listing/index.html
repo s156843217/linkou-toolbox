@@ -92,6 +92,7 @@ document.documentElement.classList.add('js');
   .deal-qr{float:right;margin:0 0 4px 14px;text-align:center;font-size:10.5px;color:var(--ink-soft);line-height:1.4}
   .deal-qr svg{display:block;width:76px;height:76px;margin:0 auto 2px;background:#fff}
   .col-park{white-space:nowrap;color:var(--ink-soft)}
+  .park-print{display:none}
   .col-park input{width:52px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-family:inherit;text-align:right}
   .col-park input:focus{outline:none;border-color:var(--clay)}
   .me-tag{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--clay);color:#fff;font-size:11.5px;font-weight:700}
@@ -117,8 +118,9 @@ document.documentElement.classList.add('js');
     body{background:#fff}
     .wrap{max-width:none;padding:0}
     .tbl-wrap{box-shadow:none;border:1px solid #ccc}
-    /* 刊登連結欄是超連結，紙本點不了，列印時整欄隱藏；車位輸入欄同理（拆算結果已反映在單價欄） */
-    .col-link,.col-park{display:none !important}
+    /* 紙本隱藏刊登連結；車位改印文字，保留拆算依據。 */
+    .col-link{display:none !important}
+    .park-print{display:inline !important}
     /* 摘要卡印出來也要醒目：加大數字、明顯外框 */
     .sumline{gap:8px}
     .sum{box-shadow:none;border:1.5px solid #999;padding:12px 18px}
@@ -128,6 +130,23 @@ document.documentElement.classList.add('js');
   }
 </style>
 <link rel="stylesheet" href="../style-next.css">
+<style>
+  /* 社區名稱優先佔寬，所有欄位限制在格線內，避免輸入框壓到下一欄。 */
+  .listing-page .search .row.subject-fields{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .listing-page .subject-fields .community-field{position:relative;grid-column:span 3;min-width:0}
+  .listing-page .subject-fields input,.listing-page .subject-fields select{box-sizing:border-box;min-width:0;max-width:100%}
+  .listing-page .subject-fields .lay-sel select{flex:1;width:0}
+  .listing-page .subject-fields #goBtn{grid-column:span 2}
+  @media(max-width:700px){
+    .listing-page .search .row.subject-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .listing-page .subject-fields .community-field{grid-column:1/-1}
+    .listing-page .subject-fields .mode-field{grid-column:1/-1}
+  }
+  @media(max-width:390px){
+    .listing-page .search .row.subject-fields{grid-template-columns:minmax(0,1fr)}
+    .listing-page .subject-fields #goBtn{grid-column:1/-1}
+  }
+</style>
 </head>
 <body class="next-page listing-page">
 
@@ -171,14 +190,15 @@ document.documentElement.classList.add('js');
     <div class="search-head">
       <span class="eyebrow">STEP 01 · SUBJECT PROPERTY</span>
       <h2>先設定本案條件</h2>
-      <p>社區一定要選，其餘資料可以先留白，之後補填會即時重算。</p>
+      <p>選擇已建檔社區，或切換自訂社區；本案資料可以先留白，之後補填會即時重算。</p>
     </div>
-    <div class="row">
-      <div class="field" style="position:relative;flex:1;min-width:220px">
+    <div class="row subject-fields">
+      <div class="field community-field">
         <label class="lbl">🏘️ 社區（本案所在）</label>
         <input type="text" id="commInput" placeholder="例：遠雄未來市" autocomplete="off">
         <div id="acList" class="autocomplete"></div>
       </div>
+      <div class="field mode-field"><label class="lbl" for="commMode">社區來源</label><select id="commMode"><option value="local">林口已建檔社區</option><option value="custom">自訂社區（含外縣市）</option></select></div>
       <div class="field small"><label class="lbl">本案樓層</label><input type="number" id="myFloor" placeholder="例：18"></div>
       <div class="field small"><label class="lbl">本案權狀坪</label><input type="number" step="0.01" id="mySize" placeholder="例：29.91"></div>
       <div class="field"><label class="lbl">本案格局</label>
@@ -193,7 +213,7 @@ document.documentElement.classList.add('js');
       <div class="field small"><label class="lbl">車位坪</label><input type="number" step="0.01" id="myParkS" placeholder="例：10.08"></div>
       <button class="btn" id="goBtn">🔍 開始盤點</button>
     </div>
-    <div class="hint">本案各欄都可以先空白（之後再填會即時重算）。填了車位價／車位坪，本案單價會自動<b>拆算</b>＝(開價−車位價)÷(權狀坪−車位坪)；開價與權狀請填「含車位」的數字。社區支援模糊搜尋與俗稱，共 962 筆。</div>
+    <div class="hint">本案各欄都可以先空白（之後再填會即時重算）。填了車位價／車位坪，本案單價會自動<b>拆算</b>＝(開價−車位價)÷(權狀坪−車位坪)；開價與權狀請填「含車位」的數字。自訂社區請填完整名稱；切換盤點社區會清空上一個社區的貼上資料。</div>
   </section>
 
   <!-- 第 2 步：開 591 複製、貼回來 -->
@@ -216,6 +236,7 @@ document.documentElement.classList.add('js');
       <a class="btn" id="openMine" href="#" target="_blank" rel="noopener">開 591</a>
       <span class="hint" style="margin:0">→ 在 591 清單頁點<b>「📌 591 快抓」書籤</b>（或 <b>Ctrl+A</b> 全選複製），再回這裡貼上 👇</span>
     </div>
+    <div class="hint" id="customNote" style="display:none">直接用社區名稱開啟 591 搜尋，請確認結果是你要的社區，再用快抓書籤複製貼上。自訂社區的其他競品由你手動加入，不提供自動距離與成交行情。</div>
     <div id="zone" tabindex="0">👉 回到這裡，直接按 <b>Ctrl</b>＋<b>V</b> 貼上<span class="zone-sub">從 591 複製好之後就貼在這個框；多頁就翻頁再點書籤、再貼一次，會自動累加去重。</span></div>
     <div id="pasteStat"></div>
     <details class="near-box" id="nearDetails">
@@ -234,7 +255,7 @@ document.documentElement.classList.add('js');
   </section>
 
   <!-- 結果 -->
-  <div id="resSec" class="listing-reveal" style="display:none">
+  <div id="resSec" class="listing-reveal is-visible" style="display:none">
     <div class="sumline" id="sumBox"></div>
 
     <h2 class="sec-title"><span class="bar"></span><span id="mineTitle"></span></h2>
@@ -261,7 +282,7 @@ document.documentElement.classList.add('js');
 
     <div id="unkSec" class="no-print" style="display:none">
       <h2 class="sec-title"><span class="bar"></span>無法歸類（請人工判斷）</h2>
-      <div class="hint" style="margin:0 2px 8px">這些刊登認不出社區、或距離超出範圍（多半是 591 混入的廣告物件）。確定是競品就按「併入」，會進上面的鄰近競品表。</div>
+      <div class="hint" style="margin:0 2px 8px">這些刊登認不出社區、或距離超出範圍。同社區請按「歸入本社區」；其他社區的比較物件請按「併入其他競品」。</div>
       <div id="unkList"></div>
     </div>
 
@@ -334,6 +355,8 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp
 
 /* ── 狀態 ── */
 let SEL = null;               // 選定的社區名
+let CUSTOM = false;
+const ASSIGNED_MINE = new Set(); // 人工確認屬於本社區的刊登
 let MY = { floor:null, size:null, layout:null, price:null, pp:null, ps:null };   // pp=車位價(萬)、ps=車位坪
 let RADIUS = 300;
 let NEAR = [];                // 鄰近社區建議 [{name,dist,stats}]
@@ -368,7 +391,12 @@ function showAc(items){
     box.classList.remove('show');
   }));
 }
-$('#commInput').addEventListener('input', () => showAc(searchComm($('#commInput').value.trim())));
+$('#commInput').addEventListener('input', () => { if ($('#commMode').value === 'local') showAc(searchComm($('#commInput').value.trim())); });
+$('#commMode').addEventListener('change', () => {
+  const custom = $('#commMode').value === 'custom';
+  $('#commInput').placeholder = custom ? '例：佳泰城峰匯' : '例：遠雄未來市';
+  $('#acList').classList.remove('show');
+});
 $('#commInput').addEventListener('blur', () => setTimeout(() => $('#acList').classList.remove('show'), 150));
 $('#commInput').addEventListener('keydown', e => {
   if (e.key === 'Enter'){ e.preventDefault(); $('#acList').classList.remove('show'); startWork(); }
@@ -385,15 +413,21 @@ function readMy(){
 }
 function startWork(){
   let name = $('#commInput').value.trim();
-  if (!COMMUNITY[name]){
+  const custom = $('#commMode').value === 'custom';
+  if (!name){ alert('請輸入社區名稱'); return; }
+  if (!custom && !COMMUNITY[name]){
     const hit = searchComm(name);
     if (!hit.length){ alert('查無此社區，請從下拉選單挑選'); return; }
     name = hit[0]; $('#commInput').value = name;
   }
+  if (SEL && (SEL !== name || CUSTOM !== custom)) clearListings();
+  CUSTOM = custom;
   readMy();
   SEL = name;
   document.title = `競品比較｜${name} — 林口置產工具箱`;   // 另存 PDF 檔名跟著社區名
-  history.replaceState(null, '', '?c=' + encodeURIComponent(name));
+  const params = new URLSearchParams({c:name});
+  if (CUSTOM) params.set('mode','custom');
+  history.replaceState(null, '', '?' + params.toString());
   buildSources();
   $('#srcSec').style.display = 'block';
   render();
@@ -411,6 +445,9 @@ function statTxt(st){
 function buildSources(){
   $('#openMine').href = s591(SEL);
   $('#openMine').textContent = `🔗 開 591 搜「${SEL}」`;
+  $('#customNote').style.display = CUSTOM ? '' : 'none';
+  $('#nearDetails').style.display = CUSTOM ? 'none' : '';
+  if (CUSTOM){ NEAR = []; return; }
   NEAR = nearby591(SEL, RADIUS).slice(0, 10).map(o => ({ ...o, stats: commStats591(o.name) }));
   $('#nearSummary').textContent = `🔍 在售太少？加查鄰近社區（${RADIUS} 公尺內 ${NEAR.length} 個）`;
   $('#nearBox').innerHTML = NEAR.length
@@ -461,6 +498,7 @@ document.addEventListener('click', e => {
 
 /* ── 貼上（同測試頁機制：累加＋去重） ── */
 document.addEventListener('paste', e => {
+  if (e.target.closest('input,textarea,[contenteditable="true"]')) return;
   if (!SEL) return;
   e.preventDefault();
   /* 兩種來源都吃：
@@ -471,6 +509,10 @@ document.addEventListener('paste', e => {
   if (!html && plain.startsWith('LK591HTML')) html = plain.slice(plain.indexOf('\n') + 1);
   if (!html){
     $('#pasteStat').textContent = '⚠ 這次貼上沒有抓到內容。請在 591 清單頁按「快抓書籤」，或改用 Ctrl+A、Ctrl+C 再回來貼。';
+    return;
+  }
+  if (new DOMParser().parseFromString(html, 'text/html').querySelector('.onsale-container')){
+    $('#pasteStat').textContent = '⚠ 這份內容來自 591 社區專頁出售清單，總價、坪數與樓層未完整帶出，未納入比較。請用上方按鈕開啟一般中古屋搜尋清單，再點快抓書籤複製。';
     return;
   }
   pasteCount++; rawPastes.push(html);
@@ -490,12 +532,13 @@ $('#dlRaw').addEventListener('click', () => {
   a.href = URL.createObjectURL(blob); a.download = '591貼上樣本.html'; a.click();
   URL.revokeObjectURL(a.href);
 });
-$('#resetBtn').addEventListener('click', () => {
-  ALL.clear(); INCLUDED.clear(); EXCLUDED.clear(); PARK.clear(); rawPastes.length = 0; pasteCount = 0;
+function clearListings(){
+  ALL.clear(); INCLUDED.clear(); ASSIGNED_MINE.clear(); EXCLUDED.clear(); PARK.clear(); rawPastes.length = 0; pasteCount = 0;
   $('#zone').classList.remove('got');
   $('#zone').textContent = '點一下這裡，然後 Ctrl+V 貼上 591 頁面';
-  render();
-});
+  $('#dlRaw').style.display = $('#resetBtn').style.display = 'none';
+}
+$('#resetBtn').addEventListener('click', () => { clearListings(); render(); });
 
 /* ── 分組＋畫面 ── */
 const fmtW = n => Math.round(n).toLocaleString('zh-TW');
@@ -512,8 +555,8 @@ function classify(){
   const mine = [], near = [], unk = [];
   for (const it of ALL.values()){
     if (EXCLUDED.has(it.id)) continue;   // 使用者手動剔除的不進任何表、也不計入統計
-    if (isMine591(it, SEL)){ mine.push(it); continue; }
-    it._comm = resolveComm591(it.community);
+    if (ASSIGNED_MINE.has(it.id) || isMine591(it, SEL)){ mine.push({...it, community:SEL}); continue; }
+    it._comm = CUSTOM ? null : resolveComm591(it.community);
     it._dist = it._comm ? commDist591(SEL, it._comm) : null;
     if (INCLUDED.has(it.id) || (it._dist !== null && it._dist <= RADIUS)) near.push(it);
     else unk.push(it);
@@ -541,11 +584,21 @@ const unitCell = e => e.u !== null
     + (e.warn ? '<span class="badge-warn no-print" title="這筆的 591 單價 ≈ 總價÷權狀坪，但卡片上有車位坪，疑似刊登者沒填車位價、591 沒幫忙拆算（單價偏低）。可在車位欄填車位價/坪修正。">含車？</span>' : '')
   : '<span class="miss">—</span>';
 
+/* 列印呈現車位價與坪數；沒填價格時保留缺值，坪數可沿用刊登資料。 */
+function parkText591(price, size){
+  const hasPrice = price !== null && price !== undefined;
+  const hasSize = size !== null && size !== undefined;
+  if (!hasPrice && !hasSize) return '—';
+  return (hasPrice ? price.toLocaleString('zh-TW', { maximumFractionDigits:2 }) + '萬' : '—')
+    + '／' + (hasSize ? size + '坪' : '—');
+}
+
 function rowsHTML(groups, withComm){
   return groups.map(g => {
     const links = g.listings.map((l, i) => `<a href="${l.url}" target="_blank" rel="noopener" title="${esc(l.title || '')}">${i + 1}</a>`).join('　');
     const ids = g.listings.map(l => l.id).join(',');
     const key = parkKey(g), pk = PARK.get(key) || {};
+    const printPark = parkText591(pk.p, pk.s !== null && pk.s !== undefined ? pk.s : g.sizePark);
     return `<tr>
       <td class="col-check no-print"><input type="checkbox" class="rowchk" data-ids="${ids}"></td>
       ${withComm ? `<td>${esc(g.listings[0]._comm || g.community || '—')}</td><td class="num">${g.listings[0]._dist !== null && g.listings[0]._dist !== undefined ? g.listings[0]._dist + 'm' : '—'}</td>` : ''}
@@ -554,7 +607,7 @@ function rowsHTML(groups, withComm){
       <td class="num">${g.sizeMain !== null ? g.sizeMain + '坪' : '<span class="miss">—</span>'}</td>
       <td>${g.layout ? esc(g.layout) : '<span class="miss">—</span>'}</td>
       <td class="num">${g.minPrice !== null ? fmtW(g.minPrice) + (g.count > 1 ? '<span class="badge-n">' + g.count + ' 家刊登</span>' : '') : '<span class="miss">—</span>'}</td>
-      <td class="col-park"><input class="park-in pp" data-k="${key}" type="number" placeholder="價" title="車位價(萬)" value="${pk.p !== null && pk.p !== undefined ? pk.p : ''}">/<input class="park-in ps" data-k="${key}" type="number" step="0.01" placeholder="${g.sizePark !== null ? g.sizePark : '坪'}" title="車位坪" value="${pk.s !== null && pk.s !== undefined ? pk.s : ''}"></td>
+      <td class="col-park"><span class="no-print"><input class="park-in pp" data-k="${key}" type="number" placeholder="價" title="車位價(萬)" value="${pk.p !== null && pk.p !== undefined ? pk.p : ''}">/<input class="park-in ps" data-k="${key}" type="number" step="0.01" placeholder="${g.sizePark !== null ? g.sizePark : '坪'}" title="車位坪" value="${pk.s !== null && pk.s !== undefined ? pk.s : ''}"></span><span class="park-print">${printPark}</span></td>
       <td class="num">${unitCell(g._e)}</td>
       <td class="col-link">${links}</td>
       <td class="col-del no-print"><button class="btn-del" data-del="${ids}" title="剔除這一戶">✕</button></td>
@@ -562,9 +615,7 @@ function rowsHTML(groups, withComm){
   }).join('');
 }
 function meRowHTML(myUnit, myAdj){
-  const parkTxt = (MY.pp !== null || MY.ps !== null)
-    ? (MY.pp !== null ? fmtW(MY.pp) + '萬' : '') + (MY.ps !== null ? '/' + MY.ps + '坪' : '')
-    : '—';
+  const parkTxt = parkText591(MY.pp, MY.ps);
   return `<tr class="me">
     <td class="col-check no-print"></td>
     <td class="num"><span class="me-tag">本案</span> ${MY.floor ? MY.floor + 'F' : '—'}</td>
@@ -586,6 +637,8 @@ function render(){
   const gm = groupUnits591(mine).map(annotatePark).sort(cmpSort);
   const gn = groupUnits591(near).map(annotatePark).sort(cmpSort);
   $('#pasteStat').textContent = `已貼 ${pasteCount} 次｜累計 ${ALL.size} 筆刊登 → 本社區 ${mine.length} 筆（歸戶後 ${gm.length} 戶）｜鄰近 ${near.length} 筆｜無法歸類 ${unk.length} 筆`;
+  const incomplete = [...mine, ...near, ...unk].filter(it => it.price === null || it.size === null || !it.floor).length;
+  if (incomplete) $('#pasteStat').textContent += `｜⚠ ${incomplete} 筆缺總價、坪數或樓層，無法完整比較與歸戶；請改從一般中古屋清單複製。`;
   $('#exNote').innerHTML = EXCLUDED.size ? `已剔除 ${EXCLUDED.size} 筆　<a href="#" class="restore-ex">全部復原</a>` : '';
   $('#resSec').style.display = 'block';
 
@@ -625,12 +678,12 @@ function render(){
   /* 鄰近競品表 */
   if (gn.length){
     $('#nearSec2').style.display = 'block';
-    $('#nearTitle').textContent = `鄰近競品（${RADIUS} 公尺內）`;
+    $('#nearTitle').textContent = CUSTOM ? '其他社區競品（手動納入）' : `鄰近競品（${RADIUS} 公尺內／手動納入）`;
     $('#nearList2').innerHTML = `<div class="tbl-wrap"><table class="ct"><thead>${TH_NEAR}</thead><tbody>${rowsHTML(gn, true)}</tbody></table></div>`;
   } else $('#nearSec2').style.display = 'none';
 
   /* 成交對照（紙本上超連結點不了，加 QR code 給屋主用手機掃） */
-  const st = commStats591(SEL);
+  const st = CUSTOM ? null : commStats591(SEL);
   if (st){
     let cmp = '';
     if (units.length){
@@ -651,9 +704,11 @@ function render(){
       <span>${esc(it.title || '')}</span>
       <span>${it.price !== null ? fmtW(it.price) + '萬' : ''}${it.unitPrice !== null ? '｜' + it.unitPrice.toFixed(1) + '萬/坪' : ''}</span>
       <a href="${it.url}" target="_blank" rel="noopener">開啟 ↗</a>
-      <button class="mini" data-id="${it.id}">✔ 併入比較</button>
+      <button class="mini" data-id="${it.id}">併入其他競品</button>
+      <button class="mini" data-mine="${it.id}">歸入本社區</button>
     </div>`).join('');
     $('#unkList').querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => { INCLUDED.add(b.dataset.id); render(); }));
+    $('#unkList').querySelectorAll('button[data-mine]').forEach(b => b.addEventListener('click', () => { ASSIGNED_MINE.add(b.dataset.mine); render(); }));
   } else $('#unkSec').style.display = 'none';
 
   /* 列印表頭與日期 */
@@ -677,6 +732,17 @@ function qrSvg591(url){
 }
 
 $('#printBtn').addEventListener('click', () => window.print());
+/* 按 Ctrl+P 時可能尚未離開輸入格，列印前先存最新值並同步拆算單價。 */
+window.addEventListener('beforeprint', () => {
+  if (!SEL) return;
+  document.querySelectorAll('.park-in').forEach(el => {
+    const cur = PARK.get(el.dataset.k) || { p:null, s:null };
+    const value = parseFloat(el.value);
+    cur[el.classList.contains('pp') ? 'p' : 's'] = isNaN(value) ? null : value;
+    PARK.set(el.dataset.k, cur);
+  });
+  readMy(); render();
+});
 
 /* 從 591 分頁切回本頁時，自動把貼上框捲到眼前並閃一下，省得使用者找。 */
 function flashZone(){
@@ -708,6 +774,11 @@ $('#bmkLink').setAttribute('href','javascript:('+lk591grab.toString().replace(/\
 /* 深連結：?c=社區名（例如從行情頁或 LINE 帶過來） */
 (function(){
   const c = new URLSearchParams(location.search).get('c');
+  const params = new URLSearchParams(location.search);
+  if (c && params.get('mode') === 'custom'){
+    $('#commMode').value = 'custom'; $('#commMode').dispatchEvent(new Event('change'));
+    $('#commInput').value = c; startWork(); return;
+  }
   if (c && COMMUNITY[c]){ $('#commInput').value = c; startWork(); }
 })();
 </script>
